@@ -48,9 +48,11 @@ available. After build-related changes, run the affected target or
 `bin/longform build all`.
 
 The canonical outputs are PDF, binding PDF, DOCX, LaTeX, and GFM. PDF, DOCX,
-and LaTeX are Quarto book renders. GFM uses Quarto's bundled Pandoc over the
-chapter order resolved by `quarto inspect`, because Quarto books do not support
-combined GFM output.
+and LaTeX are Quarto book renders. GFM uses Quarto's bundled Pandoc because
+Quarto books do not support combined GFM output. Its source is controlled by
+`longform.gfm-source`: `markdown` is the default and preserves GFM-specific
+conditionals, while `latex` converts the canonical LaTeX build for legacy
+export parity and requires citation links to be disabled.
 
 ## Agent Skills
 

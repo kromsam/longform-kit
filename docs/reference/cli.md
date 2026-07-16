@@ -26,11 +26,16 @@ Runs `check` before rendering.
 | `pdf` | Ordinary and binding PDFs |
 | `docx` | Word document |
 | `latex` | Promoted `.tex` plus LaTeX bundle directory |
-| `gfm` | Combined GitHub-flavoured Markdown |
+| `gfm` | Combined GitHub-flavoured Markdown from the configured GFM source |
 
 Quarto renders each native target in a temporary staging directory before the
-wrapper promotes the expected file into `document/build/`. The GFM target uses
-`quarto inspect` and `quarto pandoc` because Quarto books do not support GFM.
+wrapper promotes the expected file into `document/build/`. Quarto books do not
+support combined GFM, so the wrapper invokes `quarto pandoc` itself. With the
+default `longform.gfm-source: markdown`, it reads the chapter order from
+`quarto inspect` and applies the project filters, citation data, and metadata.
+With `gfm-source: latex`, it first refreshes the canonical LaTeX output and then
+converts that file. The LaTeX path requires `link-citations: false` and is
+intended for migration or frozen-export parity.
 
 ## `check`
 
@@ -64,7 +69,9 @@ bin/longform doctor
 ```
 
 Requires Quarto 1.9.38 through 1.9.x and `lualatex`. Reports the bundled Pandoc
-version and whether optional Zettlr is available.
+version and whether optional Zettlr is available. When
+`longform.required-fonts` contains font families, it also requires Fontconfig's
+`fc-match` and rejects missing families or silent substitutions.
 
 Set `QUARTO` or `LONGFORM_QUARTO` to select a Quarto executable:
 

@@ -82,6 +82,60 @@ function outputDir(config: Json): string {
   return scalar(object(config.project)["output-dir"], "build");
 }
 
+function gfmSource(config: Json): "markdown" | "latex" {
+  const configured = object(config.longform)["gfm-source"];
+  const source = configured === undefined ? "markdown" : configured;
+  if (source !== "markdown" && source !== "latex") {
+    throw new Error("longform.gfm-source must be markdown or latex");
+  }
+  return source;
+}
+
+function validateGfmConfig(config: Json): "markdown" | "latex" {
+  const source = gfmSource(config);
+  gfmTocDepth(config);
+  gfmLegacyPlainScalars(config);
+  if (source === "latex" && config["link-citations"] !== false) {
+    throw new Error(
+      "longform.gfm-source: latex requires link-citations: false so citation text survives the LaTeX round trip",
+    );
+  }
+  return source;
+}
+
+function gfmTocDepth(config: Json): string {
+  const depth = scalar(
+    object(config.longform)["gfm-toc-depth"],
+    scalar(config["toc-depth"], "2"),
+  );
+  if (!/^[1-9][0-9]*$/.test(depth)) {
+    throw new Error("longform.gfm-toc-depth must be a positive integer");
+  }
+  return depth;
+}
+
+function requiredFonts(config: Json): string[] {
+  const value = object(config.longform)["required-fonts"];
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) {
+    throw new Error("longform.required-fonts must be a list of font family names");
+  }
+  const fonts = value.map((font) => typeof font === "string" ? font.trim() : "");
+  if (fonts.some((font) => font === "")) {
+    throw new Error("longform.required-fonts must contain only non-empty strings");
+  }
+  return fonts;
+}
+
+function gfmLegacyPlainScalars(config: Json): boolean {
+  const value = object(config.longform)["gfm-legacy-plain-scalars"];
+  if (value === undefined) return false;
+  if (typeof value !== "boolean") {
+    throw new Error("longform.gfm-legacy-plain-scalars must be true or false");
+  }
+  return value;
+}
+
 function zettlrProject(config: Json) {
   return {
     sorting: "name-up",
@@ -196,6 +250,8 @@ async function check() {
   await sync(true);
   await checkBibliography(config, files);
   await validateSemantics(files);
+  validateGfmConfig(config);
+  requiredFonts(config);
   console.log(`Project: ${files.length} ordered source files, configuration valid`);
 }
 
@@ -203,15 +259,72 @@ function metadataArgs(config: Json): string[] {
   const book = object(config.book);
   const args = ["--metadata-file=_quarto.yml"];
   for (const key of ["title", "subtitle", "author", "date", "date-format"]) {
-    let value = scalar(book[key]);
-    if (key === "date" && value === "today") value = new Date().toISOString().slice(0, 10);
+    const value = key === "date" ? resolvedDate(book) : scalar(book[key]);
     if (value) args.push(`--metadata=${key}:${value}`);
   }
   return args;
 }
 
-async function buildGfm() {
-  const config = configFrom(await inspect());
+function resolvedDate(book: Json): string {
+  const value = scalar(book.date);
+  if (value !== "today") return value;
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
+function yamlScalar(
+  value: string,
+  alwaysQuote = false,
+  preserveImplicit = false,
+): string {
+  const implicit = /^(?:~|null|true|false|yes|no|on|off|\.nan|[+-]?\.inf)$/i.test(value) ||
+    /^[+-]?(?:[0-9][0-9_]*(?:\.[0-9_]*)?|\.[0-9_]+)(?:e[+-]?[0-9]+)?$/i.test(value) ||
+    /^[+-]?0[xob][0-9a-f_]+$/i.test(value) ||
+    /^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}(?:$|[Tt ])/.test(value);
+  const unsafe = alwaysQuote || /[\r\n:#]/.test(value) ||
+    /^\s|\s$|^[\-?:,\[\]{}&*!|>'"%@`]/.test(value) ||
+    (!preserveImplicit && implicit);
+  return unsafe ? JSON.stringify(value) : value;
+}
+
+function authorValues(book: Json): string[] {
+  const value = book.author;
+  if (Array.isArray(value)) {
+    return value.map((author) => scalar(author)).filter(Boolean);
+  }
+  const author = scalar(value);
+  return author ? [author] : [];
+}
+
+function gfmVariableArgs(config: Json): string[] {
+  const book = object(config.book);
+  const longform = object(config.longform);
+  const preserveImplicit = gfmLegacyPlainScalars(config);
+  const values: Array<[string, string, boolean?]> = [
+    ["date-yaml", resolvedDate(book)],
+    ["degreetitle-yaml", scalar(longform["degree-title"])],
+    ["institute-yaml", scalar(longform.institute)],
+    ["lang-yaml", scalar(config.lang, "en-GB")],
+    ["reference-section-title-yaml", scalar(config["reference-section-title"], "Bibliography")],
+    ["studentnumber-yaml", scalar(longform["student-number"])],
+    ["subtitle-yaml", scalar(book.subtitle), true],
+    ["supervisor-yaml", scalar(longform.supervisor)],
+    ["title-yaml", scalar(book.title)],
+  ];
+  const args = values
+    .filter(([, value]) => value !== "")
+    .map(([key, value, alwaysQuote]) =>
+      `--variable=${key}:${yamlScalar(value, alwaysQuote, preserveImplicit)}`
+    );
+  for (const author of authorValues(book)) {
+    args.push(`--variable=author-yaml:${yamlScalar(author, false, preserveImplicit)}`);
+  }
+  return args;
+}
+
+async function buildMarkdownGfm(config: Json) {
   const files = chapterFiles(config);
   const directory = join(projectDir, outputDir(config));
   const output = join(directory, `${outputFile(config)}.md`);
@@ -223,7 +336,7 @@ async function buildGfm() {
     "--to=gfm-raw_html",
     "--standalone",
     "--toc",
-    `--toc-depth=${scalar(config["toc-depth"], "2")}`,
+    `--toc-depth=${gfmTocDepth(config)}`,
     "--top-level-division=chapter",
     "--metadata=link-citations:false",
     ...metadataArgs(config),
@@ -233,6 +346,42 @@ async function buildGfm() {
     `--output=${output}`,
   ], { stdout: "inherit", stderr: "inherit" });
   console.log(`Wrote ${relative(dirname(projectDir), output)}`);
+}
+
+async function buildLatexGfm(config: Json) {
+  validateGfmConfig(config);
+  const directory = join(projectDir, outputDir(config));
+  const latex = join(directory, `${outputFile(config)}.tex`);
+  const output = join(directory, `${outputFile(config)}.md`);
+  try {
+    await Deno.stat(latex);
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) {
+      throw new Error("GFM export requires the canonical LaTeX build first");
+    }
+    throw error;
+  }
+  await Deno.mkdir(directory, { recursive: true });
+  await run(quarto, [
+    "pandoc",
+    latex,
+    "--from=latex",
+    "--to=gfm+raw_html",
+    "--standalone",
+    "--toc",
+    `--toc-depth=${gfmTocDepth(config)}`,
+    ...metadataArgs(config),
+    ...gfmVariableArgs(config),
+    `--template=${join(extensionDir, "gfm-latex.template.md")}`,
+    `--output=${output}`,
+  ], { stdout: "inherit", stderr: "inherit" });
+  console.log(`Wrote ${relative(dirname(projectDir), output)}`);
+}
+
+async function buildGfm() {
+  const config = configFrom(await inspect());
+  if (gfmSource(config) === "latex") await buildLatexGfm(config);
+  else await buildMarkdownGfm(config);
 }
 
 const [command, argument] = Deno.args;
@@ -251,7 +400,12 @@ try {
       const config = configFrom(await inspect());
       if (argument === "output-file") console.log(outputFile(config));
       else if (argument === "output-dir") console.log(outputDir(config));
-      else throw new Error("info expects output-file or output-dir");
+      else if (argument === "gfm-source") console.log(gfmSource(config));
+      else if (argument === "required-fonts") {
+        console.log(requiredFonts(config).join("\n"));
+      } else {
+        throw new Error("info expects output-file, output-dir, gfm-source, or required-fonts");
+      }
       break;
     }
     default:

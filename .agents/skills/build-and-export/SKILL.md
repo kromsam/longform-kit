@@ -33,6 +33,10 @@ bin/longform build all
 - Never patch generated outputs. Fix Markdown, `_quarto.yml`, the binding
   profile, reference DOCX, or vendored extension source as appropriate.
 - Keep the ordinary and binding PDF profiles distinct.
-- Remember that combined GFM is built by Quarto's bundled Pandoc, not Quarto's
-  unsupported book-to-GFM route.
+- Check `longform.gfm-source` before diagnosing GFM. The default `markdown` mode
+  uses the ordered manuscript sources and preserves GFM conditionals. The
+  `latex` compatibility mode refreshes canonical LaTeX first and requires
+  `link-citations: false`.
+- When `longform.required-fonts` is configured, treat a failing `doctor` font
+  check as a build blocker rather than accepting a substituted family.
 - Report missing dependencies or unverified visual behavior explicitly.

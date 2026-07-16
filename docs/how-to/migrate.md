@@ -38,7 +38,37 @@ Convert raw epigraphs and page breaks to the semantic forms documented in
 content with supported Quarto conditional Divs. Move project-level format
 options into `_quarto.yml` or the binding profile.
 
-## 5. Validate And Compare
+## 5. Encode Only The Required Compatibility Rules
+
+Keep `longform.gfm-source: markdown` unless comparison shows that the accepted
+GFM depends on the canonical LaTeX export. In that case, select `latex` and set
+the GFM TOC depth independently:
+
+```yaml
+longform:
+  gfm-source: latex
+  gfm-toc-depth: 2
+link-citations: false
+```
+
+The LaTeX-derived path requires citation links to be disabled and resolves
+format conditionals for LaTeX. Record that tradeoff in the project
+documentation.
+
+Translate verified DOCX behavior into explicit options rather than carrying
+forward output patches. Available controls include `docx-toc-depth`,
+`docx-toc-switches`, `docx-toc-heading-pagebreak`, `docx-toc-leading-blank`,
+`docx-bibliography-leading-blank`, and
+`preserve-attached-note-positions`. Epigraph Divs can select a leading break,
+separator, flush quotation, or named DOCX styles. Leave each compatibility
+setting at its default until a structural or visual comparison demonstrates the
+need for it.
+
+List production font families under `longform.required-fonts` when substitution
+would invalidate the comparison, then run `bin/longform doctor` on every build
+machine.
+
+## 6. Validate And Compare
 
 ```sh
 bin/longform zettlr sync

@@ -53,6 +53,8 @@ def inspect() -> dict:
 def assert_gfm(path: Path, title: str) -> None:
     require_file(path)
     text = path.read_text(encoding="utf-8")
+    if text.startswith("---\n"):
+        fail("default Markdown-derived GFM unexpectedly uses the LaTeX-mode YAML header")
     assert_order(
         text,
         [
@@ -64,9 +66,24 @@ def assert_gfm(path: Path, title: str) -> None:
         ],
         "GFM",
     )
-    for expected in ("[^1]", "The Example Book", "Example Press", "1–2"):
+    for expected in ("[^1]", "The Example Book", "2nd ed.", "Example Press", "1–2"):
         if expected not in text:
             fail(f"GFM is missing citation content: {expected!r}")
+    note = re.search(r"^\[\^1\]:(.*(?:\n(?: {4}|\t).*)*)", text, re.MULTILINE)
+    if note is None:
+        fail("GFM does not contain the expected citation footnote definition")
+    normalized_note = re.sub(r"\s+", " ", note.group(0))
+    for expected in (
+        "Alex Example",
+        "The Example Book",
+        "2nd ed.",
+        "Example Press",
+        "1–2",
+    ):
+        if expected not in normalized_note:
+            fail(f"GFM citation footnote is missing content: {expected!r}")
+    if "`../bin/longform build all`" not in text:
+        fail("Markdown-derived GFM changed spaces inside the sample code span")
     for leaked in ("\\chapter", "\\epigraph", "\\newpage", "::: {.epigraph"):
         if leaked in text:
             fail(f"GFM contains output-specific source markup: {leaked!r}")
@@ -82,6 +99,7 @@ def assert_latex(path: Path) -> None:
         "\\tableofcontents",
         "\\begin{CSLReferences}",
         "The Example Book",
+        "2nd ed.",
     ):
         if expected not in text:
             fail(f"LaTeX is missing structural content: {expected!r}")
@@ -177,6 +195,8 @@ def assert_docx(path: Path, title: str) -> None:
         fail("DOCX does not request field updates when opened")
     if "The Example Book" not in xml_text(footnotes):
         fail("DOCX footnotes do not contain the rendered citation")
+    if "2nd ed." not in xml_text(footnotes):
+        fail("DOCX footnotes do not preserve the abbreviated edition label")
 
 
 def command_output(*args: str) -> str:

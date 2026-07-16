@@ -31,6 +31,10 @@ output_dir() {
   run_project_tool info output-dir
 }
 
+gfm_source() {
+  run_project_tool info gfm-source
+}
+
 doctor() {
   require "$QUARTO_BIN"
   version=$($QUARTO_BIN --version)
@@ -41,6 +45,23 @@ doctor() {
   patch=${version##*.}
   [ "$patch" -ge 38 ] || die "Quarto 1.9.38 or newer is required; found $version"
   require lualatex
+  required_fonts=$(run_project_tool info required-fonts)
+  if [ -n "$required_fonts" ]; then
+    require fc-match
+    old_ifs=$IFS
+    IFS='
+'
+    for font in $required_fonts; do
+      requested=$(printf '%s' "$font" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]')
+      [ -n "$requested" ] || die "invalid required font family: $font"
+      matched=$(fc-match -f '%{family}\n' "$font" | sed -n '1{s/,.*//;p;}')
+      resolved=$(printf '%s' "$matched" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]')
+      [ "$resolved" = "$requested" ] ||
+        die "required font not available: $font (fc-match resolved: $matched)"
+    done
+    IFS=$old_ifs
+    printf 'Required fonts available\n'
+  fi
   "$QUARTO_BIN" pandoc --version | sed -n '1p'
   printf 'Quarto %s\n' "$version"
   printf 'LuaLaTeX available\n'
@@ -75,7 +96,12 @@ render_single() {
   else
     run_quarto render --to "$target" --output-dir "$stage"
   fi
-  source=$(find "$stage" -maxdepth 1 -type f -name "*.$extension" -print | sed -n '1p')
+  source=
+  for candidate in "$stage"/*."$extension"; do
+    [ -f "$candidate" ] || continue
+    source=$candidate
+    break
+  done
   [ -n "$source" ] || die "Quarto did not produce a .$extension file"
   promote "$source" "$PROJECT/$final_dir/$final_name.$extension"
   rm -rf "$stage"
@@ -115,23 +141,29 @@ build() {
       ;;
     docx) render_single longform-kit-docx docx ;;
     latex) render_latex ;;
-    gfm) run_project_tool gfm ;;
+    gfm)
+      if [ "$(gfm_source)" = latex ]; then render_latex; fi
+      run_project_tool gfm
+      ;;
     *) die "build expects all, pdf, docx, latex, or gfm" ;;
   esac
 }
 
 lint_sources() {
   found=0
+  status=0
   if command -v vale >/dev/null 2>&1; then
     found=1
     find "$PROJECT" -type f \( -name '*.md' -o -name '*.qmd' \) \
-      ! -path '*/build/*' -exec vale {} +
+      ! -path '*/build/*' -exec vale {} + || status=$?
   fi
   if command -v harper-cli >/dev/null 2>&1; then
     found=1
-    find "$PROJECT/manuscript" -type f -name '*.md' -exec harper-cli lint -d british {} +
+    find "$PROJECT/manuscript" -type f -name '*.md' \
+      -exec harper-cli lint -d british {} + || status=$?
   fi
   [ "$found" -eq 1 ] || printf 'No supported prose linter found; skipping lint\n'
+  return "$status"
 }
 
 setup_project() {

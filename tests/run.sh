@@ -3,20 +3,26 @@ set -eu
 
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 PYTHON=${PYTHON:-python3}
+QUARTO_BIN=${QUARTO:-${LONGFORM_QUARTO:-quarto}}
 
 command -v "$PYTHON" >/dev/null 2>&1 || {
   printf 'tests: missing required command: %s\n' "$PYTHON" >&2
+  exit 1
+}
+command -v "$QUARTO_BIN" >/dev/null 2>&1 || {
+  printf 'tests: missing required command: %s\n' "$QUARTO_BIN" >&2
   exit 1
 }
 
 cd "$ROOT"
 
 ./bin/longform check
-"$PYTHON" tests/assert_project.py
+PYTHONDONTWRITEBYTECODE=1 "$PYTHON" tests/assert_project.py
+PYTHONDONTWRITEBYTECODE=1 "$PYTHON" tests/assert_extension.py
 
 for format in gfm docx latex; do
   ./bin/longform build "$format"
-  "$PYTHON" tests/assert_outputs.py "$format"
+  PYTHONDONTWRITEBYTECODE=1 "$PYTHON" tests/assert_outputs.py "$format"
 done
 
 pdf_tools=true
@@ -29,7 +35,7 @@ done
 
 if [ "$pdf_tools" = true ]; then
   ./bin/longform build pdf
-  "$PYTHON" tests/assert_outputs.py pdf
+  PYTHONDONTWRITEBYTECODE=1 "$PYTHON" tests/assert_outputs.py pdf
 elif [ "${LONGFORM_REQUIRE_PDF:-0}" = 1 ]; then
   printf 'tests: PDF verification is required in this environment\n' >&2
   exit 1

@@ -16,6 +16,14 @@ local function bool_attr(div, name, fallback)
   error('Longform Kit: ' .. name .. ' must be true or false')
 end
 
+local function longform_bool(meta, name, fallback)
+  if meta.longform == nil or meta.longform[name] == nil then return fallback end
+  local value = meta_text(meta.longform[name], tostring(fallback)):lower()
+  if value == 'true' then return true end
+  if value == 'false' then return false end
+  error('Longform Kit: ' .. name .. ' must be true or false')
+end
+
 local function epigraph_parts(div)
   if #div.content ~= 2 then
     error('Longform Kit: epigraphs require one quotation block and one attribution block')
@@ -63,6 +71,11 @@ local function docx_pagebreak()
     '<w:p><w:r><w:br w:type="page"/></w:r></w:p>')
 end
 
+local function docx_empty_paragraph(style)
+  return pandoc.RawBlock('openxml',
+    '<w:p><w:pPr><w:pStyle w:val="' .. style .. '"/></w:pPr></w:p>')
+end
+
 local function styled_div(blocks, class_name, style)
   return pandoc.Div(blocks,
     pandoc.Attr('', {class_name}, {['custom-style'] = style}))
@@ -71,9 +84,24 @@ end
 local function docx_epigraph(div, front)
   local quote, source = epigraph_parts(div)
   local output = pandoc.List()
+  local quote_style = div.attributes['docx-quote-style']
+  if quote_style == nil then
+    quote_style = bool_attr(div, 'docx-flush', false)
+      and 'Epigraph Text Flush' or 'Epigraph Text'
+  end
+  local source_style = div.attributes['docx-source-style'] or 'Epigraph Source'
   if bool_attr(div, 'pagebreak-before', front) then output:insert(docx_pagebreak()) end
-  output:insert(styled_div(quote, 'epigraph-quote', 'Epigraph Text'))
-  output:insert(styled_div(source, 'epigraph-source', 'Epigraph Source'))
+  if bool_attr(div, 'leading-break', false) then
+    local first = quote[1]
+    if first and (first.t == 'Para' or first.t == 'Plain') then
+      first.content:insert(1, pandoc.LineBreak())
+    end
+  end
+  output:insert(styled_div(quote, 'epigraph-quote', quote_style))
+  output:insert(styled_div(source, 'epigraph-source', source_style))
+  if not front and bool_attr(div, 'separator', true) then
+    output:insert(pandoc.HorizontalRule())
+  end
   if bool_attr(div, 'pagebreak-after', front) then output:insert(docx_pagebreak()) end
   return output
 end
@@ -93,7 +121,38 @@ end
 
 local function toc_field(meta)
   local title = meta_text(meta['toc-title'], 'Contents')
-  local depth = tonumber(meta_text(meta['toc-depth'], '2')) or 2
+  local configured_depth = nil
+  if meta.longform ~= nil then
+    configured_depth = meta.longform['docx-toc-depth']
+  end
+  if configured_depth == nil then configured_depth = meta['toc-depth'] end
+  local depth_text = meta_text(configured_depth, '2')
+  if not depth_text:match('^[1-9]%d*$') then
+    error('Longform Kit: docx-toc-depth must be a positive integer')
+  end
+  local depth = tonumber(depth_text)
+  local configured_switches = nil
+  if meta.longform ~= nil then
+    configured_switches = meta.longform['docx-toc-switches']
+  end
+  local switch_text = meta_text(configured_switches, 'h z u')
+  local switches = pandoc.List()
+  local seen = {}
+  for raw_switch in switch_text:gmatch('[^,%s]+') do
+    local switch = raw_switch:gsub('^\\', '')
+    if switch ~= 'h' and switch ~= 'z' and switch ~= 'u' then
+      error('Longform Kit: docx-toc-switches accepts only h, z, and u')
+    end
+    if not seen[switch] then
+      switches:insert('\\' .. switch)
+      seen[switch] = true
+    end
+  end
+  local switch_suffix = #switches > 0 and ' ' .. table.concat(switches, ' ') or ''
+  local heading_break = ''
+  if longform_bool(meta, 'docx-toc-heading-pagebreak', false) then
+    heading_break = '<w:r><w:br w:type="page"/></w:r>'
+  end
   local escaped_title = title:gsub('&', '&amp;'):gsub('<', '&lt;'):gsub('>', '&gt;')
   local xml = table.concat({
     '<w:sdt>',
@@ -101,10 +160,11 @@ local function toc_field(meta)
     '<w:docPartUnique/></w:docPartObj></w:sdtPr>',
     '<w:sdtContent>',
     '<w:p><w:pPr><w:pStyle w:val="TOCHeading"/></w:pPr>',
+    heading_break,
     '<w:r><w:t xml:space="preserve">' .. escaped_title .. '</w:t></w:r></w:p>',
     '<w:p><w:r><w:fldChar w:fldCharType="begin" w:dirty="true"/>',
     '<w:instrText xml:space="preserve">TOC \\o &quot;1-' .. depth ..
-      '&quot; \\h \\z \\u</w:instrText>',
+      '&quot;' .. switch_suffix .. '</w:instrText>',
     '<w:fldChar w:fldCharType="separate"/>',
     '<w:fldChar w:fldCharType="end"/></w:r></w:p>',
     '</w:sdtContent></w:sdt>'
@@ -113,8 +173,16 @@ local function toc_field(meta)
 end
 
 local function bibliography_breaks(meta)
-  if meta.longform == nil then return 1 end
-  return tonumber(meta_text(meta.longform['bibliography-pagebreaks'], '1')) or 1
+  local value = meta.longform and meta.longform['bibliography-pagebreaks'] or nil
+  local text = meta_text(value, '1')
+  if not text:match('^%d+$') then
+    error('Longform Kit: bibliography-pagebreaks must be a non-negative integer')
+  end
+  return tonumber(text)
+end
+
+local function bibliography_leading_blank(meta)
+  return longform_bool(meta, 'docx-bibliography-leading-blank', false)
 end
 
 local function style_bibliography(div)
@@ -195,33 +263,64 @@ local function inject_latex_title_metadata(meta)
   meta['header-includes'] = includes
 end
 
+local function preserve_attached_note_positions(inlines)
+  for index = 1, #inlines do
+    local inline = inlines[index]
+    local following = inlines[index + 1]
+    local preceding = inlines[index - 1]
+    if inline and inline.t == 'Cite' and following and following.t == 'Str'
+        and following.text:match('^[%.,;:!?]')
+        and (not preceding or preceding.t ~= 'Space') then
+      inlines[index] = pandoc.Span(
+        {inline}, pandoc.Attr('', {'note-before-punctuation'}))
+    end
+  end
+  return inlines
+end
+
 function Pandoc(doc)
   inject_latex_title_metadata(doc.meta)
   doc = apply_gfm_conditionals(doc)
+  if longform_bool(doc.meta, 'preserve-attached-note-positions', false) then
+    doc = doc:walk({Inlines = preserve_attached_note_positions})
+  end
   doc = pandoc.utils.citeproc(doc)
   local body = pandoc.List()
   local front = nil
+  local first_after_epigraph = false
 
   for _, block in ipairs(doc.blocks) do
     if block.t == 'Div' and block.classes:includes('front-epigraph') then
       if front ~= nil then error('Longform Kit: only one front epigraph is allowed') end
       front = block
+      first_after_epigraph = false
     elseif block.t == 'Header' and block.level == 1 and stringify(block.content) == '' then
       -- Quarto books synthesize an empty chapter for an epigraph-only index.qmd.
+      first_after_epigraph = false
     elseif block.t == 'Div' and block.classes:includes('epigraph') then
       body:extend(transform_epigraph(block, false))
+      first_after_epigraph = FORMAT == 'docx'
     else
-      body:insert(block)
+      if first_after_epigraph and block.t == 'Para' then
+        body:insert(styled_div({block}, 'first-after-epigraph', 'First Paragraph'))
+      else
+        body:insert(block)
+      end
+      first_after_epigraph = false
     end
   end
 
   if FORMAT == 'docx' then
     local output = pandoc.List()
     if front then output:extend(transform_epigraph(front, true)) end
+    if longform_bool(doc.meta, 'docx-toc-leading-blank', false) then
+      output:insert(docx_empty_paragraph('Normal'))
+    end
     output:insert(toc_field(doc.meta))
     if not front then output:insert(docx_pagebreak()) end
 
     local breaks = bibliography_breaks(doc.meta)
+    local leading_blank = bibliography_leading_blank(doc.meta)
     for index, block in ipairs(body) do
       local next_block = body[index + 1]
       if block.t == 'Header' and next_block and next_block.t == 'Div' and
@@ -229,6 +328,7 @@ function Pandoc(doc)
         for _ = 1, breaks do output:insert(docx_pagebreak()) end
       end
       if block.t == 'Div' and block.identifier == 'refs' then
+        if leading_blank then output:insert(docx_empty_paragraph('FirstParagraph')) end
         output:insert(style_bibliography(block))
       else
         output:insert(block)

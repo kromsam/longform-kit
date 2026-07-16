@@ -1,0 +1,12 @@
+link-citations: false
+
+book:
+  title: "true"
+  subtitle: 'Line one: "quoted" # evidence'
+  author:
+    - name: "Doe: Jane"
+    - name: "001234"
+
+longform:
+  gfm-source: latex
+  gfm-toc-depth: 1

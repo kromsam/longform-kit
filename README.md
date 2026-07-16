@@ -20,6 +20,7 @@ Requirements:
 
 - Quarto 1.9.38 through 1.9.x
 - LuaLaTeX, normally supplied by TeX Live or MacTeX
+- Fontconfig's `fc-match` when `longform.required-fonts` is configured
 - EB Garamond for the intended DOCX typography; Word substitutes another font
   when it is unavailable
 - Zettlr and Zotero with Better BibTeX for the intended authoring workflow
@@ -69,9 +70,14 @@ chapter list, local CSL file, bibliography structure, citation keys, semantic
 epigraphs, and the generated Zettlr project file.
 
 PDF, DOCX, and LaTeX use Quarto's combined book pipeline. Quarto does not support
-combined GFM book output, so `build gfm` asks `quarto inspect` for the resolved
-chapter order and invokes Quarto's bundled Pandoc directly with the same filters,
-citations, and metadata. See [Architecture](docs/explanation/architecture.md).
+combined GFM book output, so Longform Kit provides two explicit GFM sources.
+The default `markdown` mode asks `quarto inspect` for the ordered chapters and
+runs Quarto's bundled Pandoc with the project filters and citation data. The
+optional `latex` mode renders the canonical LaTeX output first and converts that
+file to GFM for compatibility with workflows whose semantics live in the LaTeX
+export. LaTeX-derived GFM requires `link-citations: false` for a reliable
+citeproc round trip. See [Architecture](docs/explanation/architecture.md) and
+[Compatibility](docs/reference/compatibility.md).
 
 ## Documentation
 

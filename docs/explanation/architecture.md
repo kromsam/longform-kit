@@ -63,11 +63,22 @@ Quarto combines the book and invokes Pandoc
         v
 Lua filters + citeproc transform the AST
         |
-        v
-PDF / binding PDF / DOCX / LaTeX
+        +----> PDF / binding PDF / DOCX / LaTeX
+        |
+        +----> canonical LaTeX ----> GFM compatibility mode
 ```
 
-GFM is one explicit exception. Quarto books cannot render a combined GFM file.
-The wrapper still asks `quarto inspect` for the resolved order and uses Quarto's
-bundled Pandoc, the same metadata, and the same filters to produce it. This is a
-capability boundary in Quarto, not a second authoring model.
+GFM is one explicit exception. Quarto books cannot render a combined GFM file,
+so the wrapper uses Quarto's bundled Pandoc outside the combined book writer.
+The default `longform.gfm-source: markdown` path asks `quarto inspect` for the
+resolved order and processes those sources with the project metadata, citation
+data, and filters. It preserves GFM-specific conditional content and is the
+normal authoring path.
+
+The optional `gfm-source: latex` path first refreshes the canonical LaTeX build
+and converts that file. It exists for established projects whose accepted GFM
+output depends on transformations already expressed in the LaTeX export. Since
+citeproc has already rendered notes and bibliography entries, the conversion
+requires `link-citations: false` rather than trying to reconstruct citation
+semantics a second time. This remains one authoring model with two deliberate
+conversion boundaries, not two competing source trees.

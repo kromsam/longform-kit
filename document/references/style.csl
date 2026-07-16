@@ -43,6 +43,10 @@
         <multiple>vols.</multiple>
       </term>
       <term form="verb-short" name="compiler">comp.</term>
+      <term form="short" name="edition">
+        <single>ed.</single>
+        <multiple>eds.</multiple>
+      </term>
       <term form="verb-short" name="editor">ed.</term>
       <term form="short" name="editor-translator">
         <single>ed. and trans.</single>
