@@ -6,6 +6,13 @@ All notable changes to Longform Kit are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-07-16
+
+### Fixed
+
+- Cross-platform CI now uses the dedicated TinyTeX setup action and updates
+  `tlmgr` before installing project packages.
+
 ## [0.1.0] - 2026-07-16
 
 ### Added
@@ -19,5 +26,6 @@ All notable changes to Longform Kit are documented here. The format follows
 - Provider-neutral `AGENTS.md` template and four Agent Skills.
 - Tutorial, how-to, reference, and explanation documentation.
 
-[Unreleased]: https://github.com/kromsam/longform-kit/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/kromsam/longform-kit/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/kromsam/longform-kit/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/kromsam/longform-kit/releases/tag/v0.1.0
