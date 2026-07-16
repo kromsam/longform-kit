@@ -1,0 +1,11 @@
+# Upstream maintenance files are not part of a generated writing project.
+CONTRIBUTING.md
+SECURITY.md
+tests/**
+
+# Never seed a new project with local render state or outputs.
+document/.quarto/**
+document/build/**
+document/index.tex
+document/index.pdf
+document/*.log

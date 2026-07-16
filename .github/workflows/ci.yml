@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@8a96df13519ee81fd526f2dfca5962811136661b # v2.2.0
+        with:
+          version: 1.9.38
+          tinytex: true
+
+      - name: Install PDF inspection tools (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes poppler-utils qpdf
+
+      - name: Install PDF inspection tools (macOS)
+        if: runner.os == 'macOS'
+        run: brew install poppler qpdf
+
+      - name: Install Longform Kit TeX packages
+        run: tlmgr install emptypage epigraph etoolbox fancyhdr nowidow
+
+      - name: Check toolchain
+        run: ./bin/longform doctor
+
+      - name: Run structural verification
+        env:
+          LONGFORM_REQUIRE_PDF: "1"
+        run: ./tests/run.sh

@@ -1,0 +1,9 @@
+/document/build/
+/document/.quarto/
+/document/index.tex
+/document/index.pdf
+/document/.~lock.*#
+*.log
+__pycache__/
+*.py[cod]
+.DS_Store

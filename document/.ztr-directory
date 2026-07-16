@@ -1,0 +1,20 @@
+{
+  "sorting": "name-up",
+  "project": {
+    "title": "A Longform Document",
+    "profiles": [],
+    "files": [
+      "index.qmd",
+      "manuscript/01-introduction.md",
+      "manuscript/02-conclusion.md",
+      "references.md"
+    ],
+    "cslStyle": "references/style.csl",
+    "templates": {
+      "tex": "",
+      "html": ""
+    }
+  },
+  "icon": null,
+  "color": null
+}

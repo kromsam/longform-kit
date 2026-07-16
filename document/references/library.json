@@ -1,0 +1,20 @@
+[
+  {
+    "id": "exampleBook2024",
+    "type": "book",
+    "title": "The Example Book",
+    "author": [
+      {
+        "family": "Example",
+        "given": "Alex"
+      }
+    ],
+    "issued": {
+      "date-parts": [
+        [2024]
+      ]
+    },
+    "publisher": "Example Press",
+    "publisher-place": "Amsterdam"
+  }
+]

@@ -1,0 +1,6 @@
+format:
+  longform-kit-pdf:
+    classoption:
+      - twoside
+      - openright
+    geometry: "twoside,inner=43mm,outer=29mm"

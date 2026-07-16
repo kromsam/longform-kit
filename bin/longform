@@ -1,0 +1,189 @@
+#!/bin/sh
+set -eu
+
+ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
+PROJECT="$ROOT/document"
+QUARTO_BIN=${QUARTO:-${LONGFORM_QUARTO:-quarto}}
+export LONGFORM_QUARTO="$QUARTO_BIN"
+
+die() {
+  printf 'longform: %s\n' "$*" >&2
+  exit 1
+}
+
+require() {
+  command -v "$1" >/dev/null 2>&1 || die "missing required command: $1"
+}
+
+run_quarto() {
+  (cd "$PROJECT" && "$QUARTO_BIN" "$@")
+}
+
+run_project_tool() {
+  run_quarto run _extensions/longform-kit/scripts/project.ts "$@"
+}
+
+output_file() {
+  run_project_tool info output-file
+}
+
+output_dir() {
+  run_project_tool info output-dir
+}
+
+doctor() {
+  require "$QUARTO_BIN"
+  version=$($QUARTO_BIN --version)
+  case "$version" in
+    1.9.*) ;;
+    *) die "Quarto 1.9.38 through 1.9.x is required; found $version" ;;
+  esac
+  patch=${version##*.}
+  [ "$patch" -ge 38 ] || die "Quarto 1.9.38 or newer is required; found $version"
+  require lualatex
+  "$QUARTO_BIN" pandoc --version | sed -n '1p'
+  printf 'Quarto %s\n' "$version"
+  printf 'LuaLaTeX available\n'
+  if command -v zettlr >/dev/null 2>&1; then
+    printf 'Zettlr available (optional)\n'
+  else
+    printf 'Zettlr not found (optional)\n'
+  fi
+}
+
+promote() {
+  source=$1
+  destination=$2
+  [ -f "$source" ] || die "expected build output not found: $source"
+  mkdir -p "$(dirname "$destination")"
+  cp "$source" "$destination"
+  printf 'Wrote %s\n' "$destination"
+}
+
+render_single() {
+  target=$1
+  extension=$2
+  profile=${3:-}
+  base=$(output_file)
+  final_dir=$(output_dir)
+  final_name=$base
+  [ "$profile" = binding ] && final_name="${base}-binding"
+  stage=$(mktemp -d "${TMPDIR:-/tmp}/longform-kit.XXXXXX")
+  trap 'rm -rf "$stage"' EXIT HUP INT TERM
+  if [ -n "$profile" ]; then
+    run_quarto render --profile "$profile" --to "$target" --output-dir "$stage"
+  else
+    run_quarto render --to "$target" --output-dir "$stage"
+  fi
+  source=$(find "$stage" -maxdepth 1 -type f -name "*.$extension" -print | sed -n '1p')
+  [ -n "$source" ] || die "Quarto did not produce a .$extension file"
+  promote "$source" "$PROJECT/$final_dir/$final_name.$extension"
+  rm -rf "$stage"
+  trap - EXIT HUP INT TERM
+}
+
+render_latex() {
+  base=$(output_file)
+  final_dir=$(output_dir)
+  stage=$(mktemp -d "${TMPDIR:-/tmp}/longform-kit.XXXXXX")
+  trap 'rm -rf "$stage"' EXIT HUP INT TERM
+  run_quarto render --to longform-kit-latex --output-dir "$stage"
+  source=$(find "$stage" -type f -name '*.tex' -print | sed -n '1p')
+  [ -n "$source" ] || die "Quarto did not produce $base.tex"
+  promote "$source" "$PROJECT/$final_dir/$base.tex"
+  bundle="$PROJECT/$final_dir/$base-latex"
+  rm -rf "$bundle"
+  cp -R "$(dirname "$source")" "$bundle"
+  rm -rf "$stage"
+  trap - EXIT HUP INT TERM
+}
+
+build() {
+  target=${1:-all}
+  run_project_tool check
+  case "$target" in
+    all)
+      render_single longform-kit-pdf pdf
+      render_single longform-kit-pdf pdf binding
+      render_single longform-kit-docx docx
+      render_latex
+      run_project_tool gfm
+      ;;
+    pdf)
+      render_single longform-kit-pdf pdf
+      render_single longform-kit-pdf pdf binding
+      ;;
+    docx) render_single longform-kit-docx docx ;;
+    latex) render_latex ;;
+    gfm) run_project_tool gfm ;;
+    *) die "build expects all, pdf, docx, latex, or gfm" ;;
+  esac
+}
+
+lint_sources() {
+  found=0
+  if command -v vale >/dev/null 2>&1; then
+    found=1
+    find "$PROJECT" -type f \( -name '*.md' -o -name '*.qmd' \) \
+      ! -path '*/build/*' -exec vale {} +
+  fi
+  if command -v harper-cli >/dev/null 2>&1; then
+    found=1
+    find "$PROJECT/manuscript" -type f -name '*.md' -exec harper-cli lint -d british {} +
+  fi
+  [ "$found" -eq 1 ] || printf 'No supported prose linter found; skipping lint\n'
+}
+
+setup_project() {
+  [ -f "$ROOT/AGENTS.md" ] || cp "$ROOT/share/templates/AGENTS.md.in" "$ROOT/AGENTS.md"
+  [ -f "$ROOT/.gitignore" ] || cp "$ROOT/share/templates/gitignore.in" "$ROOT/.gitignore"
+  if [ ! -d "$ROOT/.agents/skills" ]; then
+    mkdir -p "$ROOT/.agents"
+    cp -R "$ROOT/share/templates/skills" "$ROOT/.agents/skills"
+  fi
+  run_project_tool sync
+  printf 'Longform Kit project initialized\n'
+}
+
+zettlr() {
+  action=${1:-sync}
+  case "$action" in
+    sync) run_project_tool sync ;;
+    install)
+      destination=${HOME}/.local/bin/longform-zettlr
+      mkdir -p "$(dirname "$destination")"
+      cp "$ROOT/share/templates/longform-zettlr.in" "$destination"
+      chmod +x "$destination"
+      printf 'Installed %s\n' "$destination"
+      printf "Add this Zettlr custom export command: longform-zettlr \"\$1\"\n"
+      ;;
+    *) die "zettlr expects sync or install" ;;
+  esac
+}
+
+usage() {
+  cat <<'EOF'
+Usage: bin/longform COMMAND [ARGUMENT]
+
+Commands:
+  setup                         Initialize agent and Zettlr project files
+  build [all|pdf|docx|latex|gfm]
+  check                         Validate project structure and citations
+  lint                          Run available prose linters
+  doctor                        Check required local tools
+  zettlr [sync|install]         Synchronize or install Zettlr integration
+EOF
+}
+
+command=${1:-help}
+shift || true
+case "$command" in
+  setup) setup_project ;;
+  build) build "${1:-all}" ;;
+  check) run_project_tool check ;;
+  lint) lint_sources ;;
+  doctor) doctor ;;
+  zettlr) zettlr "${1:-sync}" ;;
+  help|-h|--help) usage ;;
+  *) usage >&2; die "unknown command: $command" ;;
+esac
