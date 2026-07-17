@@ -1,72 +1,70 @@
-# Migrate An Existing Pandoc Project
+# Migrate An Existing Pandoc Or Longform Kit Project
 
-Migrate source and behavior separately. Do not copy generated outputs into the
-new source tree.
+Migrate sources and behaviour separately. Do not copy generated outputs into
+the active source tree.
 
 ## 1. Inventory The Existing Project
 
-Record:
+Record ordered Markdown inputs, metadata, bibliography and CSL paths, format
+settings, reference DOCX files, fonts, epigraphs, page breaks, TOC expectations,
+and representative accepted outputs.
 
-- Ordered Markdown inputs and front matter.
-- Shared metadata and output basename.
-- Bibliography and CSL sources.
-- Pandoc defaults, filters, templates, and reference DOCX files.
-- PDF geometry, fonts, title-page rules, epigraphs, page breaks, and TOC order.
-- Existing outputs used for visual comparison.
+## 2. Establish The Root Quarto Project
 
-## 2. Move Authoritative Sources
+Use standard configuration:
 
-Put front matter in `document/index.qmd`, active chapters in
-`document/manuscript/`, and the bibliography location in
-`document/references.md`. Add every ordered source to `book.chapters` in
-`document/_quarto.yml`.
+```yaml
+project:
+  type: book
+  output-dir: build
 
-Keep notes, drafts, archives, and frozen submissions outside the active chapter
-list.
+format:
+  pdf: default
+  docx:
+    toc: true
+    reference-doc: references/reference.docx
+  latex: default
+```
+
+Move all author-maintained Markdown under `document/`. Put the preface in
+`document/front-matter.md`, chapters in `document/manuscript/`, and the
+bibliography target in `document/references.md`. Keep `_quarto.yml`, profiles,
+references, extensions, scripts, and outputs at the root.
+
+Run `bin/longform setup`; it creates the root `index.md` adapter and Zettlr
+project file.
 
 ## 3. Localize Citations
 
-Create a project collection in Zotero, export it as Better CSL JSON to
-`document/references/library.json`, and copy the exact CSL style to
-`document/references/style.csl`. Remove absolute paths to a personal Zotero
-profile.
+Export the Zotero collection as Better CSL JSON to `references/library.json`,
+copy the exact CSL to `references/style.csl`, and remove absolute personal
+paths. Leave citeproc enabled so Quarto owns citation processing.
 
-## 4. Replace Output-Specific Source
+## 4. Replace Custom Semantics
 
-Convert raw epigraphs and page breaks to the semantic forms documented in
-[Semantic Markdown](../reference/semantic-markdown.md). Replace format-only raw
-content with supported Quarto conditional Divs. Move project-level format
-options into `_quarto.yml` or the binding profile.
+Convert legacy epigraph Divs:
 
-## 5. Encode Only The Required Compatibility Rules
-
-Keep `longform.gfm-source: markdown` unless comparison shows that the accepted
-GFM depends on the canonical LaTeX export. In that case, select `latex` and set
-the GFM TOC depth independently:
-
-```yaml
-longform:
-  gfm-source: latex
-  gfm-toc-depth: 2
-link-citations: false
+```markdown
+{{< epigraph "Quotation text." source="Attribution" >}}
 ```
 
-The LaTeX-derived path requires citation links to be disabled and resolves
-format conditionals for LaTeX. Record that tradeoff in the project
-documentation.
+Convert `.pagebreak` Divs or raw `\newpage` commands:
 
-Translate verified DOCX behavior into explicit options rather than carrying
-forward output patches. Available controls include `docx-toc-depth`,
-`docx-toc-switches`, `docx-toc-heading-pagebreak`, `docx-toc-leading-blank`,
-`docx-bibliography-leading-blank`, and
-`preserve-attached-note-positions`. Epigraph Divs can select a leading break,
-separator, flush quotation, or named DOCX styles. Leave each compatibility
-setting at its default until a structural or visual comparison demonstrates the
-need for it.
+```markdown
+{{< pagebreak >}}
+```
 
-List production font families under `longform.required-fonts` when substitution
-would invalidate the comparison, then run `bin/longform doctor` on every build
-machine.
+Keep Quarto `content-visible` and `content-hidden` Divs. The temporary GFM
+render resolves them natively.
+
+## 5. Separate Compatibility From The Generic Kit
+
+Version 0.3 does not carry 0.2's custom title page, front-epigraph placement,
+Word TOC switches and blank paragraphs, attached-note punctuation handling, or
+LaTeX-derived GFM mode. First test Quarto's native behaviour. If an accepted
+frozen export genuinely requires an old rule, keep it in a clearly named,
+project-owned compatibility profile or filter rather than restoring it to the
+generic Longform Kit.
 
 ## 6. Validate And Compare
 
@@ -76,10 +74,6 @@ bin/longform check
 bin/longform build all
 ```
 
-Compare heading hierarchy, citations, notes, title-to-TOC order, bibliography,
-page geometry, typography, and DOCX styles with the reference outputs. Require
-visual and structural parity, not byte identity.
-
-Only retire old scripts, copied templates, global Zettlr profiles, and tracked
-routine exports after parity is established. Preserve intentional submitted
-versions in a separate `submissions/` directory.
+Compare heading hierarchy, citations, notes, title/TOC/chapter order, page
+geometry, typography, DOCX styles, epigraphs, page breaks, and bibliography.
+Require structural and visual equivalence where needed, not container hashes.

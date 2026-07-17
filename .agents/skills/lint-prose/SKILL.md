@@ -13,7 +13,8 @@ description: Run and interpret prose linting for a Longform Kit manuscript with 
 3. Triage findings in context. Linters provide evidence, not editorial
    authority.
 4. Make narrow source edits under `document/`; preserve quotations, citation
-   keys, language attributes, semantic Divs, and technical terminology.
+   keys, language attributes, Quarto shortcodes, conditional Divs, and
+   technical terminology.
 5. Add a word to a project dictionary only when it is genuinely accepted
    terminology or a proper name, not merely to silence a useful warning.
 6. Rerun the linter on the changed material and inspect the diff.

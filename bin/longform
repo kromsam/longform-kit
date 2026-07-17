@@ -2,7 +2,7 @@
 set -eu
 
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
-PROJECT="$ROOT/document"
+PROJECT="$ROOT"
 QUARTO_BIN=${QUARTO:-${LONGFORM_QUARTO:-quarto}}
 export LONGFORM_QUARTO="$QUARTO_BIN"
 
@@ -20,7 +20,22 @@ run_quarto() {
 }
 
 run_project_tool() {
-  run_quarto run _extensions/longform-kit/scripts/project.ts "$@"
+  run_quarto run scripts/project.ts "$@"
+}
+
+prepare_tex_cache() {
+  cache="$ROOT/.cache/texmf"
+  create_cache=false
+  if [ -z "${TEXMFCACHE:-}" ]; then
+    TEXMFCACHE=$cache
+    create_cache=true
+  fi
+  if [ -z "${TEXMFVAR:-}" ]; then
+    TEXMFVAR=$cache
+    create_cache=true
+  fi
+  [ "$create_cache" = false ] || mkdir -p "$cache"
+  export TEXMFCACHE TEXMFVAR
 }
 
 output_file() {
@@ -29,10 +44,6 @@ output_file() {
 
 output_dir() {
   run_project_tool info output-dir
-}
-
-gfm_source() {
-  run_project_tool info gfm-source
 }
 
 doctor() {
@@ -85,6 +96,7 @@ render_single() {
   target=$1
   extension=$2
   profile=${3:-}
+  [ "$target" != pdf ] || prepare_tex_cache
   base=$(output_file)
   final_dir=$(output_dir)
   final_name=$base
@@ -113,7 +125,7 @@ render_latex() {
   final_dir=$(output_dir)
   stage=$(mktemp -d "${TMPDIR:-/tmp}/longform-kit.XXXXXX")
   trap 'rm -rf "$stage"' EXIT HUP INT TERM
-  run_quarto render --to longform-kit-latex --output-dir "$stage"
+  run_quarto render --to latex --output-dir "$stage"
   source=$(find "$stage" -type f -name '*.tex' -print | sed -n '1p')
   [ -n "$source" ] || die "Quarto did not produce $base.tex"
   promote "$source" "$PROJECT/$final_dir/$base.tex"
@@ -129,22 +141,19 @@ build() {
   run_project_tool check
   case "$target" in
     all)
-      render_single longform-kit-pdf pdf
-      render_single longform-kit-pdf pdf binding
-      render_single longform-kit-docx docx
+      render_single pdf pdf
+      render_single pdf pdf binding
+      render_single docx docx
       render_latex
       run_project_tool gfm
       ;;
     pdf)
-      render_single longform-kit-pdf pdf
-      render_single longform-kit-pdf pdf binding
+      render_single pdf pdf
+      render_single pdf pdf binding
       ;;
-    docx) render_single longform-kit-docx docx ;;
+    docx) render_single docx docx ;;
     latex) render_latex ;;
-    gfm)
-      if [ "$(gfm_source)" = latex ]; then render_latex; fi
-      run_project_tool gfm
-      ;;
+    gfm) run_project_tool gfm ;;
     *) die "build expects all, pdf, docx, latex, or gfm" ;;
   esac
 }
@@ -154,12 +163,11 @@ lint_sources() {
   status=0
   if command -v vale >/dev/null 2>&1; then
     found=1
-    find "$PROJECT" -type f \( -name '*.md' -o -name '*.qmd' \) \
-      ! -path '*/build/*' -exec vale {} + || status=$?
+    find "$PROJECT/document" -type f -name '*.md' -exec vale {} + || status=$?
   fi
   if command -v harper-cli >/dev/null 2>&1; then
     found=1
-    find "$PROJECT/manuscript" -type f -name '*.md' \
+    find "$PROJECT/document/manuscript" -type f -name '*.md' \
       -exec harper-cli lint -d british {} + || status=$?
   fi
   [ "$found" -eq 1 ] || printf 'No supported prose linter found; skipping lint\n'
@@ -174,6 +182,14 @@ setup_project() {
     cp -R "$ROOT/share/templates/skills" "$ROOT/.agents/skills"
   fi
   run_project_tool sync
+  # Generate the project LICENSE after sync so the home-page adapter exists and
+  # `quarto inspect` can resolve the author. The kit ships no downstream LICENSE
+  # (see .quartoignore); a filled MIT licence belongs to the project's author.
+  if [ ! -f "$ROOT/LICENSE" ]; then
+    license_tmp=$(mktemp "${TMPDIR:-/tmp}/longform-license.XXXXXX")
+    run_project_tool license >"$license_tmp"
+    mv "$license_tmp" "$ROOT/LICENSE"
+  fi
   printf 'Longform Kit project initialized\n'
 }
 
@@ -187,7 +203,7 @@ zettlr() {
       cp "$ROOT/share/templates/longform-zettlr.in" "$destination"
       chmod +x "$destination"
       printf 'Installed %s\n' "$destination"
-      printf "Add this Zettlr custom export command: longform-zettlr \"\$1\"\n"
+      printf 'Add this Zettlr custom export command: longform-zettlr\n'
       ;;
     *) die "zettlr expects sync or install" ;;
   esac

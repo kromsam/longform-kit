@@ -1,14 +1,13 @@
 # Use Zettlr
 
 Zettlr is the authoring interface. The canonical build remains
-`bin/longform`, so the same process works in a terminal, CI, or an AI-agent
-session.
+`bin/longform`, so terminals, CI, and AI agents use the same process.
 
 ## Open The Project
 
-Open the repository's `document/` directory in Zettlr. The generated
-`document/.ztr-directory` contains the source files in the order resolved from
-`document/_quarto.yml`.
+Open the repository root in Zettlr. Root `.ztr-directory` lists the resolved
+author sources under `document/`, including `document/front-matter.md` in place
+of Quarto's generated `index.md` adapter.
 
 After changing `book.chapters`, run:
 
@@ -16,7 +15,7 @@ After changing `book.chapters`, run:
 bin/longform zettlr sync
 ```
 
-Do not change the order in `.ztr-directory` directly.
+Do not change `.ztr-directory` directly.
 
 ## Install The Export Launcher
 
@@ -24,22 +23,20 @@ Do not change the order in `.ztr-directory` directly.
 bin/longform zettlr install
 ```
 
-This installs `longform-zettlr` in `~/.local/bin/`. Ensure that directory is on
-`PATH`, then register this Zettlr custom export command:
+Ensure `~/.local/bin/` is on `PATH`, then register:
 
 ```text
-longform-zettlr "$1"
+longform-zettlr
 ```
 
-The launcher finds the Longform Kit project above the active input file and
-runs `bin/longform build all`. It does not modify Zettlr's configuration or
-install global Pandoc profiles.
+Do not add `$1`; Zettlr appends the selected absolute source paths to the
+command automatically.
 
-You may also build from Zettlr's integrated terminal:
+The launcher finds the project above the active input and runs
+`bin/longform build all`. It does not change Zettlr configuration or install
+global Pandoc profiles. From Zettlr's integrated terminal, use the same root
+command:
 
 ```sh
-../bin/longform build all
+bin/longform build all
 ```
-
-Zettlr can edit the required `index.qmd` file as Markdown. Quarto, rather than
-the file extension, supplies its book role.

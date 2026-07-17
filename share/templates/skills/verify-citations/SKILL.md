@@ -6,11 +6,11 @@ description: Check, add, repair, or investigate citations in a Longform Kit proj
 # Verify Citations
 
 Treat Zotero as the bibliographic source of truth and
-`document/references/library.json` as a generated project export.
+`references/library.json` as a generated project export.
 
 ## Workflow
 
-1. Read the citation syntax and bibliography paths in `document/_quarto.yml`.
+1. Read the citation syntax and bibliography paths in root `_quarto.yml`.
 2. Run `bin/longform check`. It detects malformed bibliography data, duplicate
    IDs, and cited IDs missing from the project export.
 3. For uncertain titles, contributors, dates, DOIs, item types, or locators,
@@ -18,7 +18,7 @@ Treat Zotero as the bibliographic source of truth and
    infer bibliographic details from memory.
 4. Correct the Zotero item or add it to the project collection.
 5. Let the Better CSL JSON auto-export update
-   `document/references/library.json`; never repair that JSON by hand.
+   `references/library.json`; never repair that JSON by hand.
 6. Review the export diff, rerun `bin/longform check`, and render an affected
    output when citation formatting matters.
 

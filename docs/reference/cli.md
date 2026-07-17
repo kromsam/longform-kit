@@ -9,8 +9,13 @@ returns a non-zero status on a detected failure.
 bin/longform setup
 ```
 
-Creates `AGENTS.md`, `.gitignore`, and `.agents/skills/` from bundled templates
-only when they do not already exist, then synchronizes the Zettlr project file.
+Creates `AGENTS.md`, `.gitignore`, and `.agents/skills/` from templates only
+when they do not exist, and generates a project `LICENSE` from
+`share/templates/LICENSE.in` with the year and the `book.author` from
+`_quarto.yml` filled in. The kit's own MIT notice is deliberately not carried
+into generated projects (see `.quartoignore`); the licence belongs to the
+project's author. The command also restores the exact root `index.md` adapter
+and synchronizes `.ztr-directory`.
 
 ## `build`
 
@@ -18,24 +23,31 @@ only when they do not already exist, then synchronizes the Zettlr project file.
 bin/longform build [all|pdf|docx|latex|gfm]
 ```
 
-Runs `check` before rendering.
+Every build runs `check` first.
 
 | Target | Outputs |
 | --- | --- |
 | `all` | All outputs below |
 | `pdf` | Ordinary and binding PDFs |
 | `docx` | Word document |
-| `latex` | Promoted `.tex` plus LaTeX bundle directory |
-| `gfm` | Combined GitHub-flavoured Markdown from the configured GFM source |
+| `latex` | Promoted `.tex` plus the complete LaTeX bundle |
+| `gfm` | One combined GitHub-flavoured Markdown file |
 
-Quarto renders each native target in a temporary staging directory before the
-wrapper promotes the expected file into `document/build/`. Quarto books do not
-support combined GFM, so the wrapper invokes `quarto pandoc` itself. With the
-default `longform.gfm-source: markdown`, it reads the chapter order from
-`quarto inspect` and applies the project filters, citation data, and metadata.
-With `gfm-source: latex`, it first refreshes the canonical LaTeX output and then
-converts that file. The LaTeX path requires `link-citations: false` and is
-intended for migration or frozen-export parity.
+PDF, DOCX, and LaTeX invoke Quarto's native formats. The wrapper stages them and
+promotes stable filenames into `build/`; this lets the binding profile append
+`-binding` without duplicating the document basename in configuration.
+
+GFM creates a temporary standalone Quarto document outside the book project,
+mirrors project resources, copies in the pinned epigraph extension, and renders
+with Quarto. This expands includes, shortcodes, citations, page breaks, and
+format conditionals before the result is copied to `build/`. Embedded images
+are extracted to `<output-name>_files/` beside the combined Markdown file.
+Ordinary attachment links retain their Quarto project-root paths and therefore
+expect the GFM to remain in its repository context.
+
+For PDF builds only, unset `TEXMFCACHE` and `TEXMFVAR` default to
+`.cache/texmf/`. Existing values, including colon-separated TeX search lists,
+are preserved.
 
 ## `check`
 
@@ -45,39 +57,27 @@ bin/longform check
 
 Validates:
 
-- Quarto project configuration and resolved source paths.
+- Root `index.md` and `.ztr-directory` generated state.
+- Native Quarto configuration and resolved source paths.
+- The rule that `document/` contains only author-maintained `.md` files.
 - A project-local CSL file and exactly one CSL JSON bibliography.
-- Current `document/.ztr-directory` content.
-- Non-empty, unique bibliography item IDs.
-- Resolution of every cited ID.
-- Supported epigraph and page-break structure.
+- Non-empty, unique bibliography item IDs and resolution of every cited ID.
+- GFM TOC depth and optional required-font configuration.
 
 ## `lint`
 
-```sh
-bin/longform lint
-```
-
-Runs Vale over Markdown and Quarto Markdown files when `vale` is available and
-Harper over manuscript Markdown when `harper-cli` is available. If neither is
-installed, the command reports that linting was skipped and exits successfully.
+Runs Vale over `document/**/*.md` and Harper over manuscript Markdown when the
+tools are available. If neither is installed, it reports that linting was
+skipped and exits successfully.
 
 ## `doctor`
 
-```sh
-bin/longform doctor
-```
+Requires Quarto 1.9.38 through 1.9.x and `lualatex`. It reports the bundled
+Pandoc version and optional Zettlr availability. When
+`longform.required-fonts` is non-empty, it uses Fontconfig's `fc-match` and
+rejects missing families or substitutions.
 
-Requires Quarto 1.9.38 through 1.9.x and `lualatex`. Reports the bundled Pandoc
-version and whether optional Zettlr is available. When
-`longform.required-fonts` contains font families, it also requires Fontconfig's
-`fc-match` and rejects missing families or silent substitutions.
-
-Set `QUARTO` or `LONGFORM_QUARTO` to select a Quarto executable:
-
-```sh
-QUARTO=/opt/quarto/bin/quarto bin/longform doctor
-```
+Set `QUARTO` or `LONGFORM_QUARTO` to select a Quarto executable.
 
 ## `zettlr`
 
@@ -86,6 +86,7 @@ bin/longform zettlr sync
 bin/longform zettlr install
 ```
 
-`sync` regenerates `document/.ztr-directory` from Quarto's resolved chapter
-order. `install` copies a small launcher to `~/.local/bin/longform-zettlr` and
-prints the custom export command to register in Zettlr.
+`sync` restores root `index.md` and regenerates root `.ztr-directory` from the
+resolved chapter order. `install` copies a launcher to
+`~/.local/bin/longform-zettlr` and prints the custom command to register in
+Zettlr.

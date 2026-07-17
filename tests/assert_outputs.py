@@ -15,7 +15,6 @@ import xml.etree.ElementTree as ET
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DOCUMENT = ROOT / "document"
 QUARTO = os.environ.get("QUARTO") or os.environ.get("LONGFORM_QUARTO") or "quarto"
 WORD_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
@@ -41,7 +40,7 @@ def assert_order(text: str, values: list[str], label: str) -> None:
 def inspect() -> dict:
     output = subprocess.run(
         [QUARTO, "inspect"],
-        cwd=DOCUMENT,
+        cwd=ROOT,
         check=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -59,6 +58,7 @@ def assert_gfm(path: Path, title: str) -> None:
         text,
         [
             f"# {title}",
+            "# Preface",
             "Every long document begins with a first page.",
             "# Introduction",
             "# Conclusion",
@@ -83,8 +83,26 @@ def assert_gfm(path: Path, title: str) -> None:
         if expected not in normalized_note:
             fail(f"GFM citation footnote is missing content: {expected!r}")
     if "`../bin/longform build all`" not in text:
-        fail("Markdown-derived GFM changed spaces inside the sample code span")
-    for leaked in ("\\chapter", "\\epigraph", "\\newpage", "::: {.epigraph"):
+        if "`bin/longform build all`" not in text:
+            fail("GFM changed spaces inside the sample code span")
+    if "This combined Markdown edition was rendered with Quarto." not in text:
+        fail("GFM did not retain content visible for the GFM format")
+    if "This paginated edition was rendered with Quarto." in text:
+        fail("GFM retained content hidden for the GFM format")
+    if '<div class="epigraph">' not in text:
+        fail("Fancy Epigraphs did not expand to its generic Markdown form")
+    if "\f" not in text:
+        fail("Quarto's native pagebreak did not survive in GFM")
+    for leaked in (
+        "\\chapter",
+        "\\epigraph",
+        "\\newpage",
+        "::: {.epigraph",
+        "{{< epigraph",
+        "{{< pagebreak",
+        "content-visible",
+        "content-hidden",
+    ):
         if leaked in text:
             fail(f"GFM contains output-specific source markup: {leaked!r}")
 
@@ -95,6 +113,7 @@ def assert_latex(path: Path) -> None:
     for expected in (
         "\\documentclass[",
         "\\usepackage[twoside,left=36mm,right=36mm]{geometry}",
+        "\\usepackage{epigraph}",
         "  hidelinks,",
         "\\tableofcontents",
         "\\begin{CSLReferences}",
@@ -109,8 +128,10 @@ def assert_latex(path: Path) -> None:
         text,
         [
             "\\maketitle",
-            "Every long document begins with a first page.",
             "\\tableofcontents",
+            "\\chapter*{Preface}",
+            "\\epigraph{Every long document begins with a first page.}",
+            "\\newpage{}",
             "\\chapter*{Introduction}",
             "\\chapter*{Conclusion}",
             "\\chapter*{Bibliography}",
@@ -160,8 +181,9 @@ def assert_docx(path: Path, title: str) -> None:
         xml_text(document),
         [
             title,
-            "Every long document begins with a first page.",
             "Contents",
+            "Preface",
+            "Every long document begins with a first page.",
             "Introduction",
             "Conclusion",
             "Bibliography",
@@ -170,7 +192,7 @@ def assert_docx(path: Path, title: str) -> None:
     )
 
     style_ids = attribute_values(styles, "style", "styleId")
-    expected_styles = {"TOCHeading", "EpigraphText", "EpigraphSource", "Bibliography"}
+    expected_styles = {"TOCHeading", "BlockText", "Bibliography"}
     missing_styles = expected_styles - style_ids
     if missing_styles:
         fail(f"DOCX reference styles are missing: {', '.join(sorted(missing_styles))}")
@@ -189,7 +211,7 @@ def assert_docx(path: Path, title: str) -> None:
     page_breaks = sum(
         node.get(qn("type")) == "page" for node in document.iter(qn("br"))
     )
-    if page_breaks < 3:
+    if page_breaks < 1:
         fail(f"DOCX has too few explicit page breaks: {page_breaks}")
     if "true" not in attribute_values(settings, "updateFields", "val"):
         fail("DOCX does not request field updates when opened")
@@ -233,11 +255,12 @@ def assert_pdf_file(path: Path, title: str) -> tuple[int, str]:
 
     text = command_output("pdftotext", "-layout", str(path), "-")
     assert_order(
-        text,
+        re.sub(r"\s+", " ", text),
         [
             title,
-            "Every long document begins with a first page.",
             "Contents",
+            "Preface",
+            "Every long document begins with a first page.",
             "Introduction",
             "Conclusion",
             "Bibliography",
@@ -246,7 +269,7 @@ def assert_pdf_file(path: Path, title: str) -> tuple[int, str]:
     )
 
     physical_pages = text.split("\f")
-    for heading in ("Introduction", "Conclusion", "Bibliography"):
+    for heading in ("Preface", "Introduction", "Conclusion", "Bibliography"):
         matches = [
             index + 1
             for index, page in enumerate(physical_pages)
@@ -279,7 +302,7 @@ if len(sys.argv) != 2 or sys.argv[1] not in {"gfm", "docx", "latex", "pdf"}:
 
 target = sys.argv[1]
 config = inspect()
-output_dir = DOCUMENT / config.get("project", {}).get("output-dir", "build")
+output_dir = ROOT / config.get("project", {}).get("output-dir", "build")
 base = config.get("book", {}).get("output-file", "longform-document")
 title = config.get("book", {}).get("title", "Longform document")
 

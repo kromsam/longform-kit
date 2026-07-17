@@ -3,9 +3,15 @@ CONTRIBUTING.md
 SECURITY.md
 tests/**
 
+# The kit's own licence is not the downstream project's. `bin/longform setup`
+# generates a project LICENSE from share/templates/LICENSE.in instead.
+LICENSE
+
 # Never seed a new project with local render state or outputs.
-document/.quarto/**
-document/build/**
-document/index.tex
-document/index.pdf
-document/*.log
+.quarto/**
+build/**
+.cache/**
+index.tex
+index.pdf
+*_files/**
+*.log

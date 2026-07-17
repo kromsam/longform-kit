@@ -1,9 +1,13 @@
 # Conclusion {.unnumbered}
 
-::: {.epigraph width=".60"}
-> Source text stays semantic until the selected output format is known.
-
-> -- Example attribution
+::: {.content-visible when-format="gfm"}
+This combined Markdown edition was rendered with Quarto.
 :::
 
-Longform Kit applies the format-specific layout during rendering.
+::: {.content-hidden when-format="gfm"}
+This paginated edition was rendered with Quarto.
+:::
+
+{{< epigraph "Source text stays semantic until the selected output format is known." source="Example attribution" >}}
+
+The vendored shortcode applies the format-specific layout during rendering.

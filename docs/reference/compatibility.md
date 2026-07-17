@@ -1,60 +1,47 @@
 # Compatibility
 
-## Supported In Version 0.2
+## Supported In Version 0.3
 
 - Linux and macOS.
-- Quarto 1.9.38 through 1.9.x.
-- Quarto's bundled Pandoc.
+- Quarto 1.9.38 through 1.9.x and its bundled Pandoc.
 - LuaLaTeX from a current TeX Live or MacTeX installation.
-- Long-form books, theses, dissertations, and reports.
-- Ordinary PDF, binding PDF, DOCX, LaTeX, and GFM outputs.
-- Project-local Better CSL JSON and CSL files.
+- Combined PDF, binding PDF, DOCX, LaTeX, and GFM outputs.
+- Project-local Better CSL JSON, CSL, and DOCX reference files.
 - Zettlr as an optional authoring interface.
 - Vale and Harper as optional prose linters.
 
-`bin/longform doctor` enforces the Quarto and LuaLaTeX requirements. The build
-uses Quarto's bundled Pandoc so an unrelated system Pandoc version does not
-change canonical rendering.
+`bin/longform doctor` enforces the Quarto and LuaLaTeX requirements. PDF builds
+default `TEXMFCACHE` and `TEXMFVAR` to ignored `.cache/texmf/` only when callers
+have not already supplied them, which supports restricted agent sandboxes
+without overriding valid TeX configurations.
 
 ## Output Notes
 
-PDF, DOCX, and LaTeX are supported combined Quarto book formats. Quarto 1.9 does
-not support combined GFM for book projects, so Longform Kit runs
-`quarto pandoc` through one of two explicit paths:
+PDF, DOCX, and LaTeX are standard combined Quarto book formats. Quarto owns
+their TOCs, citations, page breaks, and output writers. Microsoft Word may need
+to refresh its native TOC field when opening a DOCX.
 
-- `longform.gfm-source: markdown` is the default. It resolves the ordered
-  Markdown inputs with `quarto inspect`, processes citations and the Longform
-  Kit filters, and preserves `when-format="gfm"` conditionals.
-- `longform.gfm-source: latex` refreshes the canonical LaTeX build and converts
-  that output. It is intended for migrations where LaTeX-level epigraphs, page
-  breaks, language spans, nested quotation output, or bibliography structure
-  define the compatibility baseline.
+Quarto 1.9 does not provide GFM as a combined book format. Longform Kit creates
+a temporary standalone Quarto document in the resolved source order and renders
+it to GFM. This preserves Quarto shortcodes and `when-format="gfm"`
+conditionals without maintaining a parallel Lua transformation pipeline.
+Project-relative includes resolve through a temporary resource mirror, and
+Pandoc copies embedded figures to `<output-name>_files/` beside the GFM file.
+Ordinary links to attachments keep their project-root targets; publish them in
+the same repository, or copy those attachments separately when distributing
+the GFM outside the project.
 
-LaTeX-derived GFM requires `link-citations: false`; the build fails early when
-links remain enabled. Citeproc has already rendered the notes and bibliography
-into the LaTeX source, and adding links during the second conversion can change
-their structure. GFM-specific conditionals are resolved as LaTeX conditionals
-in this mode. LaTeX-derived GFM uses YAML metadata so document metadata remains
-machine-readable without introducing an extra title heading into the body.
-Values that YAML could reinterpret as booleans, numbers, nulls, or dates are
-quoted by default. The `gfm-legacy-plain-scalars` switch exists only for
-byte-level comparison with an established export and can change parsed
-metadata types.
+Fonts are not bundled. Add production families to
+`longform.required-fonts` when `doctor` should reject missing fonts or silent
+substitution.
 
-Microsoft Word may require field updating when opening a DOCX before its TOC
-displays current page numbers. Longform Kit stores a dirty TOC field and asks
-Word to update fields; cached TOC entries and package bytes can therefore differ
-between applications even when the document content and layout agree.
+## Migration Boundary
 
-DOCX compatibility controls can set an independent TOC depth, insert deliberate
-blank paragraphs around the TOC or bibliography, preserve attached citation
-note positions, and tune chapter epigraph spacing and styles. These options are
-off by default unless their reference entry states otherwise. They reproduce
-established layout conventions without making those conventions universal.
-
-Fonts named in project configuration must be installed locally and in CI. Font
-files are not bundled. Add production families to `longform.required-fonts` when
-`doctor` should reject missing fonts or substitutions before rendering.
+Version 0.3 intentionally removes the 0.2 custom project type, custom format
+names, semantic epigraph/page-break Divs, manual Word TOC controls, manual
+citeproc ordering, and LaTeX-derived GFM compatibility mode. Projects requiring
+exact frozen-output parity should keep those rules in a project-owned
+compatibility profile rather than in the generic kit.
 
 ## Deferred
 
@@ -62,6 +49,3 @@ files are not bundled. Add production families to `longform.required-fonts` when
 - HTML, EPUB, and short-article starters.
 - Live or write-enabled Zotero connectors.
 - Byte-identical outputs across operating systems.
-
-Compatibility changes require a minor release before 1.0 and must be recorded
-in `CHANGELOG.md`.

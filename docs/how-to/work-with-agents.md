@@ -33,8 +33,7 @@ bin/longform lint
 bin/longform build TARGET
 ```
 
-Do not require an agent to reconstruct filter order, Quarto profiles, or Pandoc
-arguments.
+Do not require an agent to reconstruct Quarto profiles or Pandoc arguments.
 
 ## Keep Integrations Optional
 
@@ -43,5 +42,5 @@ the repository should not commit provider credentials or depend on a connector
 to build. Prefer read-only access. Apply bibliographic corrections in Zotero and
 allow Better BibTeX to update the checked-in export.
 
-Review changes to Agent Skills, Lua filters, TypeScript project helpers, and
-Quarto extensions as executable code before running them.
+Review changes to Agent Skills, TypeScript project helpers, and Quarto
+extensions as executable code before running them.

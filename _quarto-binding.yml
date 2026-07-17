@@ -1,5 +1,5 @@
 format:
-  longform-kit-pdf:
+  pdf:
     classoption:
       - twoside
       - openright

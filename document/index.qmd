@@ -1,5 +1,0 @@
-::: {.front-epigraph width=".60" blank-before="true" oddpage="true" pagebreak-before="true" pagebreak-after="true"}
-> Every long document begins with a first page.
-
-> -- Example attribution
-:::

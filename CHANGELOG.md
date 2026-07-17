@@ -6,6 +6,37 @@ All notable changes to Longform Kit are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-17
+
+### Added
+
+- A Markdown-only `document/` authoring boundary enforced by
+  `bin/longform check`.
+- The pinned Fancy Epigraphs v0.0.1 Quarto shortcode and its upstream licence.
+- A project-local TeX cache for reliable PDF builds in sandboxed agent
+  environments.
+
+### Changed
+
+- The repository root is now a standard Quarto book project. Configuration,
+  profiles, generated Zettlr state, references, scripts, extensions, and
+  `build/` no longer live under `document/`.
+- PDF, DOCX, LaTeX, citeproc, TOCs, reference-DOCX styling, conditional content,
+  and page breaks now use Quarto's native options.
+- Combined GFM is rendered through a temporary standalone Quarto document so
+  includes, shortcodes, format conditionals, and embedded images are resolved
+  by Quarto and Pandoc.
+- `bin/longform setup` now generates a project `LICENSE` from
+  `share/templates/LICENSE.in` with the current year and the `_quarto.yml`
+  `book.author` filled in. The kit's own MIT notice is excluded from generated
+  projects so the licence belongs to the project's author.
+
+### Removed
+
+- The custom Longform Kit project type, custom output formats, Lua epigraph and
+  page-break filters, manual Word TOC construction, manual citeproc invocation,
+  custom LaTeX title/front-matter templates, and LaTeX-derived legacy GFM mode.
+
 ## [0.2.0] - 2026-07-16
 
 ### Added
@@ -55,7 +86,8 @@ All notable changes to Longform Kit are documented here. The format follows
 - Provider-neutral `AGENTS.md` template and four Agent Skills.
 - Tutorial, how-to, reference, and explanation documentation.
 
-[Unreleased]: https://github.com/kromsam/longform-kit/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/kromsam/longform-kit/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/kromsam/longform-kit/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/kromsam/longform-kit/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/kromsam/longform-kit/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/kromsam/longform-kit/releases/tag/v0.1.0

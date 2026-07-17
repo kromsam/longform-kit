@@ -18,7 +18,6 @@ cd "$ROOT"
 
 ./bin/longform check
 PYTHONDONTWRITEBYTECODE=1 "$PYTHON" tests/assert_project.py
-PYTHONDONTWRITEBYTECODE=1 "$PYTHON" tests/assert_extension.py
 
 for format in gfm docx latex; do
   ./bin/longform build "$format"

@@ -1,50 +1,38 @@
 # Add And Reorder Chapters
 
-The chapter list in `document/_quarto.yml` is authoritative for Quarto, Zettlr,
-the GFM build, citation checks, and prose tooling.
+The chapter list in root `_quarto.yml` is authoritative for Quarto, Zettlr, GFM,
+citation checks, and prose tooling.
 
 ## Add A Chapter
 
-Create a Markdown file under `document/manuscript/` with one level-one heading:
-
-```markdown
-# Methods
-
-Chapter text begins here.
-```
-
-Add its path under `book.chapters` in the intended reading order:
+Create `document/manuscript/02-methods.md` with a level-one heading, then add its
+root-relative path in reading order:
 
 ```yaml
 book:
   chapters:
-    - index.qmd
-    - manuscript/01-introduction.md
-    - manuscript/02-methods.md
-    - manuscript/03-conclusion.md
-    - references.md
+    - index.md
+    - document/manuscript/01-introduction.md
+    - document/manuscript/02-methods.md
+    - document/manuscript/03-conclusion.md
+    - document/references.md
 ```
 
-Keep `index.qmd` first. Quarto books require that filename. Keep
-`references.md` at the desired bibliography position, normally last.
+Keep generated `index.md` first. Edit `document/front-matter.md` rather than the
+adapter. Keep `document/references.md` at the intended bibliography position,
+normally last.
 
 ## Reorder Or Rename A Chapter
 
-Move or rename the source file, then update its path in `book.chapters`. Do not
-edit `document/.ztr-directory` manually.
-
-Synchronize and validate:
+Move or rename the `.md` source, update `book.chapters`, then run:
 
 ```sh
 bin/longform zettlr sync
 bin/longform check
 ```
 
-The synchronization command derives Zettlr's file order from Quarto's resolved
-project configuration.
-
-Use `.unnumbered` on a chapter heading when it should not receive a chapter
-number:
+Do not edit `.ztr-directory` by hand. Use `.unnumbered` on a chapter heading
+when it should not receive a number:
 
 ```markdown
 # Preface {.unnumbered}

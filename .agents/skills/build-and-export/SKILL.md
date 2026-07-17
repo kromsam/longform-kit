@@ -10,7 +10,7 @@ Quarto or Pandoc commands manually.
 
 ## Workflow
 
-1. Read `AGENTS.md` and `document/_quarto.yml`.
+1. Read `AGENTS.md` and root `_quarto.yml`.
 2. Run `bin/longform doctor` when tool availability or versions are uncertain.
 3. After chapter-order changes, run `bin/longform zettlr sync`.
 4. Run `bin/longform check` before rendering.
@@ -24,7 +24,7 @@ bin/longform build gfm
 bin/longform build all
 ```
 
-6. Confirm the expected files under `document/build/` are non-empty. For layout
+6. Confirm the expected files under `build/` are non-empty. For layout
    changes, inspect the rendered PDF or DOCX rather than relying only on exit
    status.
 
@@ -33,10 +33,9 @@ bin/longform build all
 - Never patch generated outputs. Fix Markdown, `_quarto.yml`, the binding
   profile, reference DOCX, or vendored extension source as appropriate.
 - Keep the ordinary and binding PDF profiles distinct.
-- Check `longform.gfm-source` before diagnosing GFM. The default `markdown` mode
-  uses the ordered manuscript sources and preserves GFM conditionals. The
-  `latex` compatibility mode refreshes canonical LaTeX first and requires
-  `link-citations: false`.
+- GFM is assembled as a temporary standalone Quarto document because Quarto
+  books do not have a combined GFM format. Confirm that shortcodes and
+  `when-format="gfm"` conditionals were expanded in the generated Markdown.
 - When `longform.required-fonts` is configured, treat a failing `doctor` font
   check as a build blocker rather than accepting a substituted family.
 - Report missing dependencies or unverified visual behavior explicitly.

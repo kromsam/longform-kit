@@ -4,10 +4,10 @@
     "title": "A Longform Document",
     "profiles": [],
     "files": [
-      "index.qmd",
-      "manuscript/01-introduction.md",
-      "manuscript/02-conclusion.md",
-      "references.md"
+      "document/front-matter.md",
+      "document/manuscript/01-introduction.md",
+      "document/manuscript/02-conclusion.md",
+      "document/references.md"
     ],
     "cslStyle": "references/style.csl",
     "templates": {

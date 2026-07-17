@@ -8,8 +8,8 @@ set -eu
 
 directory=$(CDPATH='' cd -- "$(dirname -- "$1")" && pwd)
 while [ "$directory" != / ]; do
-  if [ -f "$directory/_quarto.yml" ] && [ -x "$directory/../bin/longform" ]; then
-    exec "$directory/../bin/longform" build all
+  if [ -f "$directory/_quarto.yml" ] && [ -x "$directory/bin/longform" ]; then
+    exec "$directory/bin/longform" build all
   fi
   directory=$(dirname "$directory")
 done

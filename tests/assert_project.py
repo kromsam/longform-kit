@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Assert the public project manifest, Zettlr adapter, and citations agree."""
+"""Assert the native Quarto project, author boundary, and citations agree."""
 
 from __future__ import annotations
 
@@ -7,7 +7,6 @@ import json
 import os
 from pathlib import Path
 import subprocess
-import sys
 from typing import Any
 
 
@@ -23,7 +22,7 @@ def fail(message: str) -> None:
 def run(*args: str) -> str:
     result = subprocess.run(
         [QUARTO, *args],
-        cwd=DOCUMENT,
+        cwd=ROOT,
         check=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -58,23 +57,70 @@ config = inspection.get("config", {})
 project = config.get("project", {})
 book = config.get("book", {})
 chapters = project.get("render", [])
+information = inspection.get("fileInformation", {})
+
+if (ROOT / "VERSION").read_text(encoding="utf-8") != "0.3.0\n":
+    fail("VERSION must declare Longform Kit 0.3.0")
+
+if project.get("type") != "book":
+    fail("project.type must use Quarto's native book type")
+if project.get("output-dir") != "build":
+    fail("generated output must live at the repository root in build/")
+if set(config.get("format", {})) != {"pdf", "docx", "latex"}:
+    fail("the project must declare only native pdf, docx, and latex formats")
+for name, options in config["format"].items():
+    if isinstance(options, dict) and options.get("citeproc") is False:
+        fail(f"{name} disables Quarto's native citeproc processing")
+if config["format"]["docx"].get("toc") is not True:
+    fail("DOCX must use Quarto's native table of contents")
+reference_doc = config["format"]["docx"].get("reference-doc")
+if not isinstance(reference_doc, str) or not (ROOT / reference_doc).is_file():
+    fail("DOCX must use a project-local reference document")
 
 if not chapters or not all(isinstance(path, str) for path in chapters):
     fail("Quarto did not resolve an ordered list of source files")
+include_map = information.get("index.md", {}).get("includeMap", [])
+if include_map != [
+    {
+        "source": str((ROOT / "index.md").resolve()),
+        "target": "document/front-matter.md",
+    }
+]:
+    fail("index.md must be a one-line adapter for document/front-matter.md")
 
-for relative in chapters:
-    path = (DOCUMENT / relative).resolve()
+author_files = ["document/front-matter.md", *chapters[1:]]
+for relative in author_files:
+    path = (ROOT / relative).resolve()
     try:
         path.relative_to(DOCUMENT.resolve())
     except ValueError:
-        fail(f"source path escapes document root: {relative}")
-    if not path.is_file():
-        fail(f"source file does not exist: {relative}")
+        fail(f"author source escapes document/: {relative}")
+    if path.suffix != ".md" or not path.is_file():
+        fail(f"author source is not Markdown: {relative}")
+
+unexpected = [
+    path.relative_to(DOCUMENT)
+    for path in DOCUMENT.rglob("*")
+    if path.is_file() and path.suffix != ".md"
+]
+if unexpected:
+    fail(f"document/ contains non-author files: {', '.join(map(str, unexpected))}")
+
+extension = ROOT / "_extensions" / "epigraph"
+manifest = (extension / "_extension.yml").read_text(encoding="utf-8")
+if "version: 0.0.1" not in manifest:
+    fail("Fancy Epigraphs must remain pinned at v0.0.1")
+if (ROOT / "_extensions" / "longform-kit").exists():
+    fail("the retired custom Longform Kit extension is still present")
+if "{{< epigraph " not in (DOCUMENT / "front-matter.md").read_text(encoding="utf-8"):
+    fail("starter front matter does not exercise Fancy Epigraphs")
+if "{{< pagebreak >}}" not in (DOCUMENT / "front-matter.md").read_text(encoding="utf-8"):
+    fail("starter front matter does not use Quarto's native pagebreak shortcode")
 
 csl = config.get("csl")
 if not isinstance(csl, str) or not csl:
     fail("_quarto.yml must declare one project-local CSL file")
-if not (DOCUMENT / csl).is_file():
+if not (ROOT / csl).is_file():
     fail(f"CSL file does not exist: {csl}")
 
 expected_zettlr = {
@@ -82,24 +128,24 @@ expected_zettlr = {
     "project": {
         "title": book.get("title", "Longform document"),
         "profiles": [],
-        "files": chapters,
+        "files": author_files,
         "cslStyle": csl,
         "templates": {"tex": "", "html": ""},
     },
     "icon": None,
     "color": None,
 }
-zettlr = json.loads((DOCUMENT / ".ztr-directory").read_text(encoding="utf-8"))
+zettlr = json.loads((ROOT / ".ztr-directory").read_text(encoding="utf-8"))
 if zettlr != expected_zettlr:
-    fail("document/.ztr-directory does not exactly match resolved Quarto configuration")
+    fail(".ztr-directory does not exactly match resolved Quarto configuration")
 
 bibliographies = config.get("bibliography")
 if isinstance(bibliographies, str):
     bibliographies = [bibliographies]
 if not isinstance(bibliographies, list) or len(bibliographies) != 1:
-    fail("Longform Kit v1 requires exactly one bibliography")
+    fail("Longform Kit requires exactly one bibliography")
 
-bibliography_path = DOCUMENT / bibliographies[0]
+bibliography_path = ROOT / bibliographies[0]
 entries = json.loads(bibliography_path.read_text(encoding="utf-8"))
 if not isinstance(entries, list):
     fail("bibliography must be a CSL JSON array")
@@ -113,7 +159,7 @@ for entry in entries:
         fail(f"duplicate bibliography key: {identifier}")
     available.add(identifier)
 
-ast = json.loads(run("pandoc", *chapters, "--from=markdown", "--to=json"))
+ast = json.loads(run("pandoc", *author_files, "--from=markdown", "--to=json"))
 cited = citation_ids(ast)
 if not cited:
     fail("starter fixture must contain at least one citation")
@@ -122,6 +168,6 @@ if missing:
     fail(f"missing citation keys: {', '.join(missing)}")
 
 print(
-    f"project assertions: {len(chapters)} sources, "
+    f"project assertions: {len(author_files)} author sources, "
     f"{len(cited)} cited keys, {len(available)} bibliography entries"
 )

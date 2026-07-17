@@ -5,8 +5,8 @@ Reproducibility depends on keeping every input local, explicit, and reviewable.
 
 ## Local Sources
 
-The chapter order, bibliography path, CSL path, format settings, extension,
-filters, and DOCX reference document live in the repository. There are no
+The chapter order, bibliography path, CSL path, format settings, pinned
+extension, scripts, and DOCX reference document live in the repository. There are no
 absolute paths to a user's home directory and no required global Zettlr export
 profiles.
 
@@ -21,7 +21,7 @@ Source and output have different ownership:
 
 - Edit Markdown, `_quarto.yml`, project CSL, and intentional style assets.
 - Generate `.ztr-directory` from Quarto configuration.
-- Ignore routine `build/` and `.quarto/` state.
+- Ignore routine `build/`, `.cache/`, and `.quarto/` state.
 - Preserve intentional submitted versions separately when archival policy
   requires them.
 
@@ -30,9 +30,9 @@ the other formats wrong. Fix the owning source or transformation instead.
 
 ## Versioned Executable Inputs
 
-The vendored Quarto extension makes the build durable, but it also executes Lua
-and TypeScript. Agent Skills can direct tools and commands. Review changes to
-both with the same care as application code.
+The vendored Quarto extension makes the build durable, but it executes Lua.
+The TypeScript project helper and Agent Skills can also direct tools and
+commands. Review changes to all of them with the same care as application code.
 
 Quarto extensions should remain checked in at a known version. Upgrade them
 deliberately, inspect the diff, and render all formats before accepting the new

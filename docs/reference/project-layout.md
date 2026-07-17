@@ -1,34 +1,46 @@
 # Project Layout
 
 ```text
-AGENTS.md                         generated consumer instructions
-.agents/skills/                   generated provider-neutral Agent Skills
+AGENTS.md                         provider-neutral repository instructions
+.agents/skills/                   provider-neutral Agent Skills
+_quarto.yml                       standard Quarto book manifest
+_quarto-binding.yml               binding PDF profile
+index.md                          generated Quarto home-page adapter
+.ztr-directory                    generated Zettlr project adapter
 bin/longform                      stable command-line interface
-document/                         Zettlr and Quarto project root
-  _quarto.yml                     sole project manifest
-  _quarto-binding.yml             binding PDF overrides
-  .ztr-directory                  generated Zettlr project adapter
-  index.qmd                       required book entry and front matter
+scripts/project.ts                checks, Zettlr sync, and combined GFM
+document/                         author-maintained Markdown only
+  front-matter.md                 preface and other opening content
   manuscript/*.md                 active chapters
   references.md                   bibliography heading and Div#refs
-  references/
-    library.json                  Better CSL JSON auto-export
-    style.csl                     pinned citation style
-  _extensions/longform-kit/       vendored executable Quarto extension
-  build/                          ignored generated outputs
+references/
+  library.json                    Better CSL JSON auto-export
+  style.csl                       pinned citation style
+  reference.docx                 Word style template
+resources/                        optional figures and attachments
+_extensions/epigraph/             pinned Fancy Epigraphs v0.0.1
+build/                            ignored generated outputs
+.cache/texmf/                     ignored sandbox-safe TeX cache
 share/templates/                  files materialized by setup
-style/                            optional project editorial guidance
+style/                            optional editorial guidance
 submissions/                      optional frozen deliverables
 ```
 
-The nested `document/` directory is both the Zettlr workspace and the Quarto
-project root. Quarto discovers custom project types only from an `_extensions`
-directory at that root, which is why the vendored extension lives inside
-`document/`.
+The `resources/`, `style/`, and `submissions/` directories are optional and
+author-created: a freshly generated project does not contain them until you add
+them.
 
-`index.qmd` must keep that name because Quarto books require it. Other prose may
-use `.md` or `.qmd`; ordinary chapters use `.md` by convention.
+`document/` is a strict authoring boundary. `bin/longform check` rejects every
+non-Markdown file below it, including Quarto configuration, generated outputs,
+reference exports, and editor state.
 
-`document/.ztr-directory`, `document/.quarto/`, and `document/build/` are
-generated. Only `.ztr-directory` is normally committed, so a fresh Zettlr
-checkout has the ordered project immediately available.
+Store figures and attachments in a root directory such as `resources/`. Refer
+to them with Quarto project-root paths (`/resources/figure.png`), including from
+included Markdown, so native book renders and the combined GFM resource mirror
+resolve the same file.
+
+Quarto requires `index.md` for a book. Longform Kit keeps that mechanical file
+at the root and has it include `document/front-matter.md`; `setup` and
+`zettlr sync` restore the exact adapter. The Zettlr project lists the included
+front-matter file rather than the adapter, so authors only navigate files they
+own.

@@ -1,42 +1,39 @@
 # Customize Outputs
 
-Prefer project configuration over editing the vendored extension. This keeps
-upgrades reviewable and separates a document's design from toolkit internals.
+Use documented Quarto options in root `_quarto.yml`; Longform Kit does not
+define parallel format names or rendering settings.
 
 ## Change The Output Name
-
-Set a filename-safe basename without an extension:
 
 ```yaml
 book:
   output-file: "my-dissertation"
 ```
 
-The CLI uses this basename for every output and appends `-binding` to the
-binding PDF automatically. Do not duplicate `book.output-file` in the binding
-profile.
+Use a basename without an extension. The CLI appends `-binding` to the binding
+PDF automatically.
 
 ## Override PDF Options
 
-Add overrides beneath the custom PDF format:
-
 ```yaml
 format:
-  longform-kit-pdf:
+  pdf:
     mainfont: "EB Garamond"
     sansfont: "Fira Sans"
     fontsize: 12pt
     linestretch: 1.25
-  longform-kit-docx: default
-  longform-kit-latex: default
+  docx:
+    toc: true
+    reference-doc: references/reference.docx
+  latex:
+    mainfont: "EB Garamond"
 ```
 
-The selected fonts must be installed on every rendering machine. Keep ordinary
-page geometry in `_quarto.yml` and binding geometry in
-`_quarto-binding.yml`. The `format` map is the complete output list, so retain
-the DOCX and LaTeX entries when overriding PDF options.
+The `format` map is the complete native output list, so retain PDF, DOCX, and
+LaTeX. Keep ordinary geometry in `_quarto.yml` and binding geometry in
+`_quarto-binding.yml`.
 
-Declare fonts that must not be substituted:
+Declare production fonts that must not be substituted:
 
 ```yaml
 longform:
@@ -45,92 +42,42 @@ longform:
     - Fira Sans
 ```
 
-`bin/longform doctor` then uses Fontconfig's `fc-match` to verify each family.
-Keep this list empty when a project's typography permits local substitution.
+`bin/longform doctor` verifies each family with Fontconfig.
 
-The built-in PDF and LaTeX formats set `colorlinks: false` for print-friendly
-links. Override that value explicitly when a screen-first edition should use
-colored links.
+## Customize DOCX Styles And TOC
 
-## Customize DOCX Styles
-
-Copy the extension's reference document to a project-owned location, edit its
-named Word styles, and point the format at that copy:
+Edit a project-owned copy of `references/reference.docx`, then keep the native
+format pointed at it:
 
 ```yaml
 format:
-  longform-kit-pdf: default
-  longform-kit-docx:
-    reference-doc: assets/reference.docx
-  longform-kit-latex: default
+  docx:
+    toc: true
+    toc-depth: 2
+    toc-title: Contents
+    reference-doc: references/reference.docx
 ```
 
-Preserve the styles used by the filters, including `Epigraph Text`, `Epigraph
-Text Flush`, `Epigraph Source`, `First Paragraph`, `TOC Heading`, and
-`Bibliography`.
+Quarto and Pandoc generate the Word TOC field and apply named styles from the
+reference document. Open the result in Word or LibreOffice and refresh fields
+when cached page numbers are stale.
 
-## Add Title Metadata
+## Customize Epigraph Typography
 
-Standard title fields live under `book`. Longform-specific PDF title fields
-live under `longform`:
+Fancy Epigraphs' LaTeX defaults live in
+`_extensions/epigraph/epigraph.tex`. Prefer adding a separate,
+project-owned header after that file rather than modifying vendored code. For
+DOCX, the shortcode emits ordinary blockquotes, so customize the `Block Text`
+style in the reference document.
+
+## Customize GFM
+
+The GFM TOC uses the top-level `toc-depth` unless overridden:
 
 ```yaml
 longform:
-  student-number: "12345678"
-  degree-title: "MA Thesis"
-  supervisor: "Dr Example"
-  institute: "Example University"
-  bibliography-pagebreaks: 1
+  gfm-toc-depth: 3
 ```
 
-`bibliography-pagebreaks` controls the DOCX page breaks inserted immediately
-before the bibliography. The other fields extend the PDF and LaTeX title page.
-
-## Choose The GFM Source
-
-Markdown is the normal GFM source and preserves GFM-specific conditional
-content:
-
-```yaml
-longform:
-  gfm-source: markdown
-  gfm-toc-depth: 2
-```
-
-For a migrated project whose accepted Markdown export depends on its canonical
-LaTeX representation, select the compatibility path:
-
-```yaml
-longform:
-  gfm-source: latex
-  gfm-toc-depth: 2
-link-citations: false
-```
-
-The LaTeX path refreshes the `.tex` build first and refuses to run while
-citation links are enabled. It resolves format conditionals for LaTeX, so do not
-use it for content that must be selected specifically with
-`when-format="gfm"`.
-
-## Reproduce An Established DOCX Layout
-
-Use dedicated controls instead of changing the global TOC or inserting raw
-OpenXML into the manuscript:
-
-```yaml
-longform:
-  docx-toc-depth: 1
-  docx-toc-switches: "h"
-  docx-toc-heading-pagebreak: true
-  docx-toc-leading-blank: true
-  docx-bibliography-leading-blank: true
-  preserve-attached-note-positions: true
-```
-
-The blank-paragraph and attached-note settings are compatibility switches, not
-recommended defaults. Enable them only after comparing against an established
-DOCX. Configure individual epigraph spacing and styles with the semantic
-attributes in [Semantic Markdown](../reference/semantic-markdown.md).
-
-Run the affected build and inspect the result visually after every layout
-change.
+Other GFM behaviour comes from Quarto's native `gfm` format. There is no
+LaTeX-derived or legacy-byte compatibility mode in Longform Kit 0.3.

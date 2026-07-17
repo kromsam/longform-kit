@@ -51,7 +51,7 @@ jobs:
       - name: Install Longform Kit TeX packages
         run: |
           tlmgr update --self
-          tlmgr install emptypage epigraph etoolbox fancyhdr nowidow
+          tlmgr install epigraph etoolbox
 
       - name: Check toolchain
         run: ./bin/longform doctor

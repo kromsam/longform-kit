@@ -1,7 +1,7 @@
 # Contributing
 
-Longform Kit keeps its public behavior small: a Quarto project type, a vendored
-extension, semantic Markdown conventions, and `bin/longform`.
+Longform Kit keeps its public behaviour small: a standard Quarto book, a pinned
+epigraph shortcode, a Markdown-only authoring directory, and `bin/longform`.
 
 ## Development Setup
 
@@ -11,29 +11,24 @@ LuaLaTeX. Clone the repository, then run:
 ```sh
 bin/longform setup
 bin/longform doctor
-bin/longform check
-bin/longform build all
+tests/run.sh
 ```
 
-Optional prose checks use Vale and Harper when they are on `PATH`:
-
-```sh
-bin/longform lint
-```
+Optional prose checks use Vale and Harper when they are on `PATH`.
 
 ## Change Guidelines
 
-- Preserve `document/_quarto.yml` as the consumer-facing manifest.
+- Preserve root `_quarto.yml` as the consumer-facing manifest.
+- Keep every file under `document/` as author-maintained `.md`.
 - Keep builds offline and independent of Zotero, Zettlr, or an AI provider.
-- Put portable document semantics in Markdown and Lua filters, not raw
-  output-specific source.
-- Do not edit generated files in `document/build/`, `document/.quarto/`, or
-  `document/.ztr-directory`.
-- Keep the extension under `document/_extensions/longform-kit/` so Quarto can
-  discover the nested project type.
-- Treat PDF, DOCX, LaTeX, and GFM behavior as one public compatibility surface.
-- Update documentation and `CHANGELOG.md` when commands, configuration, source
-  conventions, or output behavior changes.
+- Prefer native Quarto configuration and syntax over new filters or wrappers.
+- Do not edit generated files in `build/`, `.cache/`, `.quarto/`, or
+  `.ztr-directory`.
+- Keep Fancy Epigraphs pinned under `_extensions/epigraph/`; inspect
+  upstream changes before upgrading it.
+- Treat PDF, DOCX, LaTeX, and GFM behaviour as one public compatibility surface.
+- Update documentation, tests, `VERSION`, and `CHANGELOG.md` when the public
+  contract changes.
 
 Run the Agent Skills validator after changing a skill:
 
@@ -48,12 +43,6 @@ work for agents that only understand the open `SKILL.md` convention.
 
 ## Pull Requests
 
-Keep changes focused and describe:
-
-1. The author-facing behavior that changes.
-2. The formats affected.
-3. The commands used to verify the change.
-4. Any visual or structural comparison required for PDF or DOCX.
-
-Do not include personal Zotero libraries, credentials, submitted manuscripts,
-or generated build artefacts in a pull request.
+Describe the author-facing behaviour, affected formats, verification commands,
+and any visual comparison needed for PDF or DOCX. Do not include credentials,
+personal Zotero libraries, submitted manuscripts, or routine build artefacts.
