@@ -133,9 +133,21 @@ if "{{< pagebreak >}}" not in (DOCUMENT / "front-matter.md").read_text(encoding=
 
 csl = config.get("csl")
 if not isinstance(csl, str) or not csl:
-    fail("_quarto.yml must declare one project-local CSL file")
-if not (ROOT / csl).is_file():
+    fail("_quarto.yml must declare one configured CSL file")
+csl_path = ROOT / csl
+if not csl_path.is_symlink() or not csl_path.is_file():
     fail(f"CSL file does not exist: {csl}")
+styles_path = ROOT / "references" / "zotero-styles"
+if not styles_path.is_symlink() or not styles_path.is_dir():
+    fail("Zotero styles directory is not linked by setup")
+expected_resource_path = [
+    ".",
+    "references/.csl-parents",
+    "references/zotero-styles",
+    "references/zotero-styles/hidden",
+]
+if config.get("resource-path") != expected_resource_path:
+    fail("_quarto.yml does not retain the citation resource path")
 
 # The adapter lives in document/, so its paths are relative to that directory.
 def document_relative(path):
@@ -167,6 +179,8 @@ if not isinstance(bibliographies, list) or len(bibliographies) != 1:
     fail("Longform Kit requires exactly one bibliography")
 
 bibliography_path = ROOT / bibliographies[0]
+if not bibliography_path.is_symlink():
+    fail("bibliography is not linked by setup")
 entries = json.loads(bibliography_path.read_text(encoding="utf-8"))
 if not isinstance(entries, list):
     fail("bibliography must be a CSL JSON array")

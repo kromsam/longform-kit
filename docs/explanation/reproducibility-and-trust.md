@@ -1,25 +1,36 @@
 # Reproducibility And Trust
 
 Longform Kit treats a document repository as an executable publishing project.
-Reproducibility depends on keeping every input local, explicit, and reviewable.
+Its manuscript and build configuration are versioned, but its Zotero library
+export and citation style are live machine-local inputs.
 
-## Local Sources
+## Versioned And Live Sources
 
-The chapter order, bibliography path, CSL path, format settings, pinned
-extension, scripts, and DOCX reference document live in the repository. There are no
-absolute paths to a user's home directory and no required global Zettlr export
-profiles.
+The chapter order, stable bibliography and CSL link paths, format settings,
+pinned extension, scripts, and DOCX reference document live in the repository.
+The Better CSL JSON export and installed Zotero styles do not.
 
-The Better CSL JSON file is generated but committed. This separates two times:
+`bin/longform setup` creates ignored links from `references/` to those external
+files. Every machine and CI checkout must run setup. Zettlr separately needs
+the same Better CSL JSON export selected in its citation preferences.
 
-- **Research time:** Zotero and Better BibTeX update reference metadata.
-- **Build time:** Quarto and Pandoc read the pinned local snapshot offline.
+The links are live: Better BibTeX export updates and Zotero style updates affect
+the next build. This keeps Zotero authoritative and avoids committing personal
+libraries, but it does not provide Git-pinned citation reproducibility. Output
+can change with no repository diff.
+
+Once the linked files exist, Quarto and Pandoc can build without Zotero running
+and without network access. Reproducing an earlier citation result still
+requires the same external export and style versions.
 
 ## Generated Boundaries
 
 Source and output have different ownership:
 
-- Edit Markdown, `_quarto.yml`, project CSL, and intentional style assets.
+- Edit Markdown, `_quarto.yml`, and intentional project style assets.
+- Edit bibliographic metadata and installed citation styles through Zotero;
+  allow Better BibTeX to refresh its export.
+- Generate the ignored citation links with `bin/longform setup`.
 - Generate `document/.ztr-directory` from Quarto configuration.
 - Ignore routine `build/`, `.cache/`, and `.quarto/` state.
 - Preserve intentional submitted versions separately when archival policy
@@ -60,5 +71,5 @@ different systems. Acceptance should instead check:
 - DOCX styles, TOC field, page breaks, and bibliography formatting.
 - No missing or duplicated citation keys.
 
-Those structural and visual invariants are stable enough to test and meaningful
-to an author.
+Those structural and visual invariants are meaningful to an author. Compare
+them against a known export and style when exact citation reproduction matters.

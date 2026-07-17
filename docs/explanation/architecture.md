@@ -6,8 +6,10 @@ replace Quarto's publishing model with another one.
 ## Zettlr Is The Writing Environment
 
 Zettlr opens `document/` as the project, lists the ordered Markdown sources,
-and helps insert Zotero citations. The generated `document/.ztr-directory` is UI
-state derived from Quarto, not a second build manifest.
+and helps insert Zotero citations. Authors point Zettlr's citation preferences
+at the same Better CSL JSON export used by Longform Kit. The generated
+`document/.ztr-directory` is UI state derived from Quarto, not a second build
+manifest.
 
 Author-maintained files under `document/` are ordinary `.md`, alongside
 `document/metadata.yml` (title, author, date, language) and
@@ -20,9 +22,10 @@ only because a Quarto book requires a home page; it includes
 Root `_quarto.yml` provides:
 
 - The standard `book` project type.
-- Bibliography, CSL, output basename, and `metadata-files` links to the
-  author-owned `document/metadata.yml` (title, author, date, language) and
-  `document/chapters.yml` (ordered chapter manifest).
+- Stable bibliography and CSL link paths, the output basename, and
+  `metadata-files` links to the author-owned `document/metadata.yml` (title,
+  author, date, language) and `document/chapters.yml` (ordered chapter
+  manifest).
 - Native PDF, DOCX, and LaTeX formats.
 - Native citeproc, TOCs, page breaks, conditional content, and profiles.
 - A machine-readable resolved configuration through `quarto inspect`.
@@ -40,21 +43,33 @@ PDF/LaTeX and portable blockquotes for formats such as DOCX and GFM.
 
 ## Zotero Is The Bibliographic Authority
 
-Zotero owns editable item metadata. Better BibTeX exports a project collection
-to `references/library.json`, and `references/style.csl` pins citation
-rendering. Both files are local, so routine builds do not need Zotero or the
-network.
+Zotero owns editable item metadata and installed citation styles. Better
+BibTeX keeps an external Better CSL JSON export current. `bin/longform setup`
+links that file and the selected installed style to stable ignored paths under
+`references/`; it also links `references/zotero-styles` to Zotero's installed
+style directory. Quarto and Pandoc therefore see Zotero and Better BibTeX
+updates without copying citation files into Git.
+
+Each machine and CI checkout must run setup. Zettlr must also be pointed
+manually to the same Better CSL JSON export.
 
 ## The CLI Is The Stable Contract
 
 `bin/longform` gives authors, CI, Zettlr, and provider-agnostic AI agents the
-same commands. It validates paths and citations, synchronizes Zettlr, checks
-fonts, invokes native formats, and normalizes output names.
+same commands. It links local Zotero inputs, validates paths and citations,
+synchronizes Zettlr, checks fonts, invokes native formats, and normalizes output
+names.
 
 ```text
-Zettlr edits document/**/*.md
-              |
-              v
+External Better CSL JSON -------> Zettlr citation preferences
+           |
+           +---------------------+
+                                 |
+Zotero installed styles --------+----> ignored references/ links
+                                               |
+Zettlr edits document/**/*.md -----------------+
+                                               |
+                                               v
 _quarto.yml + document/*.yml define the standard book
               |
               v

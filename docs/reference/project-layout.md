@@ -17,8 +17,10 @@ document/                         author-owned manuscript content
   manuscript/*.md                 active chapters
   references.md                   bibliography heading and Div#refs
 references/
-  library.json                    Better CSL JSON auto-export
-  style.csl                       pinned citation style
+  library.json                    ignored link to Better CSL JSON export
+  style.csl                       ignored link to selected installed style
+  zotero-styles                   ignored link to Zotero's styles/ directory
+  .csl-parents/                   ignored aliases for dependent style parents
   reference.docx                 Word style template
 resources/                        optional figures and attachments
 _extensions/epigraph/             pinned Fancy Epigraphs v0.0.1
@@ -31,6 +33,15 @@ submissions/                      optional frozen deliverables
 The `resources/`, `style/`, and `submissions/` directories are optional and
 author-created: a freshly generated project does not contain them until you add
 them.
+
+The Zotero setup entries under `references/` are not shipped. `bin/longform
+setup` creates them for each checkout from the exact Better CSL JSON export or
+a directory containing it as `library.json`, the active Zotero data directory,
+and an installed style title, CSL ID, or filename. The export directory is not
+the Zotero data directory or `zotero.sqlite`. The links remain live, so Better
+BibTeX export changes and Zotero style updates appear without copying files
+into the project. The tracked `reference.docx` is unrelated to Zotero and
+remains project-owned.
 
 `document/` is a strict authoring boundary. The only non-Markdown files allowed
 below it are `document/metadata.yml` (the manuscript's descriptive metadata),

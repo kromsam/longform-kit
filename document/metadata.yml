@@ -11,7 +11,7 @@ lang: en-GB
 
 book:
   title: "A Longform Document"
-  subtitle: "A reproducible Zettlr, Quarto, Pandoc, and Zotero project"
+  subtitle: "A Zettlr, Quarto, Pandoc, and Zotero project"
   author: "Author Name"
   date: today
   date-format: "D MMMM YYYY"

@@ -1,7 +1,8 @@
 # Configuration Reference
 
-Root `_quarto.yml` is the public project configuration. All paths are relative
-to the repository root.
+Root `_quarto.yml` is the public project configuration. Its paths are relative
+to the repository root; setup connects the stable citation paths to external
+Zotero files.
 
 ## Project And Book
 
@@ -33,7 +34,7 @@ lang: en-GB
 
 book:
   title: "A Longform Document"
-  subtitle: "A reproducible Zettlr, Quarto, Pandoc, and Zotero project"
+  subtitle: "A Zettlr, Quarto, Pandoc, and Zotero project"
   author: "Author Name"
   date: today
   date-format: "D MMMM YYYY"
@@ -72,7 +73,42 @@ link-citations: true
 ```
 
 Longform Kit requires exactly one CSL JSON bibliography. Quarto and its bundled
-Pandoc process citations and generate the bibliography natively.
+Pandoc process citations and generate the bibliography natively. The two paths
+above are ignored live symlinks created by `bin/longform setup`, not shipped
+files. Setup also links `references/zotero-styles` to the active Zotero data
+directory's `styles/` folder so it can resolve installed styles by title, CSL
+ID, or filename.
+
+The native formats use Quarto's `resource-path` option:
+
+```yaml
+resource-path:
+  - .
+  - references/.csl-parents
+  - references/zotero-styles
+  - references/zotero-styles/hidden
+```
+
+The combined GFM render passes the equivalent Pandoc search path. Retain all
+three citation-style directories. Dependent CSL styles need the generated
+parent aliases under `references/.csl-parents` or direct access to their
+installed independent parent under Zotero's style directories.
+
+Configure a checkout with:
+
+```sh
+bin/longform setup \
+  --library FILE_OR_DIR \
+  --zotero-data-dir DIR \
+  --style TITLE_OR_ID_OR_FILENAME
+```
+
+`FILE_OR_DIR` is the exact Better CSL JSON export or its containing directory
+when the export is named `library.json`. It is separate from the Zotero data
+directory and is never `zotero.sqlite`.
+
+Run setup on every machine and in CI. Keep the stable `_quarto.yml` paths; do
+not replace them with personal absolute paths.
 
 ## Longform Checks
 

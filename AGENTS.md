@@ -2,7 +2,7 @@
 
 This repository is a long-form writing project, not an application. Source text
 is authored in Zettlr, organized and rendered by Quarto, converted by Pandoc,
-and cited from a project-local Zotero/Better BibTeX export.
+and cited from a user-local Zotero/Better BibTeX export linked during setup.
 
 ## Source Of Truth
 
@@ -15,9 +15,15 @@ and cited from a project-local Zotero/Better BibTeX export.
   `document/metadata.yml`, and the chapter list in `document/chapters.yml`.
 - Do not edit root `index.md`; it is Quarto's adapter for the author-owned front
   matter file.
-- Treat `references/library.json` as a generated Better CSL JSON export. Change
-  bibliographic metadata in Zotero, then let Better BibTeX update it.
-- Keep the exact citation style in `references/style.csl` under version control.
+- Treat `references/library.json`, `references/style.csl`,
+  `references/zotero-styles`, and `references/.csl-parents` as ignored,
+  user-local setup state created by `bin/longform setup`. Do not edit, copy, or
+  commit their targets.
+- Change bibliographic metadata in Zotero, then let the configured Better CSL
+  JSON auto-export update. Its setup location is either the exact export file
+  or a directory containing `library.json`, never the Zotero data directory or
+  `zotero.sqlite`. Install and update citation styles through Zotero's Style
+  Manager.
 - Never edit `build/`, `.cache/`, `.quarto/`, or rendered artefacts.
 - `document/.ztr-directory` is generated from `_quarto.yml`; regenerate it with
   `bin/longform zettlr sync`.
@@ -28,10 +34,11 @@ and cited from a project-local Zotero/Better BibTeX export.
 - Preserve citation keys, quotations, factual claims, headings, shortcodes,
   conditional Divs, and authorial meaning during editorial work.
 - Do not guess citation details. Verify uncertain metadata in Zotero or through
-  an available read-only connector, then update Zotero rather than its JSON
-  export.
+  an available read-only connector, then update Zotero rather than the linked
+  JSON export.
 - Use `bin/longform` instead of reconstructing Quarto or Pandoc commands.
-- Do not introduce absolute home-directory paths or global Zettlr profiles.
+- Do not commit absolute home-directory paths or global Zettlr profiles. Local
+  citation paths belong only in the ignored setup symlinks.
 - Keep figures and attachments outside `document/` and use Quarto project-root
   paths such as `/resources/figure.png` so combined GFM can extract them.
 - Keep routine builds offline and provider-independent.
@@ -39,6 +46,12 @@ and cited from a project-local Zotero/Better BibTeX export.
   Skills as executable code. Inspect untrusted changes before running them.
 
 ## Verification
+
+After cloning, configure the local Zotero inputs before building:
+
+```sh
+bin/longform setup --library FILE_OR_DIR --zotero-data-dir DIR --style STYLE
+```
 
 After changing chapter order or configuration, run:
 

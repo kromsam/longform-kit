@@ -20,6 +20,11 @@ toc-title: Contents
 toc-depth: 2
 number-sections: true
 link-citations: true
+resource-path:
+  - .
+  - references/.csl-parents
+  - references/zotero-styles
+  - references/zotero-styles/hidden
 
 longform:
   gfm-toc-depth: 2

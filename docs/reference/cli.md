@@ -7,12 +7,41 @@ returns a non-zero status on a detected failure.
 
 ```sh
 bin/longform setup
+bin/longform setup \
+  --library FILE_OR_DIR \
+  --zotero-data-dir DIR \
+  --style TITLE_OR_ID_OR_FILENAME
 ```
 
-Regenerates the derived adapters from the current configuration: it restores
-the exact root `index.md` adapter and synchronizes `document/.ztr-directory`.
-The agent files, ignore rules, and Agent Skills already ship in the cloned
-repository, so setup does not create them.
+On the first run, invoking setup without options prompts for the Better CSL JSON
+export location, the active Zotero data directory, and an installed style title,
+CSL ID, or filename. `FILE_OR_DIR` may be the exact export file or a directory
+containing that export as `library.json`. It is a Better BibTeX export location,
+not the Zotero data directory or `zotero.sqlite`.
+
+Style matching reads the installed CSL metadata; it does not derive a filename
+from a display title. For a dependent style, setup also requires its independent
+parent to be installed.
+
+Setup creates or refreshes these ignored live links:
+
+```text
+references/library.json
+references/style.csl
+references/zotero-styles
+references/.csl-parents/ (when a dependent style needs a parent alias)
+```
+
+It then restores the exact root `index.md` adapter and synchronizes
+`document/.ztr-directory`. Rerunning setup without options revalidates and
+reuses the current links. Use all three options for unattended setup in CI.
+Every checkout must run setup because citation files and links do not ship in
+the repository. The agent files, ignore rules, and Agent Skills do ship, so
+setup does not recreate them.
+
+Setup calls are serialized. Do not run setup concurrently with `check` or
+`build`: those commands expect the citation links to remain unchanged for their
+duration.
 
 ## `build`
 
@@ -59,7 +88,8 @@ Validates:
 - The rule that `document/` contains only author-maintained `.md` files plus
   the manuscript metadata in `document/metadata.yml`, the chapter list in
   `document/chapters.yml`, and the generated `document/.ztr-directory` adapter.
-- A project-local CSL file and exactly one CSL JSON bibliography.
+- The selected configured CSL file and exactly one linked CSL JSON
+  bibliography.
 - Non-empty, unique bibliography item IDs and resolution of every cited ID.
 - GFM TOC depth and optional required-font configuration.
 

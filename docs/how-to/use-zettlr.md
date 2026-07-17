@@ -17,6 +17,18 @@ bin/longform zettlr sync
 
 Do not change `.ztr-directory` directly.
 
+## Load The Citation Library
+
+Longform Kit links Quarto to a Better CSL JSON export, but it does not change
+Zettlr's global preferences. Open **Preferences > Citations** in Zettlr and
+select the actual export file resolved by `bin/longform setup`. If
+`--library` named a directory, select its `library.json` rather than the
+directory.
+
+Zettlr then watches the export for Better BibTeX updates. See the [Zettlr
+reference-manager guide](https://docs.zettlr.com/en/guides/reference-manager-integration/)
+for the illustrated workflow.
+
 ## Install The Export Launcher
 
 ```sh

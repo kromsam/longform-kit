@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<style xmlns="http://purl.org/net/xbiblio/csl" xmlns:csl="http://purl.org/net/xbiblio/csl" class="note" version="1.0" page-range-format="expanded">
+  <info>
+    <!-- <title>Retired Style Name</title> -->
+    <csl:title><![CDATA[Longform Test Note Style]]></csl:title>
+    <csl:id>https://example.invalid/styles/longform-test-note</csl:id>
+    <link href="https://example.invalid/styles/longform-test-note" rel="self"/>
+    <!-- <link href="https://example.invalid/styles/not-a-parent" rel="independent-parent"/> -->
+    <updated>2026-07-17T00:00:00+00:00</updated>
+  </info>
+  <macro name="author">
+    <names variable="author">
+      <name and="text" initialize="false"/>
+    </names>
+  </macro>
+  <macro name="edition">
+    <number variable="edition" form="ordinal" suffix=" ed."/>
+  </macro>
+  <citation>
+    <layout delimiter="; ">
+      <group delimiter=", ">
+        <text macro="author"/>
+        <text variable="title" font-style="italic"/>
+        <text macro="edition"/>
+        <text variable="publisher"/>
+        <text variable="locator"/>
+      </group>
+    </layout>
+  </citation>
+  <bibliography hanging-indent="true">
+    <layout suffix=".">
+      <group delimiter=", ">
+        <text macro="author"/>
+        <text variable="title" font-style="italic"/>
+        <text macro="edition"/>
+        <text variable="publisher"/>
+      </group>
+    </layout>
+  </bibliography>
+</style>
