@@ -21,11 +21,12 @@ const quarto = Deno.env.get("LONGFORM_QUARTO") || "quarto";
 const homeAdapterPath = join(projectDir, "index.md");
 const homeAdapter = "{{< include document/front-matter.md >}}\n";
 // Author-owned manuscript metadata merged into the config via metadata-files.
-// These are the only non-Markdown files allowed at the top of document/:
 // metadata.yml holds title/author/date/language and chapters.yml the chapter
-// list.
+// list. Together with the generated .ztr-directory Zettlr adapter, these are
+// the only non-Markdown files allowed at the top of document/.
 const manuscriptMetadataFiles = new Set(["metadata.yml", "chapters.yml"]);
 const manuscriptMetadataList = [...manuscriptMetadataFiles].join(", ");
+const zettlrAdapterFile = ".ztr-directory";
 
 async function run(
   command: string,
@@ -135,6 +136,14 @@ function requiredFonts(config: Json): string[] {
   return fonts;
 }
 
+// The Zettlr adapter lives in document/, so its paths are relative to that
+// directory: author sources drop the document/ prefix and anything outside it
+// (such as the CSL style) is reached with a leading ../.
+function documentRelative(path: string): string {
+  if (path === "") return path;
+  return path.startsWith("document/") ? path.slice("document/".length) : `../${path}`;
+}
+
 function zettlrProject(data: Json) {
   const config = configFrom(data);
   return {
@@ -142,8 +151,8 @@ function zettlrProject(data: Json) {
     project: {
       title: scalar(object(config.book).title, "Longform document"),
       profiles: [],
-      files: authorFiles(data),
-      cslStyle: scalar(config.csl),
+      files: authorFiles(data).map(documentRelative),
+      cslStyle: documentRelative(scalar(config.csl)),
       templates: { tex: "", html: "" },
     },
     icon: null,
@@ -173,7 +182,7 @@ async function syncHomeAdapter(checkOnly: boolean) {
 async function sync(checkOnly: boolean) {
   await syncHomeAdapter(checkOnly);
   const data = await inspect();
-  const path = join(projectDir, ".ztr-directory");
+  const path = join(projectDir, "document", ".ztr-directory");
   const expected = `${JSON.stringify(zettlrProject(data), null, 2)}\n`;
   let current = "";
   try {
@@ -274,13 +283,16 @@ async function checkAuthorDirectory() {
       } else if (
         entry.isFile &&
         directory === authorDir &&
-        manuscriptMetadataFiles.has(entry.name)
+        (manuscriptMetadataFiles.has(entry.name) ||
+          entry.name === zettlrAdapterFile)
       ) {
-        // Manuscript metadata is author-owned information about the document,
-        // so it may sit beside the prose even though it is YAML, not Markdown.
+        // Manuscript metadata (metadata.yml, chapters.yml) is author-owned, and
+        // .ztr-directory is the generated Zettlr adapter for navigating
+        // document/; both sit beside the prose even though they are not
+        // Markdown.
       } else if (!entry.isFile || !entry.name.endsWith(".md")) {
         throw new Error(
-          `Only author Markdown and ${manuscriptMetadataList} are allowed under document/: ${relative(authorDir, path)}`,
+          `Only author Markdown, ${manuscriptMetadataList}, and the generated ${zettlrAdapterFile} are allowed under document/: ${relative(authorDir, path)}`,
         );
       }
     }

@@ -6,11 +6,11 @@ AGENTS.md                         provider-neutral repository instructions
 _quarto.yml                       standard Quarto book manifest
 _quarto-binding.yml               binding PDF profile
 index.md                          generated Quarto home-page adapter
-.ztr-directory                    generated Zettlr project adapter
 bin/longform                      stable command-line interface
 bin/longform-zettlr               Zettlr custom-export launcher
 scripts/project.ts                checks, Zettlr sync, and combined GFM
 document/                         author-owned manuscript content
+  .ztr-directory                  generated Zettlr project adapter
   metadata.yml                    title, subtitle, author, date, language
   chapters.yml                    ordered chapter list
   front-matter.md                 preface and other opening content
@@ -33,11 +33,12 @@ author-created: a freshly generated project does not contain them until you add
 them.
 
 `document/` is a strict authoring boundary. The only non-Markdown files allowed
-below it are `document/metadata.yml` (the manuscript's descriptive metadata) and
-`document/chapters.yml` (the ordered chapter list); both are merged into `book:`
-through `metadata-files` in `_quarto.yml`. `bin/longform check` rejects every
-other non-Markdown file there, including the rest of the Quarto configuration,
-generated outputs, reference exports, and editor state.
+below it are `document/metadata.yml` (the manuscript's descriptive metadata),
+`document/chapters.yml` (the ordered chapter list), and the generated
+`document/.ztr-directory` Zettlr adapter. The two YAML files are merged into
+`book:` through `metadata-files` in `_quarto.yml`. `bin/longform check` rejects
+every other non-Markdown file there, including the rest of the Quarto
+configuration, generated outputs, reference exports, and editor state.
 
 Store figures and attachments in a root directory such as `resources/`. Refer
 to them with Quarto project-root paths (`/resources/figure.png`), including from

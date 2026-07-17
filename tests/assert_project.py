@@ -97,7 +97,10 @@ for relative in author_files:
 
 metadata_file = DOCUMENT / "metadata.yml"
 chapters_file = DOCUMENT / "chapters.yml"
-author_metadata = {metadata_file, chapters_file}
+zettlr_adapter = DOCUMENT / ".ztr-directory"
+# metadata.yml and chapters.yml are author-owned; .ztr-directory is the
+# generated Zettlr adapter. All three are the permitted non-Markdown files.
+author_metadata = {metadata_file, chapters_file, zettlr_adapter}
 if not metadata_file.is_file():
     fail("manuscript metadata must live in document/metadata.yml")
 if not chapters_file.is_file():
@@ -134,21 +137,28 @@ if not isinstance(csl, str) or not csl:
 if not (ROOT / csl).is_file():
     fail(f"CSL file does not exist: {csl}")
 
+# The adapter lives in document/, so its paths are relative to that directory.
+def document_relative(path):
+    if path.startswith("document/"):
+        return path[len("document/"):]
+    return f"../{path}"
+
+
 expected_zettlr = {
     "sorting": "name-up",
     "project": {
         "title": book.get("title", "Longform document"),
         "profiles": [],
-        "files": author_files,
-        "cslStyle": csl,
+        "files": [document_relative(path) for path in author_files],
+        "cslStyle": document_relative(csl),
         "templates": {"tex": "", "html": ""},
     },
     "icon": None,
     "color": None,
 }
-zettlr = json.loads((ROOT / ".ztr-directory").read_text(encoding="utf-8"))
+zettlr = json.loads((DOCUMENT / ".ztr-directory").read_text(encoding="utf-8"))
 if zettlr != expected_zettlr:
-    fail(".ztr-directory does not exactly match resolved Quarto configuration")
+    fail("document/.ztr-directory does not exactly match resolved Quarto configuration")
 
 bibliographies = config.get("bibliography")
 if isinstance(bibliographies, str):

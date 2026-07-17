@@ -177,7 +177,7 @@ lint_sources() {
 setup_project() {
   # A project is a clone of this repository, so the agent files, ignore rules,
   # and skills are already present. Setup only regenerates the derived adapters
-  # (root index.md and .ztr-directory) from the current configuration.
+  # (root index.md and document/.ztr-directory) from the current configuration.
   run_project_tool sync
   printf 'Longform Kit project initialized\n'
 }

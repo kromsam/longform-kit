@@ -5,9 +5,9 @@ Zettlr is the authoring interface. The canonical build remains
 
 ## Open The Project
 
-Open the repository root in Zettlr. Root `.ztr-directory` lists the resolved
-author sources under `document/`, including `document/front-matter.md` in place
-of Quarto's generated `index.md` adapter.
+Open `document/` in Zettlr as the project. `document/.ztr-directory` lists the
+resolved author sources — `front-matter.md` in place of Quarto's generated root
+`index.md` adapter.
 
 After changing the chapter list in `document/chapters.yml`, run:
 

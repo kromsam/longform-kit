@@ -10,9 +10,9 @@ bin/longform setup
 ```
 
 Regenerates the derived adapters from the current configuration: it restores
-the exact root `index.md` adapter and synchronizes `.ztr-directory`. The agent
-files, ignore rules, and Agent Skills already ship in the cloned repository, so
-setup does not create them.
+the exact root `index.md` adapter and synchronizes `document/.ztr-directory`.
+The agent files, ignore rules, and Agent Skills already ship in the cloned
+repository, so setup does not create them.
 
 ## `build`
 
@@ -54,11 +54,11 @@ bin/longform check
 
 Validates:
 
-- Root `index.md` and `.ztr-directory` generated state.
+- Root `index.md` and `document/.ztr-directory` generated state.
 - Native Quarto configuration and resolved source paths.
 - The rule that `document/` contains only author-maintained `.md` files plus
-  the manuscript metadata in `document/metadata.yml` and the chapter list in
-  `document/chapters.yml`.
+  the manuscript metadata in `document/metadata.yml`, the chapter list in
+  `document/chapters.yml`, and the generated `document/.ztr-directory` adapter.
 - A project-local CSL file and exactly one CSL JSON bibliography.
 - Non-empty, unique bibliography item IDs and resolution of every cited ID.
 - GFM TOC depth and optional required-font configuration.
@@ -85,7 +85,7 @@ bin/longform zettlr sync
 bin/longform zettlr install
 ```
 
-`sync` restores root `index.md` and regenerates root `.ztr-directory` from the
-resolved chapter order. `install` copies a launcher to
+`sync` restores root `index.md` and regenerates `document/.ztr-directory` from
+the resolved chapter order. `install` copies a launcher to
 `~/.local/bin/longform-zettlr` and prints the custom command to register in
 Zettlr.

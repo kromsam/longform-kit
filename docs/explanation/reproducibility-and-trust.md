@@ -20,7 +20,7 @@ The Better CSL JSON file is generated but committed. This separates two times:
 Source and output have different ownership:
 
 - Edit Markdown, `_quarto.yml`, project CSL, and intentional style assets.
-- Generate `.ztr-directory` from Quarto configuration.
+- Generate `document/.ztr-directory` from Quarto configuration.
 - Ignore routine `build/`, `.cache/`, and `.quarto/` state.
 - Preserve intentional submitted versions separately when archival policy
   requires them.

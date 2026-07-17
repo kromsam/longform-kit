@@ -28,6 +28,7 @@ for required in \
   bin/longform-zettlr \
   _quarto.yml \
   index.md \
+  document/.ztr-directory \
   AGENTS.md \
   .gitignore \
   .agents/skills \
@@ -86,7 +87,7 @@ grep -q 'longform-document_files/resources/example.svg' \
   "$STAGE/build/longform-document.md" || fail "GFM did not rewrite extracted media"
 [ -s "$STAGE/build/longform-document_files/resources/example.svg" ] || \
   fail "GFM did not promote extracted media beside the output"
-if find "$STAGE/document" -type f ! -name '*.md' ! -name 'metadata.yml' ! -name 'chapters.yml' | grep -q .; then
+if find "$STAGE/document" -type f ! -name '*.md' ! -name 'metadata.yml' ! -name 'chapters.yml' ! -name '.ztr-directory' | grep -q .; then
   fail "clone put an unexpected non-Markdown file under document/"
 fi
 

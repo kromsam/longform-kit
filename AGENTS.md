@@ -19,7 +19,7 @@ and cited from a project-local Zotero/Better BibTeX export.
   bibliographic metadata in Zotero, then let Better BibTeX update it.
 - Keep the exact citation style in `references/style.csl` under version control.
 - Never edit `build/`, `.cache/`, `.quarto/`, or rendered artefacts.
-- `.ztr-directory` is generated from `_quarto.yml`; regenerate it with
+- `document/.ztr-directory` is generated from `_quarto.yml`; regenerate it with
   `bin/longform zettlr sync`.
 
 ## Working Rules

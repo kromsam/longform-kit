@@ -12,9 +12,9 @@ bin/longform setup
 bin/longform doctor
 ```
 
-`setup` regenerates the derived adapters (root `index.md` and `.ztr-directory`)
-from the current configuration; the agent files and skills already ship in the
-cloned repository.
+`setup` regenerates the derived adapters (root `index.md` and
+`document/.ztr-directory`) from the current configuration; the agent files and
+skills already ship in the cloned repository.
 
 ## 2. Set Document Metadata
 

@@ -5,8 +5,8 @@ replace Quarto's publishing model with another one.
 
 ## Zettlr Is The Writing Environment
 
-Zettlr opens the repository as a project, lists the ordered Markdown sources,
-and helps insert Zotero citations. The generated root `.ztr-directory` is UI
+Zettlr opens `document/` as the project, lists the ordered Markdown sources,
+and helps insert Zotero citations. The generated `document/.ztr-directory` is UI
 state derived from Quarto, not a second build manifest.
 
 Author-maintained files under `document/` are ordinary `.md`, alongside
