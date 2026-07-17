@@ -4,12 +4,12 @@
     "title": "A Longform Document",
     "profiles": [],
     "files": [
-      "document/front-matter.md",
-      "document/manuscript/01-introduction.md",
-      "document/manuscript/02-conclusion.md",
-      "document/references.md"
+      "front-matter.md",
+      "manuscript/01-introduction.md",
+      "manuscript/02-conclusion.md",
+      "references.md"
     ],
-    "cslStyle": "references/style.csl",
+    "cslStyle": "../references/style.csl",
     "templates": {
       "tex": "",
       "html": ""

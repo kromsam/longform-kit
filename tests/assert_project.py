@@ -59,9 +59,6 @@ book = config.get("book", {})
 chapters = project.get("render", [])
 information = inspection.get("fileInformation", {})
 
-if (ROOT / "VERSION").read_text(encoding="utf-8") != "0.3.0\n":
-    fail("VERSION must declare Longform Kit 0.3.0")
-
 if project.get("type") != "book":
     fail("project.type must use Quarto's native book type")
 if project.get("output-dir") != "build":
@@ -98,10 +95,27 @@ for relative in author_files:
     if path.suffix != ".md" or not path.is_file():
         fail(f"author source is not Markdown: {relative}")
 
+metadata_file = DOCUMENT / "metadata.yml"
+chapters_file = DOCUMENT / "chapters.yml"
+zettlr_adapter = DOCUMENT / ".ztr-directory"
+# metadata.yml and chapters.yml are author-owned; .ztr-directory is the
+# generated Zettlr adapter. All three are the permitted non-Markdown files.
+author_metadata = {metadata_file, chapters_file, zettlr_adapter}
+if not metadata_file.is_file():
+    fail("manuscript metadata must live in document/metadata.yml")
+if not chapters_file.is_file():
+    fail("the chapter list must live in document/chapters.yml")
+if not book.get("title"):
+    fail("book.title must resolve through document/metadata.yml")
+if not config.get("lang"):
+    fail("lang must resolve through document/metadata.yml")
+if not book.get("chapters"):
+    fail("book.chapters must resolve through document/chapters.yml")
+
 unexpected = [
     path.relative_to(DOCUMENT)
     for path in DOCUMENT.rglob("*")
-    if path.is_file() and path.suffix != ".md"
+    if path.is_file() and path.suffix != ".md" and path not in author_metadata
 ]
 if unexpected:
     fail(f"document/ contains non-author files: {', '.join(map(str, unexpected))}")
@@ -119,25 +133,44 @@ if "{{< pagebreak >}}" not in (DOCUMENT / "front-matter.md").read_text(encoding=
 
 csl = config.get("csl")
 if not isinstance(csl, str) or not csl:
-    fail("_quarto.yml must declare one project-local CSL file")
-if not (ROOT / csl).is_file():
+    fail("_quarto.yml must declare one configured CSL file")
+csl_path = ROOT / csl
+if not csl_path.is_symlink() or not csl_path.is_file():
     fail(f"CSL file does not exist: {csl}")
+styles_path = ROOT / "references" / "zotero-styles"
+if not styles_path.is_symlink() or not styles_path.is_dir():
+    fail("Zotero styles directory is not linked by setup")
+expected_resource_path = [
+    ".",
+    "references/.csl-parents",
+    "references/zotero-styles",
+    "references/zotero-styles/hidden",
+]
+if config.get("resource-path") != expected_resource_path:
+    fail("_quarto.yml does not retain the citation resource path")
+
+# The adapter lives in document/, so its paths are relative to that directory.
+def document_relative(path):
+    if path.startswith("document/"):
+        return path[len("document/"):]
+    return f"../{path}"
+
 
 expected_zettlr = {
     "sorting": "name-up",
     "project": {
         "title": book.get("title", "Longform document"),
         "profiles": [],
-        "files": author_files,
-        "cslStyle": csl,
+        "files": [document_relative(path) for path in author_files],
+        "cslStyle": document_relative(csl),
         "templates": {"tex": "", "html": ""},
     },
     "icon": None,
     "color": None,
 }
-zettlr = json.loads((ROOT / ".ztr-directory").read_text(encoding="utf-8"))
+zettlr = json.loads((DOCUMENT / ".ztr-directory").read_text(encoding="utf-8"))
 if zettlr != expected_zettlr:
-    fail(".ztr-directory does not exactly match resolved Quarto configuration")
+    fail("document/.ztr-directory does not exactly match resolved Quarto configuration")
 
 bibliographies = config.get("bibliography")
 if isinstance(bibliographies, str):
@@ -146,6 +179,8 @@ if not isinstance(bibliographies, list) or len(bibliographies) != 1:
     fail("Longform Kit requires exactly one bibliography")
 
 bibliography_path = ROOT / bibliographies[0]
+if not bibliography_path.is_symlink():
+    fail("bibliography is not linked by setup")
 entries = json.loads(bibliography_path.read_text(encoding="utf-8"))
 if not isinstance(entries, list):
     fail("bibliography must be a CSL JSON array")

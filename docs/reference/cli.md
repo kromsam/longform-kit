@@ -7,15 +7,41 @@ returns a non-zero status on a detected failure.
 
 ```sh
 bin/longform setup
+bin/longform setup \
+  --library FILE_OR_DIR \
+  --zotero-data-dir DIR \
+  --style TITLE_OR_ID_OR_FILENAME
 ```
 
-Creates `AGENTS.md`, `.gitignore`, and `.agents/skills/` from templates only
-when they do not exist, and generates a project `LICENSE` from
-`share/templates/LICENSE.in` with the year and the `book.author` from
-`_quarto.yml` filled in. The kit's own MIT notice is deliberately not carried
-into generated projects (see `.quartoignore`); the licence belongs to the
-project's author. The command also restores the exact root `index.md` adapter
-and synchronizes `.ztr-directory`.
+On the first run, invoking setup without options prompts for the Better CSL JSON
+export location, the active Zotero data directory, and an installed style title,
+CSL ID, or filename. `FILE_OR_DIR` may be the exact export file or a directory
+containing that export as `library.json`. It is a Better BibTeX export location,
+not the Zotero data directory or `zotero.sqlite`.
+
+Style matching reads the installed CSL metadata; it does not derive a filename
+from a display title. For a dependent style, setup also requires its independent
+parent to be installed.
+
+Setup creates or refreshes these ignored live links:
+
+```text
+references/library.json
+references/style.csl
+references/zotero-styles
+references/.csl-parents/ (when a dependent style needs a parent alias)
+```
+
+It then restores the exact root `index.md` adapter and synchronizes
+`document/.ztr-directory`. Rerunning setup without options revalidates and
+reuses the current links. Use all three options for unattended setup in CI.
+Every checkout must run setup because citation files and links do not ship in
+the repository. The agent files, ignore rules, and Agent Skills do ship, so
+setup does not recreate them.
+
+Setup calls are serialized. Do not run setup concurrently with `check` or
+`build`: those commands expect the citation links to remain unchanged for their
+duration.
 
 ## `build`
 
@@ -57,10 +83,13 @@ bin/longform check
 
 Validates:
 
-- Root `index.md` and `.ztr-directory` generated state.
+- Root `index.md` and `document/.ztr-directory` generated state.
 - Native Quarto configuration and resolved source paths.
-- The rule that `document/` contains only author-maintained `.md` files.
-- A project-local CSL file and exactly one CSL JSON bibliography.
+- The rule that `document/` contains only author-maintained `.md` files plus
+  the manuscript metadata in `document/metadata.yml`, the chapter list in
+  `document/chapters.yml`, and the generated `document/.ztr-directory` adapter.
+- The selected configured CSL file and exactly one linked CSL JSON
+  bibliography.
 - Non-empty, unique bibliography item IDs and resolution of every cited ID.
 - GFM TOC depth and optional required-font configuration.
 
@@ -86,7 +115,7 @@ bin/longform zettlr sync
 bin/longform zettlr install
 ```
 
-`sync` restores root `index.md` and regenerates root `.ztr-directory` from the
-resolved chapter order. `install` copies a launcher to
+`sync` restores root `index.md` and regenerates `document/.ztr-directory` from
+the resolved chapter order. `install` copies a launcher to
 `~/.local/bin/longform-zettlr` and prints the custom command to register in
 Zettlr.

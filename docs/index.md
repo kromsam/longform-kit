@@ -1,7 +1,8 @@
 # Longform Kit Documentation
 
-Longform Kit combines a Markdown writing environment with a reproducible
-multi-format build. Choose documentation by what you are trying to do.
+Longform Kit combines a Markdown writing environment, live Zotero citation
+inputs, and a multi-format build. Choose documentation by what you are trying
+to do.
 
 ## Tutorial
 

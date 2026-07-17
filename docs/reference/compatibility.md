@@ -6,7 +6,8 @@
 - Quarto 1.9.38 through 1.9.x and its bundled Pandoc.
 - LuaLaTeX from a current TeX Live or MacTeX installation.
 - Combined PDF, binding PDF, DOCX, LaTeX, and GFM outputs.
-- Project-local Better CSL JSON, CSL, and DOCX reference files.
+- An external Better CSL JSON export, an installed Zotero CSL style, and a
+  project-local DOCX reference file.
 - Zettlr as an optional authoring interface.
 - Vale and Harper as optional prose linters.
 
@@ -14,6 +15,11 @@
 default `TEXMFCACHE` and `TEXMFVAR` to ignored `.cache/texmf/` only when callers
 have not already supplied them, which supports restricted agent sandboxes
 without overriding valid TeX configurations.
+
+Every local or CI checkout must run `bin/longform setup` to create its ignored
+links to the external citation files. Zotero need not be running during a
+build, but the linked Better CSL JSON export and installed style must remain
+available at their configured paths.
 
 ## Output Notes
 

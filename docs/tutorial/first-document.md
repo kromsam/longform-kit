@@ -1,38 +1,62 @@
 # Build Your First Long-Form Document
 
-## 1. Create The Project
+## 1. Prepare Zotero
 
-Install Quarto 1.9.38 through 1.9.x and LuaLaTeX, then run:
+Install Zotero and Better BibTeX. Export the library or collection for this
+document with the **Better CSL JSON** translator, save it at a stable location,
+and enable **Keep updated**.
+
+Install the citation style you want through Zotero's **Cite** settings. Then use
+**Show Data Directory** in Zotero's advanced settings to locate the active data
+directory. Keep the export location and data-directory path available for
+setup. The export location may be the exact file or, when it is named
+`library.json`, its containing directory. That export directory is distinct
+from Zotero's data directory and `zotero.sqlite`.
+
+For the complete workflow, see [Connect a Zotero
+collection](../how-to/use-zotero.md).
+
+## 2. Create The Project
+
+Install Quarto 1.9.38 through 1.9.x and LuaLaTeX. On GitHub, use the **Use this
+template** button to create your own copy of the repository, or clone it:
 
 ```sh
-quarto use template kromsam/longform-kit
+git clone https://github.com/kromsam/longform-kit YOUR-PROJECT
 cd YOUR-PROJECT
 bin/longform setup
 bin/longform doctor
 ```
 
-`setup` installs provider-neutral agent files when missing and generates root
-`index.md` and `.ztr-directory`.
+Setup asks for the Better CSL JSON export file or containing directory, the
+Zotero data directory, and an installed style title, CSL ID, or filename. It
+creates ignored live links under `references/` and regenerates the root
+`index.md` and `document/.ztr-directory` adapters. Run setup in every checkout,
+including CI.
 
-## 2. Set Document Metadata
+In Zettlr, open **Preferences > Citations** and select the resolved Better CSL
+JSON export file manually. If setup received a directory, select its
+`library.json`.
 
-Open root `_quarto.yml` and replace the starter values:
+## 3. Set Document Metadata
+
+Open `document/metadata.yml` and replace the starter values:
 
 ```yaml
 book:
-  title: "A Reproducible Long-Form Document"
+  title: "A Long-Form Document"
   subtitle: "Writing, Citations, and Output in One Project"
   author: "Your Name"
   date: today
-  output-file: "my-document"
 ```
 
-Use a filename-safe `output-file` without an extension.
+The output filename stays in root `_quarto.yml`; set a filename-safe
+`book.output-file` there without an extension.
 
-## 3. Write In Zettlr
+## 4. Write In Zettlr
 
-Open the repository root in Zettlr. The project view lists only the author
-Markdown under `document/`. Edit `document/front-matter.md` and replace
+Open `document/` in Zettlr as the project. The project view lists only the
+author Markdown. Edit `document/front-matter.md` and replace
 `document/manuscript/01-introduction.md` with:
 
 ```markdown
@@ -40,16 +64,18 @@ Markdown under `document/`. Edit `document/front-matter.md` and replace
 
 {{< epigraph "A document begins by choosing what to foreground." source="Example" >}}
 
-This document uses a reproducible citation [@exampleBook2024, 1-2].
+This document uses a source from my Zotero library [@yourCitationKey, 1-2].
 
 ## Research question
 
 How does a document's form shape its argument?
 ```
 
-The starter bibliography already contains `exampleBook2024`.
+Replace `yourCitationKey` with an actual Better BibTeX key from the linked
+export. Zettlr can insert keys after it loads that same export in its citation
+preferences.
 
-## 4. Validate And Render
+## 5. Validate And Render
 
 ```sh
 bin/longform check
@@ -58,20 +84,17 @@ bin/longform build all
 
 Open `build/`. You should find:
 
-- `my-document.pdf`
-- `my-document-binding.pdf`
-- `my-document.docx`
-- `my-document.tex`
-- `my-document.md`
-- `my-document-latex/`
+- `longform-document.pdf`
+- `longform-document-binding.pdf`
+- `longform-document.docx`
+- `longform-document.tex`
+- `longform-document.md`
+- `longform-document-latex/`
 
 The ordinary PDF has equal margins, while the binding profile has a larger
 inner margin. The DOCX uses its native Word TOC and the project reference
 document. The GFM output has already expanded Quarto shortcodes and format
 conditionals.
 
-## 5. Connect Your References
-
-Configure a Better CSL JSON auto-export to `references/library.json`. Replace
-`references/style.csl` only when intentionally choosing another citation style.
-Follow [Connect a Zotero collection](../how-to/use-zotero.md) for details.
+The citation inputs are live rather than Git-pinned. A Better BibTeX refresh or
+installed-style update affects the next check and build.

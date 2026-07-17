@@ -67,4 +67,5 @@ Use standard Pandoc citations:
 Author [-@key] argues ...
 ```
 
-Citation IDs must exactly match `id` values in `references/library.json`.
+Citation IDs must exactly match `id` values in the Better CSL JSON export
+linked at `references/library.json`.

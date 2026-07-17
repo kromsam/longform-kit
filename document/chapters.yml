@@ -1,0 +1,14 @@
+# Chapter list
+#
+# The ordered manuscript sources for the book, in reading order. Quarto merges
+# this into `book:` through the `metadata-files` entry in ../_quarto.yml and uses
+# it for every output, citation checks, and Zettlr synchronization.
+#
+# Keep the generated index.md first (it includes document/front-matter.md) and
+# keep document/references.md at the bibliography position, normally last.
+book:
+  chapters:
+    - index.md
+    - document/manuscript/01-introduction.md
+    - document/manuscript/02-conclusion.md
+    - document/references.md
