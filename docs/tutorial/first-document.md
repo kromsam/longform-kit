@@ -2,17 +2,19 @@
 
 ## 1. Create The Project
 
-Install Quarto 1.9.38 through 1.9.x and LuaLaTeX, then run:
+Install Quarto 1.9.38 through 1.9.x and LuaLaTeX. On GitHub, use the **Use this
+template** button to create your own copy of the repository, or clone it:
 
 ```sh
-quarto use template kromsam/longform-kit
+git clone https://github.com/kromsam/longform-kit YOUR-PROJECT
 cd YOUR-PROJECT
 bin/longform setup
 bin/longform doctor
 ```
 
-`setup` installs provider-neutral agent files when missing and generates root
-`index.md` and `.ztr-directory`.
+`setup` regenerates the derived adapters (root `index.md` and `.ztr-directory`)
+from the current configuration; the agent files and skills already ship in the
+cloned repository.
 
 ## 2. Set Document Metadata
 

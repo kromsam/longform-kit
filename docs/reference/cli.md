@@ -9,9 +9,10 @@ returns a non-zero status on a detected failure.
 bin/longform setup
 ```
 
-Creates `AGENTS.md`, `.gitignore`, and `.agents/skills/` from templates only
-when they do not exist. The command also restores the exact root `index.md`
-adapter and synchronizes `.ztr-directory`.
+Regenerates the derived adapters from the current configuration: it restores
+the exact root `index.md` adapter and synchronizes `.ztr-directory`. The agent
+files, ignore rules, and Agent Skills already ship in the cloned repository, so
+setup does not create them.
 
 ## `build`
 

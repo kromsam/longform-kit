@@ -175,12 +175,9 @@ lint_sources() {
 }
 
 setup_project() {
-  [ -f "$ROOT/AGENTS.md" ] || cp "$ROOT/share/templates/AGENTS.md.in" "$ROOT/AGENTS.md"
-  [ -f "$ROOT/.gitignore" ] || cp "$ROOT/share/templates/gitignore.in" "$ROOT/.gitignore"
-  if [ ! -d "$ROOT/.agents/skills" ]; then
-    mkdir -p "$ROOT/.agents"
-    cp -R "$ROOT/share/templates/skills" "$ROOT/.agents/skills"
-  fi
+  # A project is a clone of this repository, so the agent files, ignore rules,
+  # and skills are already present. Setup only regenerates the derived adapters
+  # (root index.md and .ztr-directory) from the current configuration.
   run_project_tool sync
   printf 'Longform Kit project initialized\n'
 }
@@ -192,7 +189,7 @@ zettlr() {
     install)
       destination=${HOME}/.local/bin/longform-zettlr
       mkdir -p "$(dirname "$destination")"
-      cp "$ROOT/share/templates/longform-zettlr.in" "$destination"
+      cp "$ROOT/bin/longform-zettlr" "$destination"
       chmod +x "$destination"
       printf 'Installed %s\n' "$destination"
       printf 'Add this Zettlr custom export command: longform-zettlr\n'

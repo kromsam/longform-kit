@@ -8,6 +8,7 @@ _quarto-binding.yml               binding PDF profile
 index.md                          generated Quarto home-page adapter
 .ztr-directory                    generated Zettlr project adapter
 bin/longform                      stable command-line interface
+bin/longform-zettlr               Zettlr custom-export launcher
 scripts/project.ts                checks, Zettlr sync, and combined GFM
 document/                         author-owned manuscript content
   metadata.yml                    title, subtitle, author, date, language
@@ -23,7 +24,6 @@ resources/                        optional figures and attachments
 _extensions/epigraph/             pinned Fancy Epigraphs v0.0.1
 build/                            ignored generated outputs
 .cache/texmf/                     ignored sandbox-safe TeX cache
-share/templates/                  files materialized by setup
 style/                            optional editorial guidance
 submissions/                      optional frozen deliverables
 ```

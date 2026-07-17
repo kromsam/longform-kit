@@ -30,10 +30,11 @@ Requirements:
 - Fontconfig's `fc-match` when `longform.required-fonts` is configured
 - Zettlr and Zotero with Better BibTeX for the intended authoring workflow
 
-Create a project from the public starter:
+Start a project from this repository. On GitHub, use the **Use this template**
+button to create your own copy, or clone it directly:
 
 ```sh
-quarto use template kromsam/longform-kit
+git clone https://github.com/kromsam/longform-kit YOUR-PROJECT
 cd YOUR-PROJECT
 bin/longform setup
 bin/longform doctor

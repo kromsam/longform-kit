@@ -42,6 +42,6 @@ else
   printf 'tests: skipped PDF build and verification\n'
 fi
 
-sh tests/assert_template.sh
+sh tests/assert_clone.sh
 
 printf 'tests: all available Longform Kit checks passed\n'
