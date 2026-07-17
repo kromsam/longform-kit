@@ -5,7 +5,7 @@
 # the `metadata-files` list in the root ../_quarto.yml discovery loader.
 #
 # The chapter list lives in document/chapters.yml; structural build settings
-# such as the output filename stay in ../quarto/project.yml.
+# such as the output filename stay in ../_quarto.yml.
 lang: en-GB
 
 book:
@@ -13,4 +13,4 @@ book:
   subtitle: "A Zettlr, Quarto, Pandoc, and Zotero project"
   author: "Author Name"
   date: today
-  date-format: "D MMMM YYYY"
+  date-format: long

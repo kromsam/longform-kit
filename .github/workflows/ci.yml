@@ -14,15 +14,9 @@ concurrency:
 
 jobs:
   verify:
-    name: Verify (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    name: Build and verify every output
+    runs-on: ubuntu-latest
     timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
 
     steps:
       - name: Check out repository
@@ -38,25 +32,10 @@ jobs:
       - name: Set up TinyTeX
         uses: r-lib/actions/setup-tinytex@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
 
-      - name: Install PDF inspection tools (Linux)
-        if: runner.os == 'Linux'
+      - name: Install PDF inspection tools
         run: |
           sudo apt-get update
-          sudo apt-get install --yes poppler-utils qpdf
+          sudo apt-get install --yes poppler-utils
 
-      - name: Install PDF inspection tools (macOS)
-        if: runner.os == 'macOS'
-        run: brew install poppler qpdf
-
-      - name: Install Longform Kit TeX packages
-        run: |
-          tlmgr update --self
-          tlmgr install epigraph etoolbox
-
-      - name: Check toolchain
-        run: ./bin/longform doctor
-
-      - name: Run structural verification
-        env:
-          LONGFORM_REQUIRE_PDF: "1"
-        run: ./tests/run.sh
+      - name: Build and inspect every output
+        run: python3 tests/test_build.py

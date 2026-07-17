@@ -1,0 +1,7 @@
+extends: existence
+message: "Use a closed en rule for ranges: 1999–2002; pp. 168–69."
+level: warning
+scope: sentence
+nonword: true
+raw:
+  - '(?:\b(?:18|19|20|21)\d{2}\s+[-–]\s+(?:18|19|20|21)\d{2}\b|\b(?:18|19|20|21)\d{2}-(?:18|19|20|21)\d{2}\b|\bpp?\.\s+\d+\s+[-–]\s+\d+\b|\bpp?\.\s+\d+-\d+\b)'

@@ -1,0 +1,63 @@
+extends: substitution
+message: "Use Oxford spelling: '%s'."
+level: warning
+ignorecase: true
+swap:
+  organise: organize
+  organised: organized
+  organising: organizing
+  organisation: organization
+  organisations: organizations
+  recognise: recognize
+  recognised: recognized
+  recognising: recognizing
+  recognisable: recognizable
+  characterise: characterize
+  characterised: characterized
+  characterising: characterizing
+  civilisation: civilization
+  civilise: civilize
+  civilised: civilized
+  civilising: civilizing
+  emphasise: emphasize
+  emphasised: emphasized
+  emphasising: emphasizing
+  realise: realize
+  realised: realized
+  realising: realizing
+  conceptualise: conceptualize
+  conceptualised: conceptualized
+  conceptualising: conceptualizing
+  marginalise: marginalize
+  marginalised: marginalized
+  marginalising: marginalizing
+  materialise: materialize
+  materialised: materialized
+  materialising: materializing
+  prioritise: prioritize
+  prioritised: prioritized
+  prioritising: prioritizing
+  specialise: specialize
+  specialised: specialized
+  specialising: specializing
+  theorise: theorize
+  theorised: theorized
+  theorising: theorizing
+  analyze: analyse
+  analyzed: analysed
+  analyzing: analysing
+  paralyze: paralyse
+  paralyzed: paralysed
+  paralyzing: paralysing
+  theater: theatre
+  color: colour
+  colors: colours
+  colored: coloured
+  coloring: colouring
+  behavior: behaviour
+  behaviors: behaviours
+  favor: favour
+  favors: favours
+  favored: favoured
+  center: centre
+  centers: centres

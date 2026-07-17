@@ -1,6 +1,31 @@
-# Quarto requires this project-root loader. Edit the configuration it includes
-# under quarto/ and keep author-owned manuscript metadata under document/.
+# Longform Kit keeps its shared build configuration here. Author metadata and
+# chapter order remain in document/ so they can be edited without touching the
+# rendering setup. Put machine-local citation paths in _quarto.yml.local.
 metadata-files:
-  - quarto/project.yml
   - document/metadata.yml
   - document/chapters.yml
+
+project:
+  type: book
+  output-dir: build
+
+book:
+  output-file: "longform-document"
+
+toc: true
+toc-depth: 2
+number-sections: true
+link-citations: true
+
+format:
+  pdf:
+    colorlinks: false
+    papersize: a4
+    fontsize: 12pt
+    linestretch: 1.25
+    indent: true
+    # Use KOMA's symmetric default margins while retaining the two-sided
+    # pagination needed for physical recto starts.
+    classoption: "twoside=semi,openright"
+  docx:
+    reference-doc: references/reference.docx

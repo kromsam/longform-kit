@@ -1,0 +1,7 @@
+extends: existence
+message: "Avoid deprecated citation signals such as 'op. cit.' and 'loc. cit.'."
+level: warning
+ignorecase: true
+nonword: true
+raw:
+  - '\b(?:op|loc)\. cit\.'

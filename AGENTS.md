@@ -1,35 +1,26 @@
 # AGENTS.md
 
 This repository is a long-form writing project, not an application. Source text
-is authored in Zettlr, organized and rendered by Quarto, converted by Pandoc,
-and cited from a user-local Zotero/Better BibTeX export linked during setup.
+is organized and rendered by Quarto, converted by Pandoc, and cited from a
+user-local Zotero/Better BibTeX export. Zettlr is an optional authoring tool.
 
 ## Source Of Truth
 
-- Edit manuscript metadata (title, subtitle, author, date, language) in
-  `document/metadata.yml` and the chapter order in `document/chapters.yml`; edit
-  formats and build settings in `quarto/project.yml`, and binding-specific PDF
-  settings in `quarto/binding.yml`.
-- Keep root `_quarto.yml` as Quarto's minimal project-discovery loader. Change
-  it only when the set of included metadata files changes.
-- Under `document/`, keep only author-owned content: Markdown prose (front
-  matter in `document/front-matter.md`, chapters in `document/manuscript/`, the
-  bibliography target in `document/references.md`), the manuscript metadata in
-  `document/metadata.yml`, and the chapter list in `document/chapters.yml`.
+- Edit title, subtitle, author, date, and language in
+  `document/metadata.yml`; edit chapter order in `document/chapters.yml`.
+- Edit shared formats and build settings in root `_quarto.yml`, and edit only
+  binding-specific PDF settings in `_quarto-binding.yml`.
+- Under `document/`, keep only author-owned content: front matter, manuscript
+  chapters, the bibliography target, manuscript metadata, and chapter order.
 - Do not edit root `index.md`; it is Quarto's adapter for the author-owned front
-  matter file.
-- Treat `references/library.json`, `references/style.csl`,
-  `references/zotero-styles`, and `references/.csl-parents` as ignored,
-  user-local setup state created by `bin/longform setup`. Do not edit, copy, or
-  commit their targets.
-- Change bibliographic metadata in Zotero, then let the configured Better CSL
-  JSON auto-export update. Its setup location is either the exact export file
-  or a directory containing `library.json`, never the Zotero data directory or
-  `zotero.sqlite`. Install and update citation styles through Zotero's Style
-  Manager.
+  matter.
+- Treat `_quarto.yml.local` as ignored, user-local configuration. It contains
+  absolute `bibliography` and `csl` paths and must never be committed.
+- Change bibliographic metadata in Zotero, then let the Better CSL JSON
+  auto-export update. Never edit that generated JSON by hand.
 - Never edit `build/`, `.cache/`, `.quarto/`, or rendered artefacts.
-- `document/.ztr-directory` is generated from the effective configuration
-  loaded through `_quarto.yml`; regenerate it with `bin/longform zettlr sync`.
+- `document/.ztr-directory` is optional generated state. Regenerate it with
+  `quarto run scripts/longform.ts zettlr`; do not edit or commit it.
 
 ## Working Rules
 
@@ -37,40 +28,49 @@ and cited from a user-local Zotero/Better BibTeX export linked during setup.
 - Preserve citation keys, quotations, factual claims, headings, shortcodes,
   conditional Divs, and authorial meaning during editorial work.
 - Do not guess citation details. Verify uncertain metadata in Zotero or through
-  an available read-only connector, then update Zotero rather than the linked
-  JSON export.
-- Use `bin/longform` instead of reconstructing Quarto or Pandoc commands.
-- Do not commit absolute home-directory paths or global Zettlr profiles. Local
-  citation paths belong only in the ignored setup symlinks.
+  an available read-only connector, then update Zotero rather than the export.
+- Use `quarto run scripts/longform.ts build` for production builds. Plain
+  `quarto render` does not create the complete output set.
+- Do not commit absolute home-directory paths or modify a user's global Zettlr
+  profile.
 - Keep figures and attachments outside `document/` and use Quarto project-root
   paths such as `/resources/figure.png` so combined GFM can extract them.
 - Keep routine builds offline and provider-independent.
-- Treat vendored Quarto extensions under `quarto/extensions/`, project scripts,
-  workflows, and Agent Skills as executable code. Inspect untrusted changes
-  before running them.
+- Treat project scripts, workflows, Quarto extensions, and Agent Skills as
+  executable code. Inspect untrusted changes before running them.
 
 ## Verification
 
-After cloning, configure the local Zotero inputs before building:
+Before building, create local `_quarto.yml.local` with absolute paths to the
+Better CSL JSON export and chosen CSL style:
 
-```sh
-bin/longform setup --library FILE_OR_DIR --zotero-data-dir DIR --style STYLE
+```yaml
+bibliography: /absolute/path/to/library.json
+csl: /absolute/path/to/style.csl
 ```
 
-After changing chapter order or configuration, run:
+After changing chapter order, run:
 
 ```sh
-bin/longform zettlr sync
-bin/longform check
+quarto run scripts/longform.ts zettlr
 ```
 
-After prose-only changes, run `bin/longform lint` when Vale or Harper is
-available. After build changes, run the affected target or
-`bin/longform build all`.
+After build or configuration changes, run:
 
-PDF, DOCX, and LaTeX are native combined Quarto book renders. GFM is the only
-special case: Quarto renders a temporary standalone document so it can expand
-shortcodes and conditional content before producing one combined Markdown file.
+```sh
+quarto run scripts/longform.ts build
+```
+
+This must produce non-empty ordinary PDF, binding PDF, DOCX, and combined GFM
+outputs. No LaTeX output is part of the public build.
+
+After prose changes, run whichever configured linters are installed:
+
+```sh
+vale document
+harper-cli lint -d british -u .harper/dictionary.txt document/*.md document/manuscript/*.md
+markdownlint-cli2 README.md "docs/**/*.md" "document/**/*.md"
+```
 
 ## Agent Skills
 

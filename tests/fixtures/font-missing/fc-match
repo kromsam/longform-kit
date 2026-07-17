@@ -1,4 +1,0 @@
-#!/bin/sh
-set -eu
-
-printf 'Longform Test Serif Substitute\n'
