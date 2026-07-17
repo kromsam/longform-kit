@@ -17,8 +17,11 @@ The tools have distinct jobs:
 `document/` is deliberately reserved for author-owned content: the manuscript
 Markdown, `document/metadata.yml` (title, author, date, language, and other
 descriptive metadata), and `document/chapters.yml` (the chapter order). Quarto
-configuration, generated state, references, extensions, scripts, and outputs all
-live at the repository root.
+book and build settings live in `quarto/project.yml`, binding overrides live in
+`quarto/binding.yml`, and vendored extensions live under `quarto/extensions/`.
+Quarto still requires the small root `_quarto.yml` loader and `index.md` book
+adapter; both are regular files, not symlinks. Generated state, references,
+scripts, and outputs remain outside `document/`.
 
 ## Quick Start
 
@@ -110,6 +113,10 @@ small exception is `bin/longform build gfm`: it creates a temporary standalone
 Quarto document, allowing Quarto to resolve includes, shortcodes, and
 conditionals before writing `build/longform-document.md`. Referenced figures
 are copied beside it under `build/longform-document_files/`.
+
+Use `bin/longform` as the build interface, especially for the binding PDF. The
+wrapper activates Quarto's `binding` profile name and explicitly loads the
+relocated `quarto/binding.yml` override.
 
 ## Documentation
 

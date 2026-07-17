@@ -9,9 +9,19 @@ Record ordered Markdown inputs, metadata, bibliography and CSL paths, format
 settings, reference DOCX files, fonts, epigraphs, page breaks, TOC expectations,
 and representative accepted outputs.
 
-## 2. Establish The Root Quarto Project
+## 2. Establish The Quarto Project Layout
 
-Use standard configuration:
+Keep the project-discovery loader at root:
+
+```yaml
+# _quarto.yml
+metadata-files:
+  - quarto/project.yml
+  - document/metadata.yml
+  - document/chapters.yml
+```
+
+Put the substantive standard configuration in `quarto/project.yml`:
 
 ```yaml
 project:
@@ -31,16 +41,13 @@ Move all author-maintained Markdown under `document/`. Put the preface in
 bibliography target in `document/references.md`. Put the manuscript's
 descriptive metadata (title, subtitle, author, date, language) in
 `document/metadata.yml` and the ordered chapter list in `document/chapters.yml`,
-then link both from `_quarto.yml`:
+then let the root loader merge both alongside `quarto/project.yml`.
 
-```yaml
-metadata-files:
-  - document/metadata.yml
-  - document/chapters.yml
-```
-
-Keep `_quarto.yml`, profiles, references, extensions, scripts, and outputs at the
-root.
+Keep only Quarto's required `_quarto.yml` loader and `index.md` adapter at the
+root. Put binding overrides in `quarto/binding.yml` and vendored extensions
+under `quarto/extensions/`; keep references, scripts, and outputs in their
+dedicated root directories. Use `bin/longform` to render so the relocated
+binding override is applied correctly.
 
 ## 3. Connect Citations
 

@@ -1,3 +1,4 @@
+# Applied by bin/longform as render metadata while the binding profile is active.
 format:
   pdf:
     classoption:

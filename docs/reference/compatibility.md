@@ -38,8 +38,8 @@ the same repository, or copy those attachments separately when distributing
 the GFM outside the project.
 
 Fonts are not bundled. Add production families to
-`longform.required-fonts` when `doctor` should reject missing fonts or silent
-substitution.
+`longform.required-fonts` in `quarto/project.yml` when `doctor` should reject
+missing fonts or silent substitution.
 
 ## Migration Boundary
 

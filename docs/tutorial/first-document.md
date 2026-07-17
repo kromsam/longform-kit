@@ -50,8 +50,9 @@ book:
   date: today
 ```
 
-The output filename stays in root `_quarto.yml`; set a filename-safe
-`book.output-file` there without an extension.
+The output filename stays in `quarto/project.yml`; set a filename-safe
+`book.output-file` there without an extension. Keep root `_quarto.yml` as the
+small Quarto project loader.
 
 ## 4. Write In Zettlr
 
@@ -91,10 +92,10 @@ Open `build/`. You should find:
 - `longform-document.md`
 - `longform-document-latex/`
 
-The ordinary PDF has equal margins, while the binding profile has a larger
-inner margin. The DOCX uses its native Word TOC and the project reference
-document. The GFM output has already expanded Quarto shortcodes and format
-conditionals.
+The ordinary PDF has equal margins, while the binding build has a larger inner
+margin from `quarto/binding.yml`. The DOCX uses its native Word TOC and the
+project reference document. The GFM output has already expanded Quarto
+shortcodes and format conditionals.
 
 The citation inputs are live rather than Git-pinned. A Better BibTeX refresh or
 installed-style update affects the next check and build.

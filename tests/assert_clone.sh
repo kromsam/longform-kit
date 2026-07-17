@@ -47,11 +47,13 @@ for required in \
   bin/longform-zettlr \
   _quarto.yml \
   index.md \
+  quarto/project.yml \
+  quarto/binding.yml \
   document/.ztr-directory \
   AGENTS.md \
   .gitignore \
   .agents/skills \
-  _extensions/epigraph/LICENSE \
+  quarto/extensions/epigraph/LICENSE \
   references/reference.docx \
   scripts/project.ts \
   tests/fixtures/references/library.json \
@@ -64,6 +66,15 @@ for required in \
   document/manuscript/01-introduction.md; do
   [ -e "$STAGE/$required" ] || fail "clone is missing project file: $required"
 done
+
+for regular_file in _quarto.yml index.md quarto/project.yml quarto/binding.yml; do
+  [ ! -L "$STAGE/$regular_file" ] || \
+    fail "clone uses a symlink for Quarto file: $regular_file"
+done
+[ ! -e "$STAGE/_quarto-binding.yml" ] || \
+  fail "clone keeps binding configuration outside quarto/"
+[ ! -e "$STAGE/_extensions" ] || \
+  fail "clone keeps vendored extensions outside quarto/"
 
 for local_reference in library.json style.csl zotero-styles .csl-parents; do
   if [ -e "$STAGE/references/$local_reference" ] || \

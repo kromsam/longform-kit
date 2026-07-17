@@ -12,6 +12,9 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCUMENT = ROOT / "document"
+QUARTO_DIRECTORY = ROOT / "quarto"
+PROJECT_CONFIG = QUARTO_DIRECTORY / "project.yml"
+BINDING_CONFIG = QUARTO_DIRECTORY / "binding.yml"
 QUARTO = os.environ.get("QUARTO") or os.environ.get("LONGFORM_QUARTO") or "quarto"
 
 
@@ -58,6 +61,30 @@ project = config.get("project", {})
 book = config.get("book", {})
 chapters = project.get("render", [])
 information = inspection.get("fileInformation", {})
+
+root_loader = ROOT / "_quarto.yml"
+root_index = ROOT / "index.md"
+for path in (root_loader, root_index, PROJECT_CONFIG, BINDING_CONFIG):
+    if not path.is_file():
+        fail(f"required Quarto file is missing: {path.relative_to(ROOT)}")
+    if path.is_symlink():
+        fail(f"Quarto file must not be a symlink: {path.relative_to(ROOT)}")
+if (ROOT / "_quarto-binding.yml").exists():
+    fail("binding configuration must live in quarto/binding.yml")
+if (ROOT / "_extensions").exists():
+    fail("vendored extensions must live under quarto/extensions/")
+
+expected_config_files = [
+    root_loader.resolve(),
+    PROJECT_CONFIG.resolve(),
+    (DOCUMENT / "metadata.yml").resolve(),
+    (DOCUMENT / "chapters.yml").resolve(),
+]
+resolved_config_files = [
+    Path(path).resolve() for path in inspection.get("files", {}).get("config", [])
+]
+if resolved_config_files != expected_config_files:
+    fail("root _quarto.yml must load the configuration files in canonical order")
 
 if project.get("type") != "book":
     fail("project.type must use Quarto's native book type")
@@ -120,12 +147,14 @@ unexpected = [
 if unexpected:
     fail(f"document/ contains non-author files: {', '.join(map(str, unexpected))}")
 
-extension = ROOT / "_extensions" / "epigraph"
+extension = QUARTO_DIRECTORY / "extensions" / "epigraph"
 manifest = (extension / "_extension.yml").read_text(encoding="utf-8")
 if "version: 0.0.1" not in manifest:
     fail("Fancy Epigraphs must remain pinned at v0.0.1")
-if (ROOT / "_extensions" / "longform-kit").exists():
+if (QUARTO_DIRECTORY / "extensions" / "longform-kit").exists():
     fail("the retired custom Longform Kit extension is still present")
+if config.get("shortcodes") != ["quarto/extensions/epigraph/epigraph.lua"]:
+    fail("quarto/project.yml must register the relocated epigraph shortcode")
 if "{{< epigraph " not in (DOCUMENT / "front-matter.md").read_text(encoding="utf-8"):
     fail("starter front matter does not exercise Fancy Epigraphs")
 if "{{< pagebreak >}}" not in (DOCUMENT / "front-matter.md").read_text(encoding="utf-8"):
@@ -133,7 +162,7 @@ if "{{< pagebreak >}}" not in (DOCUMENT / "front-matter.md").read_text(encoding=
 
 csl = config.get("csl")
 if not isinstance(csl, str) or not csl:
-    fail("_quarto.yml must declare one configured CSL file")
+    fail("quarto/project.yml must declare one configured CSL file")
 csl_path = ROOT / csl
 if not csl_path.is_symlink() or not csl_path.is_file():
     fail(f"CSL file does not exist: {csl}")
@@ -147,7 +176,7 @@ expected_resource_path = [
     "references/zotero-styles/hidden",
 ]
 if config.get("resource-path") != expected_resource_path:
-    fail("_quarto.yml does not retain the citation resource path")
+    fail("quarto/project.yml does not retain the citation resource path")
 
 # The adapter lives in document/, so its paths are relative to that directory.
 def document_relative(path):

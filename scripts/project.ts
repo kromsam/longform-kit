@@ -39,6 +39,8 @@ const styleLink = join(referencesDir, "style.csl");
 const zoteroStylesLink = join(referencesDir, "zotero-styles");
 const cslParentsDir = join(referencesDir, ".csl-parents");
 const setupLock = join(projectDir, ".cache", "reference-setup.lock");
+const epigraphExtension = "quarto/extensions/epigraph";
+const epigraphShortcode = `${epigraphExtension}/epigraph.lua`;
 const citationResourcePaths = [
   ".",
   "references/.csl-parents",
@@ -630,7 +632,9 @@ function configFrom(data: Json): Json {
 function chapterFiles(config: Json): string[] {
   const files = strings(object(config.project).render);
   if (files.length === 0) {
-    throw new Error("No chapters resolved from _quarto.yml");
+    throw new Error(
+      "No chapters resolved from the Quarto project configuration",
+    );
   }
   return files;
 }
@@ -907,9 +911,13 @@ async function check() {
   for (const file of files) await Deno.stat(join(projectDir, file));
 
   const csl = scalar(config.csl);
-  if (!csl) throw new Error("_quarto.yml must declare a configured CSL file");
+  if (!csl) {
+    throw new Error("quarto/project.yml must declare a configured CSL file");
+  }
   if (csl !== "references/style.csl") {
-    throw new Error("_quarto.yml must use the CSL link created by setup");
+    throw new Error(
+      "quarto/project.yml must use the CSL link created by setup",
+    );
   }
   const bibliographies = bibliographyPaths(config);
   if (
@@ -917,7 +925,7 @@ async function check() {
     bibliographies[0] !== "references/library.json"
   ) {
     throw new Error(
-      "_quarto.yml must use the bibliography link created by setup",
+      "quarto/project.yml must use the bibliography link created by setup",
     );
   }
   const resourcePaths = strings(config["resource-path"]);
@@ -926,7 +934,7 @@ async function check() {
     resourcePaths.some((path, index) => path !== citationResourcePaths[index])
   ) {
     throw new Error(
-      "_quarto.yml must retain the citation resource paths used by setup",
+      "quarto/project.yml must retain the citation resource paths used by setup",
     );
   }
   try {
@@ -972,6 +980,7 @@ function standaloneMetadata(config: Json): string {
     yamlLine("bibliography", join(projectDir, bibliographyPaths(config)[0])),
   );
   lines.push(yamlLine("csl", join(projectDir, scalar(config.csl))));
+  lines.push(yamlLine("shortcodes", [epigraphShortcode]));
   if (config.lang !== undefined) lines.push(yamlLine("lang", config.lang));
   if (config["reference-section-title"] !== undefined) {
     lines.push(
@@ -998,7 +1007,7 @@ async function copyDirectory(source: string, destination: string) {
 }
 
 async function mirrorProjectResources(destination: string) {
-  const excluded = new Set(["_extensions", "build", "index.md", "_quarto.yml"]);
+  const excluded = new Set(["build", "index.md", "quarto", "_quarto.yml"]);
   for await (const entry of Deno.readDir(projectDir)) {
     if (
       entry.name.startsWith(".") ||
@@ -1031,13 +1040,11 @@ async function buildGfm() {
   try {
     const extensionSource = join(
       projectDir,
-      "_extensions",
-      "epigraph",
+      epigraphExtension,
     );
     const extensionDestination = join(
       temporary,
-      "_extensions",
-      "epigraph",
+      epigraphExtension,
     );
     await copyDirectory(extensionSource, extensionDestination);
     await mirrorProjectResources(temporary);

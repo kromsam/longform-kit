@@ -2,7 +2,8 @@
 
 The chapter list in `document/chapters.yml` is authoritative for Quarto, Zettlr,
 GFM, citation checks, and prose tooling. Quarto merges it into `book:` through
-the `metadata-files` entry in root `_quarto.yml`.
+the `metadata-files` entry in the small root `_quarto.yml` loader; substantive
+book and build settings remain in `quarto/project.yml`.
 
 ## Add A Chapter
 

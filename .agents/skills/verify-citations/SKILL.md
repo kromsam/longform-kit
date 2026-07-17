@@ -14,8 +14,9 @@ repair or replace their targets by hand.
 1. Confirm `bin/longform setup` has linked the intended Better CSL JSON export
    and installed Zotero style. `--library` accepts the exact export file or a
    directory containing `library.json`; this is a Better BibTeX export
-   location, not Zotero's data directory or `zotero.sqlite`. Root `_quarto.yml`
-   deliberately contains only the stable link paths.
+   location, not Zotero's data directory or `zotero.sqlite`.
+   `quarto/project.yml` deliberately contains only the stable project-local
+   link paths.
 2. Run `bin/longform check`. It detects missing local setup, malformed
    bibliography data, duplicate IDs, and cited IDs missing from the export.
 3. For uncertain titles, contributors, dates, DOIs, item types, or locators,

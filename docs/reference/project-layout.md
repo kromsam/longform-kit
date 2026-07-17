@@ -3,9 +3,12 @@
 ```text
 AGENTS.md                         provider-neutral repository instructions
 .agents/skills/                   provider-neutral Agent Skills
-_quarto.yml                       standard Quarto book manifest
-_quarto-binding.yml               binding PDF profile
+_quarto.yml                       required root Quarto metadata loader
 index.md                          generated Quarto home-page adapter
+quarto/
+  project.yml                     substantive book and build configuration
+  binding.yml                     binding PDF override loaded by the CLI
+  extensions/epigraph/            pinned Fancy Epigraphs v0.0.1
 bin/longform                      stable command-line interface
 bin/longform-zettlr               Zettlr custom-export launcher
 scripts/project.ts                checks, Zettlr sync, and combined GFM
@@ -23,7 +26,6 @@ references/
   .csl-parents/                   ignored aliases for dependent style parents
   reference.docx                 Word style template
 resources/                        optional figures and attachments
-_extensions/epigraph/             pinned Fancy Epigraphs v0.0.1
 build/                            ignored generated outputs
 .cache/texmf/                     ignored sandbox-safe TeX cache
 style/                            optional editorial guidance
@@ -47,9 +49,17 @@ remains project-owned.
 below it are `document/metadata.yml` (the manuscript's descriptive metadata),
 `document/chapters.yml` (the ordered chapter list), and the generated
 `document/.ztr-directory` Zettlr adapter. The two YAML files are merged into
-`book:` through `metadata-files` in `_quarto.yml`. `bin/longform check` rejects
-every other non-Markdown file there, including the rest of the Quarto
-configuration, generated outputs, reference exports, and editor state.
+`book:` through `metadata-files` in the root `_quarto.yml` loader. That loader
+also merges `quarto/project.yml`, where the substantive configuration lives.
+`bin/longform check` rejects every other non-Markdown file under `document/`,
+including Quarto configuration, generated outputs, reference exports, and
+editor state.
+
+Quarto discovers a project from `_quarto.yml` at its root, so Longform Kit
+keeps that one small loader in place as a regular file. It is not a symlink.
+Binding metadata and extension sources can live under `quarto/` because the
+CLI loads or registers them explicitly. Use `bin/longform` for builds; bare
+`quarto render --profile binding` does not auto-load `quarto/binding.yml`.
 
 Store figures and attachments in a root directory such as `resources/`. Refer
 to them with Quarto project-root paths (`/resources/figure.png`), including from

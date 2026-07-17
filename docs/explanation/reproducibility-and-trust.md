@@ -27,7 +27,8 @@ requires the same external export and style versions.
 
 Source and output have different ownership:
 
-- Edit Markdown, `_quarto.yml`, and intentional project style assets.
+- Edit Markdown, `quarto/project.yml`, `quarto/binding.yml`, and intentional
+  project style assets. Keep the small root `_quarto.yml` loader stable.
 - Edit bibliographic metadata and installed citation styles through Zotero;
   allow Better BibTeX to refresh its export.
 - Generate the ignored citation links with `bin/longform setup`.
@@ -41,7 +42,8 @@ the other formats wrong. Fix the owning source or transformation instead.
 
 ## Versioned Executable Inputs
 
-The vendored Quarto extension makes the build durable, but it executes Lua.
+The vendored Quarto extension under `quarto/extensions/` makes the build
+durable, but it executes Lua.
 The TypeScript project helper and Agent Skills can also direct tools and
 commands. Review changes to all of them with the same care as application code.
 

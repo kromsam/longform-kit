@@ -1,27 +1,35 @@
 # Configuration Reference
 
-Root `_quarto.yml` is the public project configuration. Its paths are relative
-to the repository root; setup connects the stable citation paths to external
-Zotero files.
+Edit the public book and build configuration in `quarto/project.yml`. Root
+`_quarto.yml` is a minimal regular file that Quarto requires for project
+discovery; it loads the substantive configuration and author-owned manuscript
+metadata. Configuration paths remain relative to the repository root, and
+setup connects the stable citation paths to external Zotero files.
 
 ## Project And Book
 
 ```yaml
+# _quarto.yml
+metadata-files:
+  - quarto/project.yml
+  - document/metadata.yml
+  - document/chapters.yml
+```
+
+```yaml
+# quarto/project.yml
 project:
   type: book
   output-dir: build
-
-metadata-files:
-  - document/metadata.yml
-  - document/chapters.yml
 
 book:
   output-file: "longform-document"
 ```
 
 Keep `project.type: book`. The `metadata-files` entries pull the author-owned
-manuscript metadata and chapter list in from `document/`; only structural build
-settings such as `book.output-file` stay in `_quarto.yml`.
+manuscript metadata and chapter list in from `document/`; structural build
+settings such as `book.output-file` stay in `quarto/project.yml`. The root
+loader should change only when the configuration assembly changes.
 
 ## Manuscript Metadata
 
@@ -41,7 +49,8 @@ book:
 ```
 
 These are ordinary Quarto keys, so `date: today` resolves to the build date.
-Setting them here is equivalent to setting them in `_quarto.yml` directly.
+Setting them here is equivalent to setting them in `quarto/project.yml`
+directly.
 
 ## Chapter List
 
@@ -107,8 +116,8 @@ bin/longform setup \
 when the export is named `library.json`. It is separate from the Zotero data
 directory and is never `zotero.sqlite`.
 
-Run setup on every machine and in CI. Keep the stable `_quarto.yml` paths; do
-not replace them with personal absolute paths.
+Run setup on every machine and in CI. Keep the stable `quarto/project.yml`
+paths; do not replace them with personal absolute paths.
 
 ## Longform Checks
 
@@ -125,26 +134,37 @@ longform:
 optional list of exact families that `bin/longform doctor` must resolve with
 Fontconfig before production rendering.
 
-## Native Formats
+## Extension And Native Formats
 
 ```yaml
+shortcodes:
+  - quarto/extensions/epigraph/epigraph.lua
+
 format:
   pdf:
     pdf-engine: lualatex
     geometry: "twoside,left=36mm,right=36mm"
     include-in-header:
-      - file: _extensions/epigraph/epigraph.tex
+      - file: quarto/extensions/epigraph/epigraph.tex
   docx:
     toc: true
     reference-doc: references/reference.docx
   latex:
     include-in-header:
-      - file: _extensions/epigraph/epigraph.tex
+      - file: quarto/extensions/epigraph/epigraph.tex
 ```
 
-These are ordinary Quarto format names and options. Do not add GFM to this map:
+The explicit shortcode path registers the vendored extension from its organized
+location outside Quarto's conventional root `_extensions/` directory. The
+formats are ordinary Quarto names and options. Do not add GFM to this map:
 Quarto book projects do not support one combined GFM output, so
 `bin/longform build gfm` uses a temporary standalone Quarto render.
 
-Root `_quarto-binding.yml` overrides only binding-specific PDF options. The CLI
-derives the binding filename from `book.output-file` and appends `-binding`.
+`quarto/binding.yml` overrides only binding-specific PDF options. For the
+binding build, `bin/longform` selects Quarto's `binding` profile and passes
+`--metadata-file=quarto/binding.yml`. Selecting the profile preserves
+profile-conditional behavior; the explicit metadata file supplies the
+relocated override. Quarto does not auto-discover that file as a root profile,
+so bare `quarto render --profile binding` does not apply the binding geometry.
+The CLI derives the binding filename from `book.output-file` and appends
+`-binding`.

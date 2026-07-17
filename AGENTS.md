@@ -8,7 +8,10 @@ and cited from a user-local Zotero/Better BibTeX export linked during setup.
 
 - Edit manuscript metadata (title, subtitle, author, date, language) in
   `document/metadata.yml` and the chapter order in `document/chapters.yml`; edit
-  formats and build settings in root `_quarto.yml`.
+  formats and build settings in `quarto/project.yml`, and binding-specific PDF
+  settings in `quarto/binding.yml`.
+- Keep root `_quarto.yml` as Quarto's minimal project-discovery loader. Change
+  it only when the set of included metadata files changes.
 - Under `document/`, keep only author-owned content: Markdown prose (front
   matter in `document/front-matter.md`, chapters in `document/manuscript/`, the
   bibliography target in `document/references.md`), the manuscript metadata in
@@ -25,8 +28,8 @@ and cited from a user-local Zotero/Better BibTeX export linked during setup.
   `zotero.sqlite`. Install and update citation styles through Zotero's Style
   Manager.
 - Never edit `build/`, `.cache/`, `.quarto/`, or rendered artefacts.
-- `document/.ztr-directory` is generated from `_quarto.yml`; regenerate it with
-  `bin/longform zettlr sync`.
+- `document/.ztr-directory` is generated from the effective configuration
+  loaded through `_quarto.yml`; regenerate it with `bin/longform zettlr sync`.
 
 ## Working Rules
 
@@ -42,8 +45,9 @@ and cited from a user-local Zotero/Better BibTeX export linked during setup.
 - Keep figures and attachments outside `document/` and use Quarto project-root
   paths such as `/resources/figure.png` so combined GFM can extract them.
 - Keep routine builds offline and provider-independent.
-- Treat vendored Quarto extensions, project scripts, workflows, and Agent
-  Skills as executable code. Inspect untrusted changes before running them.
+- Treat vendored Quarto extensions under `quarto/extensions/`, project scripts,
+  workflows, and Agent Skills as executable code. Inspect untrusted changes
+  before running them.
 
 ## Verification
 

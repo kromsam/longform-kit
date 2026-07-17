@@ -10,7 +10,9 @@ Quarto or Pandoc commands manually.
 
 ## Workflow
 
-1. Read `AGENTS.md` and root `_quarto.yml`.
+1. Read `AGENTS.md`, the root `_quarto.yml` discovery loader, and
+   `quarto/project.yml`. Read `quarto/binding.yml` when the binding PDF is in
+   scope.
 2. Run `bin/longform doctor` when tool availability or versions are uncertain.
 3. After chapter-order changes, run `bin/longform zettlr sync`.
 4. Run `bin/longform check` before rendering.
@@ -30,9 +32,11 @@ bin/longform build all
 
 ## Guardrails
 
-- Never patch generated outputs. Fix Markdown, `_quarto.yml`, the binding
-  profile, reference DOCX, or vendored extension source as appropriate.
-- Keep the ordinary and binding PDF profiles distinct.
+- Never patch generated outputs. Fix Markdown, `quarto/project.yml`,
+  `quarto/binding.yml`, the reference DOCX, or vendored extension source under
+  `quarto/extensions/` as appropriate. Edit root `_quarto.yml` only when the
+  metadata-file composition changes.
+- Keep the ordinary PDF settings and binding PDF overlay distinct.
 - GFM is assembled as a temporary standalone Quarto document because Quarto
   books do not have a combined GFM format. Confirm that shortcodes and
   `when-format="gfm"` conditionals were expanded in the generated Markdown.

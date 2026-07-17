@@ -19,7 +19,9 @@ only because a Quarto book requires a home page; it includes
 
 ## Quarto Is The Project And Build Layer
 
-Root `_quarto.yml` provides:
+Root `_quarto.yml` is the small project-discovery loader Quarto requires. Its
+`metadata-files` list merges `quarto/project.yml`, `document/metadata.yml`, and
+`document/chapters.yml`. The substantive `quarto/project.yml` provides:
 
 - The standard `book` project type.
 - Stable bibliography and CSL link paths, the output basename, and
@@ -31,8 +33,13 @@ Root `_quarto.yml` provides:
 - A machine-readable resolved configuration through `quarto inspect`.
 - A pinned bundled Pandoc.
 
-The binding PDF is an ordinary Quarto profile. DOCX styling is an ordinary
-`reference-doc`. There is no Longform-specific Quarto project type or format.
+Binding is still selected as Quarto's `binding` profile, so profile-conditional
+content behaves normally. Because the override is organized at
+`quarto/binding.yml` rather than root `_quarto-binding.yml`, `bin/longform`
+also passes it as an explicit metadata file. Bare
+`quarto render --profile binding` does not load the relocated override. DOCX
+styling is an ordinary `reference-doc`. There is no Longform-specific Quarto
+project type or format.
 
 ## Pandoc Is The Document Engine
 
@@ -70,14 +77,19 @@ Zotero installed styles --------+----> ignored references/ links
 Zettlr edits document/**/*.md -----------------+
                                                |
                                                v
-_quarto.yml + document/*.yml define the standard book
-              |
-              v
-Quarto + Pandoc + native citeproc
-              |
-              +----> PDF / binding PDF / DOCX / LaTeX
-              |
-              +----> temporary standalone GFM render
+_quarto.yml loads quarto/project.yml + document/*.yml
+                       |
+                       v
+                 bin/longform
+                       |
+                       v
+            Quarto + Pandoc + native citeproc
+                 /             |             \
+                v              v              v
+       PDF / DOCX / LaTeX  binding PDF  standalone GFM
+                                  ^
+                                  |
+                       quarto/binding.yml
 ```
 
 GFM is the only assembly exception because Quarto does not offer GFM as a

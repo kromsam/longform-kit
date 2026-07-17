@@ -35,6 +35,8 @@ bin/longform build TARGET
 ```
 
 Do not require an agent to reconstruct Quarto profiles or Pandoc arguments.
+This is especially important for binding builds: the CLI both selects the
+profile and loads the relocated `quarto/binding.yml` metadata.
 
 ## Keep Integrations Optional
 

@@ -1,7 +1,8 @@
 # Customize Outputs
 
-Use documented Quarto options in root `_quarto.yml`; Longform Kit does not
-define parallel format names or rendering settings.
+Use documented Quarto options in `quarto/project.yml`; Longform Kit does not
+define parallel format names or rendering settings. Keep root `_quarto.yml` as
+the required project loader.
 
 ## Change The Output Name
 
@@ -30,8 +31,13 @@ format:
 ```
 
 The `format` map is the complete native output list, so retain PDF, DOCX, and
-LaTeX. Keep ordinary geometry in `_quarto.yml` and binding geometry in
-`_quarto-binding.yml`.
+LaTeX. Keep ordinary geometry in `quarto/project.yml` and binding geometry in
+`quarto/binding.yml`.
+
+Render the binding PDF through `bin/longform build pdf` (or `build all`). The
+wrapper selects the `binding` profile and explicitly loads the relocated
+metadata file. Bare `quarto render --profile binding` does not discover
+`quarto/binding.yml`, because it is not a root `_quarto-binding.yml` file.
 
 Declare production fonts that must not be substituted:
 
@@ -65,7 +71,7 @@ when cached page numbers are stale.
 ## Customize Epigraph Typography
 
 Fancy Epigraphs' LaTeX defaults live in
-`_extensions/epigraph/epigraph.tex`. Prefer adding a separate,
+`quarto/extensions/epigraph/epigraph.tex`. Prefer adding a separate,
 project-owned header after that file rather than modifying vendored code. For
 DOCX, the shortcode emits ordinary blockquotes, so customize the `Block Text`
 style in the reference document.

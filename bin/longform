@@ -104,7 +104,8 @@ render_single() {
   stage=$(mktemp -d "${TMPDIR:-/tmp}/longform-kit.XXXXXX")
   trap 'rm -rf "$stage"' EXIT HUP INT TERM
   if [ -n "$profile" ]; then
-    run_quarto render --profile "$profile" --to "$target" --output-dir "$stage"
+    run_quarto render --profile "$profile" --to "$target" \
+      --metadata-file="quarto/$profile.yml" --output-dir "$stage"
   else
     run_quarto render --to "$target" --output-dir "$stage"
   fi

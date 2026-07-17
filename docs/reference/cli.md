@@ -60,12 +60,17 @@ Every build runs `check` first.
 | `gfm` | One combined GitHub-flavoured Markdown file |
 
 PDF, DOCX, and LaTeX invoke Quarto's native formats. The wrapper stages them and
-promotes stable filenames into `build/`; this lets the binding profile append
-`-binding` without duplicating the document basename in configuration.
+promotes stable filenames into `build/`. For the binding PDF it selects the
+`binding` profile and explicitly supplies `quarto/binding.yml` as a metadata
+file, then appends `-binding` without duplicating the document basename in
+configuration. This explicit loading is why `bin/longform` is the supported
+interface for binding builds; bare `quarto render --profile binding` does not
+discover the relocated override.
 
 GFM creates a temporary standalone Quarto document outside the book project,
-mirrors project resources, copies in the pinned epigraph extension, and renders
-with Quarto. This expands includes, shortcodes, citations, page breaks, and
+mirrors project resources, copies in the pinned epigraph extension from
+`quarto/extensions/epigraph/`, and renders with Quarto. This expands includes,
+shortcodes, citations, page breaks, and
 format conditionals before the result is copied to `build/`. Embedded images
 are extracted to `<output-name>_files/` beside the combined Markdown file.
 Ordinary attachment links retain their Quarto project-root paths and therefore
@@ -84,7 +89,8 @@ bin/longform check
 Validates:
 
 - Root `index.md` and `document/.ztr-directory` generated state.
-- Native Quarto configuration and resolved source paths.
+- The root Quarto loader, substantive `quarto/project.yml` configuration, and
+  resolved source paths.
 - The rule that `document/` contains only author-maintained `.md` files plus
   the manuscript metadata in `document/metadata.yml`, the chapter list in
   `document/chapters.yml`, and the generated `document/.ztr-directory` adapter.
@@ -104,7 +110,8 @@ skipped and exits successfully.
 Requires Quarto 1.9.38 through 1.9.x and `lualatex`. It reports the bundled
 Pandoc version and optional Zettlr availability. When
 `longform.required-fonts` is non-empty, it uses Fontconfig's `fc-match` and
-rejects missing families or substitutions.
+rejects missing families or substitutions. Configure that list in
+`quarto/project.yml`.
 
 Set `QUARTO` or `LONGFORM_QUARTO` to select a Quarto executable.
 
