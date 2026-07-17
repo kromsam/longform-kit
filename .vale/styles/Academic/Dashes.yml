@@ -1,0 +1,7 @@
+extends: existence
+message: "Use a spaced en rule for parenthetical breaks – like this –; avoid em dashes, spaced hyphens, and double hyphens."
+level: warning
+scope: sentence
+nonword: true
+raw:
+  - '(?:[^\n>]\s—\s|—\S|\S—| -- | - )'

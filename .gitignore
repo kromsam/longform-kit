@@ -1,10 +1,13 @@
 /build/
 /.cache/
 /.quarto/
+/_quarto.yml.local
 /index.tex
 /index.pdf
 /*_files/
 /.~lock.*#
+/document/.ztr-directory
+/.vale/styles/proselint/
 /references/library.json
 /references/style.csl
 /references/zotero-styles

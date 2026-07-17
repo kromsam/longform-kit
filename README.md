@@ -1,120 +1,112 @@
 # Longform Kit
 
-Longform Kit is an opinionated authoring project for theses, dissertations,
-books, and reports. Write ordinary Markdown in Zettlr, organize the work as a
-Quarto book, render it with Pandoc, and manage references in Zotero.
-
-The tools have distinct jobs:
-
-- **Zettlr** is the writing and project-navigation interface.
-- **Quarto** owns metadata, chapter order, citations, and native book builds.
-- **Pandoc**, bundled with Quarto, parses Markdown and writes the outputs.
-- **Zotero with Better BibTeX** owns bibliographic metadata and keeps an
-  external Better CSL JSON export current.
-- **`bin/longform`** gives people, CI, and AI agents one deterministic command
-  surface and links each checkout to its local Zotero files.
-
-`document/` is deliberately reserved for author-owned content: the manuscript
-Markdown, `document/metadata.yml` (title, author, date, language, and other
-descriptive metadata), and `document/chapters.yml` (the chapter order). Quarto
-configuration, generated state, references, extensions, scripts, and outputs all
-live at the repository root.
-
-## Quick Start
-
-Requirements:
-
-- Quarto 1.9.38 through 1.9.x
-- LuaLaTeX, normally supplied by TeX Live or MacTeX
-- Fontconfig's `fc-match` when `longform.required-fonts` is configured
-- Zotero with Better BibTeX to maintain the citation export
-- Zettlr for the intended authoring interface
-
-Before setup, export the relevant Zotero library or collection with the
-**Better CSL JSON** translator and **Keep updated** enabled, then install the
-desired style in Zotero. See [Connect a Zotero
-collection](docs/how-to/use-zotero.md) for the complete setup.
-
-Start a project from this repository. On GitHub, use the **Use this template**
-button to create your own copy, or clone it directly:
+Longform Kit is a minimal, opinionated Quarto project for theses,
+dissertations, books, and reports. Write Markdown, keep references in Zotero,
+and produce the complete publication set with one command:
 
 ```sh
-git clone https://github.com/kromsam/longform-kit YOUR-PROJECT
-cd YOUR-PROJECT
-bin/longform setup
-bin/longform doctor
-bin/longform build all
+quarto run scripts/longform.ts build
 ```
 
-`setup` asks for the Better CSL JSON export location, the active Zotero data
-directory, and an installed citation style by title, CSL ID, or filename. The
-export location may be the exact file or a directory containing
-`library.json`. It is not the Zotero data directory or `zotero.sqlite`. Setup
-creates ignored live links under `references/`; it does not copy or commit the
-library or style. Run it on every machine and in CI.
-Citation output is therefore not Git-pinned: Better BibTeX or Zotero style
-updates can affect a build without changing the repository.
+Every build produces a one-sided, symmetric-margin PDF that retains blank
+verso pages for recto chapter starts, a two-sided binding PDF with KOMA's
+default mirrored margins and the same page sequence, a DOCX file, and one
+combined GitHub Flavoured Markdown file. There is no setup command, generated
+scaffolding, citation symlink, or LaTeX deliverable.
 
-For unattended setup, pass all three values explicitly:
+## Requirements
 
-```sh
-bin/longform setup \
-  --library FILE_OR_DIR \
-  --zotero-data-dir DIR \
-  --style TITLE_OR_ID_OR_FILENAME
-```
+- Quarto 1.9.x
+- A TeX distribution with LuaLaTeX and the `ebgaramond`, `fira`, and
+  `nowidow` packages, such as TeX Live or MacTeX
+- Zotero with Better BibTeX for citation-library exports
+- Zettlr if you want the optional writing interface
+- Vale, Harper, or Markdownlint if you want prose and Markdown checks
 
-Point Zettlr's citation preferences manually to the resolved export file. When
-`--library` names a directory, that file is its `library.json`.
+## Start A Document
 
-Edit the manuscript metadata (title, author, date, language) in
-[`document/metadata.yml`](document/metadata.yml) and the chapter order in
-[`document/chapters.yml`](document/chapters.yml). Write the preface in
-[`document/front-matter.md`](document/front-matter.md), chapters in
-`document/manuscript/`, and citations with Pandoc keys such as
-`[@yourCitationKey, 42]`. The root [`index.md`](index.md) is a one-line Quarto
-adapter and is not an authoring file.
+Clone the repository or create a repository from the GitHub template. Then:
 
-Keep figures and other attachments outside `document/`, for example under
-`resources/`, and reference them with project-root paths such as
-`![Description](/resources/figure.png)`. The leading slash is Quarto's
-project-root syntax and remains stable in both book and combined GFM builds.
+1. Export the relevant Zotero library or collection with the **Better CSL
+   JSON** translator and enable **Keep updated**.
+2. Choose a CSL style file.
+3. Create the ignored file `_quarto.yml.local` with the two absolute paths:
 
-Generated files appear in `build/`:
+   ```yaml
+   bibliography: /absolute/path/to/library.json
+   csl: /absolute/path/to/style.csl
+   ```
+
+4. Edit the title, author, date, and language in `document/metadata.yml`.
+5. Edit the ordered chapter list in `document/chapters.yml` and write the
+   manuscript under `document/`.
+6. Build everything:
+
+   ```sh
+   quarto run scripts/longform.ts build
+   ```
+
+The bibliography path is the Better CSL JSON export, not Zotero's data
+directory or `zotero.sqlite`. The paths remain local to your machine; do not
+commit `_quarto.yml.local`.
+
+## Project Shape
+
+- `_quarto.yml` contains the shared Quarto project and format configuration.
+- `_quarto-binding.yml` contains only the binding-PDF overrides.
+- `document/metadata.yml` contains manuscript metadata.
+- `document/chapters.yml` defines the reading order.
+- `document/front-matter.md`, `document/manuscript/`, and
+  `document/references.md` contain author-owned prose.
+- `references/reference.docx` defines the DOCX styles.
+- `scripts/longform.ts` builds the complete output set and can generate the
+  optional Zettlr project file.
+
+Do not edit root `index.md`; it is Quarto's adapter for
+`document/front-matter.md`. Keep figures and attachments outside `document/`,
+for example under `resources/`, and use project-root paths such as
+`![Description](/resources/figure.png)`.
+
+## Outputs
+
+The build command writes:
 
 ```text
-longform-document.pdf
-longform-document-binding.pdf
-longform-document.docx
-longform-document.tex
-longform-document.md
-longform-document-latex/
+build/longform-document.pdf
+build/longform-document-binding.pdf
+build/longform-document.docx
+build/longform-document.md
 ```
 
-## Commands
+Referenced media in the Markdown edition is extracted beside the Markdown
+when necessary. PDF, binding PDF, and DOCX are native Quarto book renders. The
+combined GFM edition is rendered from a temporary standalone Quarto document
+so citations, shortcodes, includes, and format conditionals are resolved before
+Pandoc writes Markdown. No temporary source or `.tex` file is retained.
+
+## Optional Tools
+
+Regenerate Zettlr's ignored project file after changing chapter order or
+metadata:
 
 ```sh
-bin/longform setup
-bin/longform build [all|pdf|docx|latex|gfm]
-bin/longform check
-bin/longform lint
-bin/longform doctor
-bin/longform zettlr [sync|install]
+quarto run scripts/longform.ts zettlr
 ```
 
-PDF, DOCX, LaTeX, citeproc, TOCs, reference-DOCX styling, conditional content,
-and page breaks use native Quarto options. Epigraphs use the vendored
-[Fancy Epigraphs](https://github.com/andrewheiss/fancy-epigraphs-quarto)
-v0.0.1 shortcode. Quarto books do not produce a combined GFM file, so the one
-small exception is `bin/longform build gfm`: it creates a temporary standalone
-Quarto document, allowing Quarto to resolve includes, shortcodes, and
-conditionals before writing `build/longform-document.md`. Referenced figures
-are copied beside it under `build/longform-document_files/`.
+Run the configured linters directly when installed:
 
-## Documentation
+```sh
+vale sync
+vale document
+harper-cli lint -d british -u .harper/dictionary.txt document/*.md document/manuscript/*.md
+markdownlint-cli2 README.md "docs/**/*.md" "document/**/*.md"
+```
 
-- [First document tutorial](docs/tutorial/first-document.md)
-- [How-to guides](docs/how-to/)
-- [Configuration and command reference](docs/reference/)
-- [Architecture and reproducibility](docs/explanation/)
-- [Release notes](https://github.com/kromsam/longform-kit/releases)
+Treat prose-linter findings as editorial suggestions, especially in
+quotations and specialist terminology.
+
+## Guides
+
+- [Configure and build](docs/configuration-and-building.md)
+- [Use Zettlr](docs/zettlr.md)
+- [Customize the project](docs/customization.md)

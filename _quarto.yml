@@ -1,67 +1,41 @@
-project:
-  type: book
-  output-dir: build
-
-# Author-owned manuscript metadata lives under document/ so it sits with the
-# rest of the authored content. Quarto merges these files into the config below:
-#   - document/metadata.yml  title, subtitle, author, date, language
-#   - document/chapters.yml  the ordered chapter list
+# Longform Kit keeps its shared build configuration here. Author metadata and
+# chapter order remain in document/ so they can be edited without touching the
+# rendering setup. Put machine-local citation paths in _quarto.yml.local.
 metadata-files:
   - document/metadata.yml
   - document/chapters.yml
 
+project:
+  type: book
+  output-dir: build
+
 book:
   output-file: "longform-document"
 
-bibliography: references/library.json
-csl: references/style.csl
 toc: true
-toc-title: Contents
 toc-depth: 2
 number-sections: true
 link-citations: true
-resource-path:
-  - .
-  - references/.csl-parents
-  - references/zotero-styles
-  - references/zotero-styles/hidden
-
-longform:
-  gfm-toc-depth: 2
-  required-fonts: []
 
 format:
   pdf:
     colorlinks: false
-    documentclass: report
     pdf-engine: lualatex
     papersize: a4
     fontsize: 12pt
     linestretch: 1.25
     indent: true
-    top-level-division: chapter
-    classoption:
-      - twoside
-      - openright
-    geometry: "twoside,left=36mm,right=36mm"
+    mainfont: EB Garamond
+    mainfontoptions:
+      - Numbers=OldStyle
+    sansfont: Fira Sans
+    monofont: Fira Mono
+    # Keep at least two lines of a paragraph together at page boundaries.
     include-in-header:
-      - file: _extensions/epigraph/epigraph.tex
+      text: |
+        \usepackage[all]{nowidow}
+    # Use KOMA's symmetric default margins while retaining the two-sided
+    # pagination needed for physical recto starts.
+    classoption: "twoside=semi,openright"
   docx:
-    toc: true
-    toc-depth: 2
     reference-doc: references/reference.docx
-  latex:
-    colorlinks: false
-    documentclass: report
-    pdf-engine: lualatex
-    papersize: a4
-    fontsize: 12pt
-    linestretch: 1.25
-    indent: true
-    top-level-division: chapter
-    classoption:
-      - twoside
-      - openright
-    geometry: "twoside,left=36mm,right=36mm"
-    include-in-header:
-      - file: _extensions/epigraph/epigraph.tex

@@ -1,0 +1,6 @@
+extends: existence
+message: "Check whether this list needs a serial/Oxford comma. This rule is heuristic, so keep it as a suggestion."
+level: suggestion
+nonword: true
+raw:
+  - '\b[a-z]+,\s+[a-z]+ and [a-z]+\b'

@@ -1,6 +1,8 @@
+# Binding profile: preserve the manuscript settings from _quarto.yml while
+# switching from symmetric to KOMA's default mirrored margins.
+book:
+  output-file: "longform-document-binding"
+
 format:
   pdf:
-    classoption:
-      - twoside
-      - openright
-    geometry: "twoside,inner=43mm,outer=29mm"
+    classoption: "twoside,openright"

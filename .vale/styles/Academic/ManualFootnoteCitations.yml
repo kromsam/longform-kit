@@ -1,0 +1,6 @@
+extends: existence
+message: "Inside manual footnotes, use raw Pandoc citations such as @key [p. 44], not bracketed citation clusters such as [@key, p. 44]."
+level: error
+nonword: true
+raw:
+  - '^\[\^[^\]]+\]:.*\[@[^\]]+\]'

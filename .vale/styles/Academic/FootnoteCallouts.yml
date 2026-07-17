@@ -1,0 +1,6 @@
+extends: existence
+message: "Place the Markdown footnote marker immediately after the relevant punctuation, with no preceding space: sentence.[^note]"
+level: error
+nonword: true
+raw:
+  - '(?:[ \t]+\[\^[^\]]+\]|\[\^[^\]]+\][.,;!?])'

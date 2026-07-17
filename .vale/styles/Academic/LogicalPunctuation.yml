@@ -1,0 +1,6 @@
+extends: existence
+message: "Check logical punctuation: commas and full stops normally sit outside closing quotation marks unless they belong to the quotation."
+level: suggestion
+nonword: true
+raw:
+  - '[,.][’”]'

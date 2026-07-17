@@ -1,0 +1,43 @@
+{
+  "harper-ls": {
+    "workspaceDictPath": ".harper/dictionary.txt",
+    "ignoredLintsPath": ".harper/ignored-lints",
+    "diagnosticSeverity": "hint",
+    "dialect": "British",
+    "isolateEnglish": false,
+    "maxFileLength": 500000,
+    "markdown": {
+      "IgnoreLinkTitle": true
+    },
+    "linters": {
+      "SpellCheck": true,
+      "SpelledNumbers": false,
+      "AnA": true,
+      "SentenceCapitalization": true,
+      "UnclosedQuotes": true,
+      "WrongApostrophe": false,
+      "LongSentences": true,
+      "RepeatedWords": true,
+      "Spaces": true,
+      "CorrectNumberSuffix": true
+    },
+    "codeActions": {
+      "ForceStable": true
+    },
+    "excludePatterns": [
+      "**/.git/**",
+      "**/node_modules/**",
+      "**/.vale/styles/proselint/**",
+      "**/archive/**",
+      "**/submissions/**",
+      "**/vendor/**",
+      "**/_site/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/output/**",
+      "**/*.html",
+      "**/*.pdf",
+      "**/*.docx"
+    ]
+  }
+}

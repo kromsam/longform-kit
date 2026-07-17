@@ -1,8 +1,0 @@
-#!/bin/sh
-set -eu
-
-case "$*" in
-  *'Longform Test Serif'*) printf 'Longform Test Serif\n' ;;
-  *'Longform Test Sans'*) printf 'Longform Test Sans\n' ;;
-  *) printf 'Unexpected Font\n' ;;
-esac

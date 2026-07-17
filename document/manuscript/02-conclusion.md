@@ -8,6 +8,5 @@ This combined Markdown edition was rendered with Quarto.
 This paginated edition was rendered with Quarto.
 :::
 
-{{< epigraph "Source text stays semantic until the selected output format is known." source="Example attribution" >}}
-
-The vendored shortcode applies the format-specific layout during rendering.
+The source stays semantic until the selected output format is known. Optional
+format-specific additions can be introduced when the manuscript needs them.

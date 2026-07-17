@@ -1,0 +1,7 @@
+extends: existence
+message: "Use typographic quotation marks: ‘…’ as the primary level and “…” inside quotations."
+level: warning
+scope: sentence
+nonword: true
+raw:
+  - "(?:(?:^|[^\\w.=])\"[^\"\\n]+\"|(?:^|[\\s\\(\\[\\{])'[^'\\n]+')"

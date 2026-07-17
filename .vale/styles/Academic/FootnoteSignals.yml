@@ -1,0 +1,6 @@
+extends: existence
+message: "Use 'See @key' or 'See also @key'—not 'See: @key' or 'See also: @key'."
+level: warning
+nonword: true
+raw:
+  - '\bSee(?: also)?:\s+@'
