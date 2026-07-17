@@ -91,3 +91,4 @@ are copied beside it under `build/longform-document_files/`.
 - [How-to guides](docs/how-to/)
 - [Configuration and command reference](docs/reference/)
 - [Architecture and reproducibility](docs/explanation/)
+- [Release notes](https://github.com/kromsam/longform-kit/releases)
