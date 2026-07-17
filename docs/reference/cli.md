@@ -10,12 +10,8 @@ bin/longform setup
 ```
 
 Creates `AGENTS.md`, `.gitignore`, and `.agents/skills/` from templates only
-when they do not exist, and generates a project `LICENSE` from
-`share/templates/LICENSE.in` with the year and the `book.author` from
-`_quarto.yml` filled in. The kit's own MIT notice is deliberately not carried
-into generated projects (see `.quartoignore`); the licence belongs to the
-project's author. The command also restores the exact root `index.md` adapter
-and synchronizes `.ztr-directory`.
+when they do not exist. The command also restores the exact root `index.md`
+adapter and synchronizes `.ztr-directory`.
 
 ## `build`
 

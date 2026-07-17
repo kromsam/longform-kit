@@ -448,19 +448,6 @@ async function buildGfm() {
   }
 }
 
-async function renderLicense(): Promise<string> {
-  const config = configFrom(await inspect());
-  const author = scalar(object(config.book).author).trim() || "The Author";
-  const year = String(new Date().getFullYear());
-  const template = await Deno.readTextFile(
-    join(projectDir, "share", "templates", "LICENSE.in"),
-  );
-  return template
-    .replaceAll("<YEAR>", year)
-    .replaceAll("<AUTHOR>", author)
-    .replace(/\n+$/, "\n");
-}
-
 const [command, argument] = Deno.args;
 try {
   switch (command) {
@@ -473,10 +460,6 @@ try {
     case "gfm":
       await buildGfm();
       break;
-    case "license": {
-      await Deno.stdout.write(new TextEncoder().encode(await renderLicense()));
-      break;
-    }
     case "info": {
       const config = configFrom(await inspect());
       if (argument === "output-file") console.log(outputFile(config));
@@ -493,7 +476,7 @@ try {
       break;
     }
     default:
-      throw new Error("Expected sync, check, gfm, license, or info");
+      throw new Error("Expected sync, check, gfm, or info");
   }
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));

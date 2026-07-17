@@ -182,14 +182,6 @@ setup_project() {
     cp -R "$ROOT/share/templates/skills" "$ROOT/.agents/skills"
   fi
   run_project_tool sync
-  # Generate the project LICENSE after sync so the home-page adapter exists and
-  # `quarto inspect` can resolve the author. The kit ships no downstream LICENSE
-  # (see .quartoignore); a filled MIT licence belongs to the project's author.
-  if [ ! -f "$ROOT/LICENSE" ]; then
-    license_tmp=$(mktemp "${TMPDIR:-/tmp}/longform-license.XXXXXX")
-    run_project_tool license >"$license_tmp"
-    mv "$license_tmp" "$ROOT/LICENSE"
-  fi
   printf 'Longform Kit project initialized\n'
 }
 

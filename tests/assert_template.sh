@@ -18,13 +18,11 @@ fail() {
 
 for required in \
   bin/longform \
-  VERSION \
   _quarto.yml \
   index.md \
   _extensions/epigraph/LICENSE \
   references/library.json \
   scripts/project.ts \
-  share/templates/LICENSE.in \
   document/front-matter.md \
   document/metadata.yml \
   document/chapters.yml \
@@ -34,9 +32,6 @@ for required in \
 done
 
 for excluded in \
-  CONTRIBUTING.md \
-  SECURITY.md \
-  LICENSE \
   tests \
   build \
   .cache \
@@ -59,15 +54,6 @@ rm "$STAGE/index.md"
 
 [ -f "$STAGE/AGENTS.md" ] || fail "setup did not create AGENTS.md"
 [ -f "$STAGE/.gitignore" ] || fail "setup did not create .gitignore"
-[ -f "$STAGE/LICENSE" ] || fail "setup did not generate a project LICENSE"
-grep -q '^MIT License$' "$STAGE/LICENSE" || fail "generated LICENSE is not the MIT licence"
-grep -q '^Permission is hereby granted' "$STAGE/LICENSE" || \
-  fail "generated LICENSE lost its MIT body"
-if grep -q '<AUTHOR>\|<YEAR>' "$STAGE/LICENSE"; then
-  fail "generated LICENSE still contains template placeholders"
-fi
-grep -q "Copyright (c) $(date +%Y) Author Name" "$STAGE/LICENSE" || \
-  fail "generated LICENSE did not fill the project author and year"
 skills=$(find "$STAGE/.agents/skills" -name SKILL.md -type f | wc -l | tr -d ' ')
 [ "$skills" -eq 4 ] || fail "setup installed $skills Agent Skills instead of 4"
 

@@ -1,11 +1,5 @@
 # Upstream maintenance files are not part of a generated writing project.
-CONTRIBUTING.md
-SECURITY.md
 tests/**
-
-# The kit's own licence is not the downstream project's. `bin/longform setup`
-# generates a project LICENSE from share/templates/LICENSE.in instead.
-LICENSE
 
 # Never seed a new project with local render state or outputs.
 .quarto/**

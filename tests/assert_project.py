@@ -59,9 +59,6 @@ book = config.get("book", {})
 chapters = project.get("render", [])
 information = inspection.get("fileInformation", {})
 
-if (ROOT / "VERSION").read_text(encoding="utf-8") != "0.3.0\n":
-    fail("VERSION must declare Longform Kit 0.3.0")
-
 if project.get("type") != "book":
     fail("project.type must use Quarto's native book type")
 if project.get("output-dir") != "build":

@@ -90,8 +90,3 @@ are copied beside it under `build/longform-document_files/`.
 - [How-to guides](docs/how-to/)
 - [Configuration and command reference](docs/reference/)
 - [Architecture and reproducibility](docs/explanation/)
-- [Contributing](CONTRIBUTING.md)
-- [Security policy](SECURITY.md)
-
-Longform Kit is licensed under the MIT License. Bundled third-party material
-has its own terms; see [Third-Party Notices](THIRD_PARTY_NOTICES.md).
