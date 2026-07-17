@@ -9,7 +9,7 @@ Open the repository root in Zettlr. Root `.ztr-directory` lists the resolved
 author sources under `document/`, including `document/front-matter.md` in place
 of Quarto's generated `index.md` adapter.
 
-After changing `book.chapters`, run:
+After changing the chapter list in `document/chapters.yml`, run:
 
 ```sh
 bin/longform zettlr sync

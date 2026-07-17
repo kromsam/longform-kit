@@ -98,10 +98,24 @@ for relative in author_files:
     if path.suffix != ".md" or not path.is_file():
         fail(f"author source is not Markdown: {relative}")
 
+metadata_file = DOCUMENT / "metadata.yml"
+chapters_file = DOCUMENT / "chapters.yml"
+author_metadata = {metadata_file, chapters_file}
+if not metadata_file.is_file():
+    fail("manuscript metadata must live in document/metadata.yml")
+if not chapters_file.is_file():
+    fail("the chapter list must live in document/chapters.yml")
+if not book.get("title"):
+    fail("book.title must resolve through document/metadata.yml")
+if not config.get("lang"):
+    fail("lang must resolve through document/metadata.yml")
+if not book.get("chapters"):
+    fail("book.chapters must resolve through document/chapters.yml")
+
 unexpected = [
     path.relative_to(DOCUMENT)
     for path in DOCUMENT.rglob("*")
-    if path.is_file() and path.suffix != ".md"
+    if path.is_file() and path.suffix != ".md" and path not in author_metadata
 ]
 if unexpected:
     fail(f"document/ contains non-author files: {', '.join(map(str, unexpected))}")

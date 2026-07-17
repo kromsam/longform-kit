@@ -26,6 +26,8 @@ for required in \
   scripts/project.ts \
   share/templates/LICENSE.in \
   document/front-matter.md \
+  document/metadata.yml \
+  document/chapters.yml \
   document/manuscript/01-introduction.md \
   share/templates/AGENTS.md.in; do
   [ -f "$STAGE/$required" ] || fail "missing generated file: $required"
@@ -97,8 +99,8 @@ grep -q 'longform-document_files/resources/example.svg' \
   "$STAGE/build/longform-document.md" || fail "GFM did not rewrite extracted media"
 [ -s "$STAGE/build/longform-document_files/resources/example.svg" ] || \
   fail "GFM did not promote extracted media beside the output"
-if find "$STAGE/document" -type f ! -name '*.md' | grep -q .; then
-  fail "generated project put a non-Markdown file under document/"
+if find "$STAGE/document" -type f ! -name '*.md' ! -name 'metadata.yml' ! -name 'chapters.yml' | grep -q .; then
+  fail "generated project put an unexpected non-Markdown file under document/"
 fi
 
 cp "$ROOT/tests/fixtures/_quarto-fonts.yml" \

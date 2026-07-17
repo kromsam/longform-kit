@@ -6,10 +6,13 @@ and cited from a project-local Zotero/Better BibTeX export.
 
 ## Source Of Truth
 
-- Edit document metadata, formats, and chapter order in root `_quarto.yml`.
-- Write only Markdown under `document/`: front matter in
-  `document/front-matter.md`, chapters in `document/manuscript/`, and the
-  bibliography target in `document/references.md`.
+- Edit manuscript metadata (title, subtitle, author, date, language) in
+  `document/metadata.yml` and the chapter order in `document/chapters.yml`; edit
+  formats and build settings in root `_quarto.yml`.
+- Under `document/`, keep only author-owned content: Markdown prose (front
+  matter in `document/front-matter.md`, chapters in `document/manuscript/`, the
+  bibliography target in `document/references.md`), the manuscript metadata in
+  `document/metadata.yml`, and the chapter list in `document/chapters.yml`.
 - Do not edit root `index.md`; it is Quarto's adapter for the author-owned front
   matter file.
 - Treat `references/library.json` as a generated Better CSL JSON export. Change

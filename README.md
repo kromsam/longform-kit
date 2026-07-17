@@ -15,9 +15,11 @@ The tools have distinct jobs:
 - **`bin/longform`** gives people, CI, and AI agents one deterministic command
   surface.
 
-`document/` is deliberately reserved for author-maintained Markdown. Quarto
-configuration, generated state, references, extensions, scripts, and outputs
-all live at the repository root.
+`document/` is deliberately reserved for author-owned content: the manuscript
+Markdown, `document/metadata.yml` (title, author, date, language, and other
+descriptive metadata), and `document/chapters.yml` (the chapter order). Quarto
+configuration, generated state, references, extensions, scripts, and outputs all
+live at the repository root.
 
 ## Quick Start
 
@@ -38,8 +40,10 @@ bin/longform doctor
 bin/longform build all
 ```
 
-Edit metadata and chapter order in [`_quarto.yml`](_quarto.yml). Write the
-preface in [`document/front-matter.md`](document/front-matter.md), chapters in
+Edit the manuscript metadata (title, author, date, language) in
+[`document/metadata.yml`](document/metadata.yml) and the chapter order in
+[`document/chapters.yml`](document/chapters.yml). Write the preface in
+[`document/front-matter.md`](document/front-matter.md), chapters in
 `document/manuscript/`, and citations with Pandoc keys such as
 `[@exampleBook2024, 42]`. The root [`index.md`](index.md) is a one-line Quarto
 adapter and is not an authoring file.

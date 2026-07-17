@@ -59,7 +59,9 @@ Validates:
 
 - Root `index.md` and `.ztr-directory` generated state.
 - Native Quarto configuration and resolved source paths.
-- The rule that `document/` contains only author-maintained `.md` files.
+- The rule that `document/` contains only author-maintained `.md` files plus
+  the manuscript metadata in `document/metadata.yml` and the chapter list in
+  `document/chapters.yml`.
 - A project-local CSL file and exactly one CSL JSON bibliography.
 - Non-empty, unique bibliography item IDs and resolution of every cited ID.
 - GFM TOC depth and optional required-font configuration.

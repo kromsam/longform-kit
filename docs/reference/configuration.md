@@ -10,26 +10,60 @@ project:
   type: book
   output-dir: build
 
+metadata-files:
+  - document/metadata.yml
+  - document/chapters.yml
+
+book:
+  output-file: "longform-document"
+```
+
+Keep `project.type: book`. The `metadata-files` entries pull the author-owned
+manuscript metadata and chapter list in from `document/`; only structural build
+settings such as `book.output-file` stay in `_quarto.yml`.
+
+## Manuscript Metadata
+
+The manuscript's descriptive metadata lives beside the authored content in
+`document/metadata.yml` and is merged into the configuration through
+`metadata-files`:
+
+```yaml
+lang: en-GB
+
 book:
   title: "A Longform Document"
+  subtitle: "A reproducible Zettlr, Quarto, Pandoc, and Zotero project"
   author: "Author Name"
-  output-file: "longform-document"
+  date: today
+  date-format: "D MMMM YYYY"
+```
+
+These are ordinary Quarto keys, so `date: today` resolves to the build date.
+Setting them here is equivalent to setting them in `_quarto.yml` directly.
+
+## Chapter List
+
+The ordered chapter list lives in `document/chapters.yml`, merged into `book:`
+the same way. It is authoritative for every output and for Zettlr
+synchronization:
+
+```yaml
+book:
   chapters:
     - index.md
     - document/manuscript/01-introduction.md
     - document/references.md
 ```
 
-Keep `project.type: book`. `index.md` must remain first and is generated; edit
-`document/front-matter.md` instead. `book.chapters` is authoritative for every
-output and for Zettlr synchronization.
+`index.md` must remain first and is generated; edit `document/front-matter.md`
+instead. Keep `document/references.md` at the intended bibliography position.
 
 ## Citations And Structure
 
 ```yaml
 bibliography: references/library.json
 csl: references/style.csl
-lang: en-GB
 toc: true
 toc-title: Contents
 toc-depth: 2

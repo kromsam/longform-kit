@@ -6,6 +6,16 @@ All notable changes to Longform Kit are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- All author-owned information about the manuscript now lives under `document/`:
+  descriptive metadata (title, subtitle, author, date, date-format, language) in
+  `document/metadata.yml` and the ordered chapter list in `document/chapters.yml`.
+  Both are merged into the project configuration through `metadata-files`, and
+  the `document/` boundary now permits these two YAML files alongside the author
+  Markdown. Structural build settings such as `book.output-file` stay in
+  `_quarto.yml`.
+
 ## [0.3.0] - 2026-07-17
 
 ### Added

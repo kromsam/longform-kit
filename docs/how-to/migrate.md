@@ -28,8 +28,19 @@ format:
 
 Move all author-maintained Markdown under `document/`. Put the preface in
 `document/front-matter.md`, chapters in `document/manuscript/`, and the
-bibliography target in `document/references.md`. Keep `_quarto.yml`, profiles,
-references, extensions, scripts, and outputs at the root.
+bibliography target in `document/references.md`. Put the manuscript's
+descriptive metadata (title, subtitle, author, date, language) in
+`document/metadata.yml` and the ordered chapter list in `document/chapters.yml`,
+then link both from `_quarto.yml`:
+
+```yaml
+metadata-files:
+  - document/metadata.yml
+  - document/chapters.yml
+```
+
+Keep `_quarto.yml`, profiles, references, extensions, scripts, and outputs at the
+root.
 
 Run `bin/longform setup`; it creates the root `index.md` adapter and Zettlr
 project file.

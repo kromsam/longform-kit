@@ -16,7 +16,7 @@ bin/longform doctor
 
 ## 2. Set Document Metadata
 
-Open root `_quarto.yml` and replace the starter values:
+Open `document/metadata.yml` and replace the starter values:
 
 ```yaml
 book:
@@ -24,10 +24,10 @@ book:
   subtitle: "Writing, Citations, and Output in One Project"
   author: "Your Name"
   date: today
-  output-file: "my-document"
 ```
 
-Use a filename-safe `output-file` without an extension.
+The output filename stays in root `_quarto.yml`; set a filename-safe
+`book.output-file` there without an extension.
 
 ## 3. Write In Zettlr
 

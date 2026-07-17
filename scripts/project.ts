@@ -20,6 +20,12 @@ const projectDir = dirname(scriptsDir);
 const quarto = Deno.env.get("LONGFORM_QUARTO") || "quarto";
 const homeAdapterPath = join(projectDir, "index.md");
 const homeAdapter = "{{< include document/front-matter.md >}}\n";
+// Author-owned manuscript metadata merged into the config via metadata-files.
+// These are the only non-Markdown files allowed at the top of document/:
+// metadata.yml holds title/author/date/language and chapters.yml the chapter
+// list.
+const manuscriptMetadataFiles = new Set(["metadata.yml", "chapters.yml"]);
+const manuscriptMetadataList = [...manuscriptMetadataFiles].join(", ");
 
 async function run(
   command: string,
@@ -265,9 +271,16 @@ async function checkAuthorDirectory() {
       const path = join(directory, entry.name);
       if (entry.isDirectory) {
         await visit(path);
+      } else if (
+        entry.isFile &&
+        directory === authorDir &&
+        manuscriptMetadataFiles.has(entry.name)
+      ) {
+        // Manuscript metadata is author-owned information about the document,
+        // so it may sit beside the prose even though it is YAML, not Markdown.
       } else if (!entry.isFile || !entry.name.endsWith(".md")) {
         throw new Error(
-          `Only author Markdown is allowed under document/: ${relative(authorDir, path)}`,
+          `Only author Markdown and ${manuscriptMetadataList} are allowed under document/: ${relative(authorDir, path)}`,
         );
       }
     }

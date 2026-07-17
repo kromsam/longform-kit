@@ -9,7 +9,9 @@ index.md                          generated Quarto home-page adapter
 .ztr-directory                    generated Zettlr project adapter
 bin/longform                      stable command-line interface
 scripts/project.ts                checks, Zettlr sync, and combined GFM
-document/                         author-maintained Markdown only
+document/                         author-owned manuscript content
+  metadata.yml                    title, subtitle, author, date, language
+  chapters.yml                    ordered chapter list
   front-matter.md                 preface and other opening content
   manuscript/*.md                 active chapters
   references.md                   bibliography heading and Div#refs
@@ -30,9 +32,12 @@ The `resources/`, `style/`, and `submissions/` directories are optional and
 author-created: a freshly generated project does not contain them until you add
 them.
 
-`document/` is a strict authoring boundary. `bin/longform check` rejects every
-non-Markdown file below it, including Quarto configuration, generated outputs,
-reference exports, and editor state.
+`document/` is a strict authoring boundary. The only non-Markdown files allowed
+below it are `document/metadata.yml` (the manuscript's descriptive metadata) and
+`document/chapters.yml` (the ordered chapter list); both are merged into `book:`
+through `metadata-files` in `_quarto.yml`. `bin/longform check` rejects every
+other non-Markdown file there, including the rest of the Quarto configuration,
+generated outputs, reference exports, and editor state.
 
 Store figures and attachments in a root directory such as `resources/`. Refer
 to them with Quarto project-root paths (`/resources/figure.png`), including from

@@ -1,0 +1,17 @@
+# Manuscript metadata
+#
+# Author-facing information about the manuscript itself: its title, subtitle,
+# author, date, and language. Quarto merges these values into the project
+# configuration through the `metadata-files` entry in ../_quarto.yml, so editing
+# them here is equivalent to setting them in ../_quarto.yml directly.
+#
+# The chapter list lives in document/chapters.yml; structural build settings
+# such as the output filename stay in ../_quarto.yml.
+lang: en-GB
+
+book:
+  title: "A Longform Document"
+  subtitle: "A reproducible Zettlr, Quarto, Pandoc, and Zotero project"
+  author: "Author Name"
+  date: today
+  date-format: "D MMMM YYYY"

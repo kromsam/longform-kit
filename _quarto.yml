@@ -2,22 +2,19 @@ project:
   type: book
   output-dir: build
 
+# Author-owned manuscript metadata lives under document/ so it sits with the
+# rest of the authored content. Quarto merges these files into the config below:
+#   - document/metadata.yml  title, subtitle, author, date, language
+#   - document/chapters.yml  the ordered chapter list
+metadata-files:
+  - document/metadata.yml
+  - document/chapters.yml
+
 book:
-  title: "A Longform Document"
-  subtitle: "A reproducible Zettlr, Quarto, Pandoc, and Zotero project"
-  author: "Author Name"
-  date: today
-  date-format: "D MMMM YYYY"
   output-file: "longform-document"
-  chapters:
-    - index.md
-    - document/manuscript/01-introduction.md
-    - document/manuscript/02-conclusion.md
-    - document/references.md
 
 bibliography: references/library.json
 csl: references/style.csl
-lang: en-GB
 toc: true
 toc-title: Contents
 toc-depth: 2
