@@ -97,7 +97,7 @@ rm "$STAGE/index.md"
     --library "$LIBRARY_DIRECTORY" \
     --zotero-data-dir "$ZOTERO_DATA" \
     --style "Longform Test Note Style"
-  ./bin/longform check
+  ./bin/longform build gfm
 )
 
 for local_reference in library.json style.csl zotero-styles; do
@@ -110,6 +110,9 @@ done
   fail "style title did not resolve to the installed CSL file"
 [ "$STAGE/references/zotero-styles" -ef "$ZOTERO_DATA/styles" ] || \
   fail "Zotero styles link does not resolve to the configured styles directory"
+grep -q 'Independent style citation:' \
+  "$STAGE/build/longform-document.md" || \
+  fail "GFM did not render a citation through the independent CSL style"
 
 library_link=$(readlink "$STAGE/references/library.json")
 style_link=$(readlink "$STAGE/references/style.csl")

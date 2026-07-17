@@ -17,7 +17,7 @@
     <number variable="edition" form="ordinal" suffix=" ed."/>
   </macro>
   <citation>
-    <layout delimiter="; ">
+    <layout prefix="Independent style citation: " delimiter="; ">
       <group delimiter=", ">
         <text macro="author"/>
         <text variable="title" font-style="italic"/>
