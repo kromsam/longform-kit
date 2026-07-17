@@ -31,6 +31,7 @@ PAGINATED_MARKER = (
     "Integration fixture: this sentence belongs only in paginated output."
 )
 FIGURE_ALT = "Integration fixture figure"
+MONO_MARKER = "-> => != <= >= :: 0123456789"
 ONE_PIXEL_PNG = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
 )
@@ -76,7 +77,7 @@ def run(
 
 
 def require_tools() -> None:
-    for command in (QUARTO, "git", "pdfinfo", "pdftotext"):
+    for command in (QUARTO, "git", "pdffonts", "pdfinfo", "pdftotext"):
         if shutil.which(command) is None:
             fail(f"missing required command: {command}")
     for path in (LIBRARY, STYLE):
@@ -151,6 +152,7 @@ def add_test_manuscript_content(project: Path) -> None:
             "\n\n## Integration fixture\n\n"
             f"{INTRO_MARKER}\n\n"
             "This note cites the bibliography fixture [@exampleBook2024, 1-2].\n\n"
+            f"Operator extraction fixture: `{MONO_MARKER}`.\n\n"
             f"![{FIGURE_ALT}](/resources/integration-fixture.png)\n"
         )
     with conclusion.open("a", encoding="utf-8") as source:
@@ -215,6 +217,26 @@ def assert_configuration(project: Path) -> dict:
     if "geometry" in ordinary_pdf or "geometry" in binding_pdf:
         fail("PDF profiles must leave margin dimensions to KOMA")
 
+    expected_typography = {
+        "pdf-engine": "lualatex",
+        "mainfont": "EB Garamond",
+        "sansfont": "Fira Sans",
+        "monofont": "Fira Mono",
+    }
+    for key, expected in expected_typography.items():
+        if ordinary_pdf.get(key) != expected or binding_pdf.get(key) != expected:
+            fail(f"both PDF profiles must set {key} to {expected!r}")
+    if option_values(ordinary_pdf.get("mainfontoptions")) != {"Numbers=OldStyle"}:
+        fail("ordinary PDF must use old-style EB Garamond figures")
+    if option_values(binding_pdf.get("mainfontoptions")) != {"Numbers=OldStyle"}:
+        fail("binding PDF must use old-style EB Garamond figures")
+    for label, pdf in (("ordinary", ordinary_pdf), ("binding", binding_pdf)):
+        header = pdf.get("include-in-header", {})
+        if not isinstance(header, dict) or "\\usepackage[all]{nowidow}" not in str(
+            header.get("text", "")
+        ):
+            fail(f"{label} PDF must prevent single-line widows and orphans")
+
     if ordinary.get("book", {}).get("output-file") != "longform-document":
         fail("ordinary output filename changed unexpectedly")
     if binding.get("book", {}).get("output-file") != "longform-document-binding":
@@ -272,6 +294,19 @@ def assert_pdf(path: Path) -> tuple[str, int]:
     )
     if GFM_MARKER in text:
         fail(f"{path.name} retained GFM-only conditional content")
+    if MONO_MARKER not in text:
+        fail(f"{path.name} did not preserve Fira Mono operator extraction")
+
+    font_table = run("pdffonts", str(path), cwd=path.parent)
+    font_rows = [line.split() for line in font_table.splitlines()[2:] if line.strip()]
+    for family in ("EBGaramond", "FiraSans", "FiraMono"):
+        rows = [row for row in font_rows if family in row[0]]
+        if not rows:
+            fail(f"{path.name} did not embed the expected {family} family")
+        if any(len(row) < 5 or row[-5:-2] != ["yes", "yes", "yes"] for row in rows):
+            fail(
+                f"{path.name} must subset and embed {family} with a Unicode map"
+            )
     return normalize_pdf_text(text), page_count
 
 

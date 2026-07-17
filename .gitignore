@@ -8,6 +8,12 @@
 /.~lock.*#
 /document/.ztr-directory
 /.vale/styles/proselint/
+/references/library.json
+/references/style.csl
+/references/zotero-styles
+/references/.csl-parents
+/references/*.tmp-*
+/references/*.backup-*
 *.log
 __pycache__/
 *.py[cod]

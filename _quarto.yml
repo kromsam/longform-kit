@@ -20,10 +20,20 @@ link-citations: true
 format:
   pdf:
     colorlinks: false
+    pdf-engine: lualatex
     papersize: a4
     fontsize: 12pt
     linestretch: 1.25
     indent: true
+    mainfont: EB Garamond
+    mainfontoptions:
+      - Numbers=OldStyle
+    sansfont: Fira Sans
+    monofont: Fira Mono
+    # Keep at least two lines of a paragraph together at page boundaries.
+    include-in-header:
+      text: |
+        \usepackage[all]{nowidow}
     # Use KOMA's symmetric default margins while retaining the two-sided
     # pagination needed for physical recto starts.
     classoption: "twoside=semi,openright"

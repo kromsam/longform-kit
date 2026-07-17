@@ -17,7 +17,8 @@ scaffolding, citation symlink, or LaTeX deliverable.
 ## Requirements
 
 - Quarto 1.9.x
-- A TeX distribution with LuaLaTeX, such as TeX Live or MacTeX
+- A TeX distribution with LuaLaTeX and the `ebgaramond`, `fira`, and
+  `nowidow` packages, such as TeX Live or MacTeX
 - Zotero with Better BibTeX for citation-library exports
 - Zettlr if you want the optional writing interface
 - Vale, Harper, or Markdownlint if you want prose and Markdown checks

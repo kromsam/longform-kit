@@ -67,6 +67,12 @@ options combine that symmetric type area with two-sided pagination. The binding
 profile keeps the same page sequence but switches to KOMA's default mirrored
 margins with `twoside,openright`.
 
+The default PDF uses EB Garamond with old-style figures for body text, Fira
+Sans for KOMA headings, and Fira Mono for code. LuaLaTeX applies its
+standard microtype support without project-specific tuning. The `nowidow`
+package keeps single opening or closing paragraph lines from being stranded at
+page boundaries. These shared typography choices apply to both PDF profiles.
+
 ## Build Every Format
 
 Run the canonical build from the project root:

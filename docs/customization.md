@@ -90,7 +90,8 @@ policy. `.vale.ini` deliberately keeps proselint at suggestion level.
 
 Harper's live project dictionary is `.harper/dictionary.txt`. Add a term only
 when it is accepted specialist vocabulary or a proper name. The default file
-is empty so the template does not impose manuscript-specific language.
+contains only the toolkit's typography and publishing vocabulary, so the
+template does not impose manuscript-specific language.
 
 Root `.markdownlint.json` extends the Prettier-compatible Markdownlint style.
 Override individual rules there only when the manuscript structure requires
