@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import unicodedata
+from urllib.parse import unquote
 import xml.etree.ElementTree as ET
 from zipfile import BadZipFile, ZipFile
 
@@ -32,6 +33,7 @@ PAGINATED_MARKER = (
 )
 FIGURE_ALT = "Integration fixture figure"
 MONO_MARKER = "-> => != <= >= :: 0123456789"
+TEST_OUTPUT = "Longform Kit integration fixture"
 ONE_PIXEL_PNG = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
 )
@@ -137,6 +139,24 @@ def write_local_configuration(project: Path) -> None:
         f"csl: {json.dumps(str(STYLE))}\n",
         encoding="utf-8",
     )
+
+
+def write_test_output_names(project: Path) -> None:
+    """Exercise configured output names that require URL-safe media links."""
+    for relative, output in (
+        ("_quarto.yml", TEST_OUTPUT),
+        ("_quarto-binding.yml", f"{TEST_OUTPUT}-binding"),
+    ):
+        path = project / relative
+        updated, replacements = re.subn(
+            r"(?m)^(\s*output-file:\s*).+$",
+            rf'\1"{output}"',
+            path.read_text(encoding="utf-8"),
+            count=1,
+        )
+        if replacements != 1:
+            fail(f"could not configure the fixture output name in {relative}")
+        path.write_text(updated, encoding="utf-8")
 
 
 def write_test_manuscript(project: Path) -> None:
@@ -477,11 +497,13 @@ def assert_gfm(path: Path) -> None:
 
     alt_pattern = r"\s+".join(map(re.escape, FIGURE_ALT.split()))
     markdown_image = re.search(rf"!\[{alt_pattern}\]\(([^)]+)\)", text)
-    target = (
-        markdown_image.group(1).split(maxsplit=1)[0].strip("<>")
-        if markdown_image is not None
-        else None
-    )
+    target = None
+    if markdown_image is not None:
+        destination = markdown_image.group(1).strip()
+        if destination.startswith("<") and ">" in destination:
+            target = destination[1 : destination.index(">")]
+        else:
+            target = destination.split(maxsplit=1)[0]
     if target is None:
         for tag in re.findall(r"<img\b[^>]*>", text):
             if f'alt="{FIGURE_ALT}"' not in tag:
@@ -496,6 +518,7 @@ def assert_gfm(path: Path) -> None:
             if "Integration fixture" in line or "integration-fixture" in line
         )
         fail(f"GFM is missing the manuscript figure\n{related}")
+    target = unquote(target)
     extracted = (path.parent / target).resolve()
     media_root = (path.parent / f"{path.stem}_files").resolve()
     if not extracted.is_relative_to(media_root) or not extracted.is_file():
@@ -583,6 +606,7 @@ def test_build() -> None:
         project = Path(test_area) / "project with spaces"
         copy_project(project)
         write_local_configuration(project)
+        write_test_output_names(project)
         write_test_manuscript(project)
         config, binding_config = assert_configuration(project)
         progress("configuration verified; rendering four outputs")
