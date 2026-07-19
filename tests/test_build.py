@@ -589,7 +589,11 @@ def assert_zettlr(project: Path, config: dict) -> None:
 
 
 def assert_ignored_generated_files() -> None:
-    for relative in ("_quarto.yml.local", "document/.ztr-directory"):
+    for relative in (
+        "_quarto.yml.local",
+        "_quarto-profile.local",
+        "document/.ztr-directory",
+    ):
         result = subprocess.run(
             ["git", "check-ignore", "--no-index", "--quiet", relative],
             cwd=ROOT,

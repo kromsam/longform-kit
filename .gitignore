@@ -1,7 +1,7 @@
 /build/
 /.cache/
 /.quarto/
-/_quarto.yml.local
+/_*.local
 /index.tex
 /index.pdf
 /*_files/
