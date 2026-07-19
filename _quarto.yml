@@ -17,6 +17,11 @@ toc-depth: 2
 number-sections: true
 link-citations: true
 
+# Keep the root adapter structurally invisible when front matter has no
+# heading. The build script separately sanitizes generated DOCX properties.
+filters:
+  - filters/longform-front-matter.lua
+
 format:
   pdf:
     colorlinks: false

@@ -262,6 +262,26 @@ async function renderNative(
   return output;
 }
 
+async function sanitizeDocx(
+  source: string,
+  destination: string,
+): Promise<string> {
+  console.log("Sanitizing DOCX package metadata");
+  await Deno.mkdir(dirname(destination), { recursive: true });
+  await runQuarto(
+    [
+      "pandoc",
+      "lua",
+      join(projectDir, "scripts", "sanitize-docx.lua"),
+      source,
+      destination,
+    ],
+    { capture: true },
+  );
+  await requireOutput(destination);
+  return destination;
+}
+
 function standaloneMetadata(config: Json): string {
   const book = object(config.book);
   const lines = ["---"];
@@ -404,10 +424,14 @@ async function build(): Promise<void> {
       `${bindingBase}.pdf`,
       "binding",
     );
-    const docx = await renderNative(
+    const renderedDocx = await renderNative(
       "docx",
       join(stage, "docx"),
       `${base}.docx`,
+    );
+    const docx = await sanitizeDocx(
+      renderedDocx,
+      join(stage, "sanitized-docx", `${base}.docx`),
     );
     const gfm = await renderGfm(
       data,
