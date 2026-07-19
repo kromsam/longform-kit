@@ -8,11 +8,12 @@ and produce the complete publication set with one command:
 quarto run scripts/longform.ts build
 ```
 
-Every build produces a one-sided, symmetric-margin PDF that retains blank
-verso pages for recto chapter starts, a two-sided binding PDF with KOMA's
-default mirrored margins and the same page sequence, a DOCX file, and one
-combined GitHub Flavoured Markdown file. There is no setup command, generated
-scaffolding, citation symlink, or LaTeX deliverable.
+Every build produces four public files. The ordinary PDF uses symmetric
+margins, while the binding PDF uses the default KOMA mirrored margins. Both
+retain blank verso pages for recto chapter starts and share the same page
+sequence. The remaining outputs are a DOCX file and one combined GitHub
+Flavoured Markdown file. There is no setup command, generated scaffolding,
+citation symlink, or LaTeX deliverable.
 
 ## Requirements
 
@@ -21,11 +22,14 @@ scaffolding, citation symlink, or LaTeX deliverable.
   `nowidow` packages, such as TeX Live or MacTeX
 - Zotero with Better BibTeX for citation-library exports
 - Zettlr if you want the optional writing interface
-- Vale, Harper, or Markdownlint if you want prose and Markdown checks
+- Vale, Harper, or Markdownlint if you want to run prose and Markdown checks
 
-## Start A Document
+## Start a Document
 
-Clone the repository or create a repository from the GitHub template. Then:
+Clone the repository or create a repository from the GitHub template. GitHub's
+template button creates a one-time snapshot; to retain shared ancestry and
+merge later Longform Kit releases, follow the
+[downstream maintenance guide](docs/downstream-maintenance.md). Then:
 
 1. Export the relevant Zotero library or collection with the **Better CSL
    JSON** translator and enable **Keep updated**.
@@ -37,7 +41,8 @@ Clone the repository or create a repository from the GitHub template. Then:
    csl: /absolute/path/to/style.csl
    ```
 
-4. Edit the title, author, date, and language in `document/metadata.yml`.
+4. Edit the title, subtitle, author, date, date format, and language in
+   `document/metadata.yml`.
 5. Edit the ordered chapter list in `document/chapters.yml` and write the
    manuscript under `document/`.
 6. Build everything:
@@ -46,7 +51,7 @@ Clone the repository or create a repository from the GitHub template. Then:
    quarto run scripts/longform.ts build
    ```
 
-The bibliography path is the Better CSL JSON export, not Zotero's data
+The bibliography path is the Better CSL JSON export, not the Zotero data
 directory or `zotero.sqlite`. The paths remain local to your machine; do not
 commit `_quarto.yml.local`.
 
@@ -82,11 +87,12 @@ Referenced media in the Markdown edition is extracted beside the Markdown
 when necessary. PDF, binding PDF, and DOCX are native Quarto book renders. The
 combined GFM edition is rendered from a temporary standalone Quarto document
 so citations, shortcodes, includes, and format conditionals are resolved before
-Pandoc writes Markdown. No temporary source or `.tex` file is retained.
+Pandoc writes Markdown. No build-generated temporary source or public LaTeX
+deliverable is retained.
 
 ## Optional Tools
 
-Regenerate Zettlr's ignored project file after changing chapter order or
+Regenerate the ignored Zettlr project file after changing chapter order or
 metadata:
 
 ```sh
@@ -110,3 +116,4 @@ quotations and specialist terminology.
 - [Configure and build](docs/configuration-and-building.md)
 - [Use Zettlr](docs/zettlr.md)
 - [Customize the project](docs/customization.md)
+- [Maintain a tracked downstream](docs/downstream-maintenance.md)

@@ -1,6 +1,15 @@
+CSL
+DOCX
 EB
 Fira
+GFM
 Garamond
 KOMA
 LuaLaTeX
+MacTeX
+Markdownlint
+Zettlr
+Zotero
 microtype
+shortcodes
+worktree
