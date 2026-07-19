@@ -139,33 +139,55 @@ def write_local_configuration(project: Path) -> None:
     )
 
 
-def add_test_manuscript_content(project: Path) -> None:
-    introduction = project / "document/manuscript/01-introduction.md"
-    conclusion = project / "document/manuscript/02-conclusion.md"
+def write_test_manuscript(project: Path) -> None:
+    """Replace the configured manuscript with a self-contained test fixture."""
+    document = project / "document"
+    manuscript = document / "manuscript"
+    introduction = manuscript / "longform-test-introduction.md"
+    conclusion = manuscript / "longform-test-conclusion.md"
     figure = project / "resources/integration-fixture.png"
+    manuscript.mkdir(parents=True, exist_ok=True)
     figure.parent.mkdir(exist_ok=True)
     figure.write_bytes(ONE_PIXEL_PNG)
-    if "@exampleBook2024" in introduction.read_text(encoding="utf-8"):
-        fail("the starter manuscript must not contain the test-only citation")
-    with introduction.open("a", encoding="utf-8") as source:
-        source.write(
-            "\n\n## Integration fixture\n\n"
-            f"{INTRO_MARKER}\n\n"
-            "This note cites the bibliography fixture [@exampleBook2024, 1-2].\n\n"
-            f"Operator extraction fixture: `{MONO_MARKER}`.\n\n"
-            f"![{FIGURE_ALT}](/resources/integration-fixture.png)\n"
-        )
-    with conclusion.open("a", encoding="utf-8") as source:
-        source.write(
-            "\n\n"
-            "::: {.content-visible when-format=\"gfm\"}\n"
-            f"{GFM_MARKER}\n"
-            ":::\n\n"
-            "::: {.content-hidden when-format=\"gfm\"}\n"
-            f"{PAGINATED_MARKER}\n"
-            ":::\n\n"
-            f"{CONCLUSION_MARKER}\n"
-        )
+    (document / "chapters.yml").write_text(
+        "book:\n"
+        "  chapters:\n"
+        "    - index.md\n"
+        "    - document/manuscript/longform-test-introduction.md\n"
+        "    - document/manuscript/longform-test-conclusion.md\n"
+        "    - document/references.md\n",
+        encoding="utf-8",
+    )
+    (document / "front-matter.md").write_text(
+        "# Preface {.unnumbered}\n\n"
+        "Integration fixture: the front matter is present.\n\n"
+        "{{< pagebreak >}}\n",
+        encoding="utf-8",
+    )
+    introduction.write_text(
+        "# Introduction {.unnumbered}\n\n"
+        "## Integration fixture\n\n"
+        f"{INTRO_MARKER}\n\n"
+        "This note cites the bibliography fixture [@exampleBook2024, 1-2].\n\n"
+        f"Operator extraction fixture: `{MONO_MARKER}`.\n\n"
+        f"![{FIGURE_ALT}](/resources/integration-fixture.png)\n",
+        encoding="utf-8",
+    )
+    conclusion.write_text(
+        "# Conclusion {.unnumbered}\n\n"
+        "::: {.content-visible when-format=\"gfm\"}\n"
+        f"{GFM_MARKER}\n"
+        ":::\n\n"
+        "::: {.content-hidden when-format=\"gfm\"}\n"
+        f"{PAGINATED_MARKER}\n"
+        ":::\n\n"
+        f"{CONCLUSION_MARKER}\n",
+        encoding="utf-8",
+    )
+    (document / "references.md").write_text(
+        "# Bibliography {.unnumbered}\n\n::: {#refs}\n:::\n",
+        encoding="utf-8",
+    )
 
 
 def inspect(project: Path, profile: str | None = None) -> dict:
@@ -192,7 +214,7 @@ def option_values(value: object) -> set[str]:
     return set()
 
 
-def assert_configuration(project: Path) -> dict:
+def assert_configuration(project: Path) -> tuple[dict, dict]:
     ordinary = inspect(project)
     binding = inspect(project, "binding")
 
@@ -237,11 +259,13 @@ def assert_configuration(project: Path) -> dict:
         ):
             fail(f"{label} PDF must prevent single-line widows and orphans")
 
-    if ordinary.get("book", {}).get("output-file") != "longform-document":
-        fail("ordinary output filename changed unexpectedly")
-    if binding.get("book", {}).get("output-file") != "longform-document-binding":
-        fail("binding profile does not declare its distinct output filename")
-    return ordinary
+    ordinary_output = ordinary.get("book", {}).get("output-file")
+    binding_output = binding.get("book", {}).get("output-file")
+    if not isinstance(ordinary_output, str) or not ordinary_output.strip():
+        fail("ordinary output filename must be a non-empty string")
+    if binding_output != f"{ordinary_output}-binding":
+        fail("binding output filename must add the -binding suffix")
+    return ordinary, binding
 
 
 def require_file(path: Path) -> None:
@@ -559,8 +583,8 @@ def test_build() -> None:
         project = Path(test_area) / "project with spaces"
         copy_project(project)
         write_local_configuration(project)
-        add_test_manuscript_content(project)
-        config = assert_configuration(project)
+        write_test_manuscript(project)
+        config, binding_config = assert_configuration(project)
         progress("configuration verified; rendering four outputs")
 
         run(
@@ -573,10 +597,12 @@ def test_build() -> None:
         )
         progress("build command completed; inspecting artifacts")
         build = project / config.get("project", {}).get("output-dir", "build")
-        ordinary_pdf = build / "longform-document.pdf"
-        binding_pdf = build / "longform-document-binding.pdf"
-        docx = build / "longform-document.docx"
-        gfm = build / "longform-document.md"
+        ordinary_name = config["book"]["output-file"]
+        binding_name = binding_config["book"]["output-file"]
+        ordinary_pdf = build / f"{ordinary_name}.pdf"
+        binding_pdf = build / f"{binding_name}.pdf"
+        docx = build / f"{ordinary_name}.docx"
+        gfm = build / f"{ordinary_name}.md"
         for artifact in (ordinary_pdf, binding_pdf, docx, gfm):
             require_file(artifact)
 
