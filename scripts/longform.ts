@@ -311,6 +311,7 @@ async function renderGfm(
     prefix: ".longform-gfm-",
   });
   const mediaName = `${filename.slice(0, -3)}_files`;
+  const mediaReference = encodeURIComponent(mediaName);
   const extractionName = `.longform-media-${token}`;
 
   try {
@@ -347,7 +348,7 @@ async function renderGfm(
     if (rendered.includes(extractionName)) {
       await Deno.writeTextFile(
         markdown,
-        rendered.replaceAll(extractionName, mediaName),
+        rendered.replaceAll(extractionName, mediaReference),
       );
     }
     const candidates = [
