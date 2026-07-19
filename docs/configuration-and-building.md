@@ -56,8 +56,10 @@ book:
 ```
 
 Keep `index.md` first and edit `document/front-matter.md` instead of the root
-adapter. Keep `document/references.md` where the generated bibliography should
-appear.
+adapter. Front matter may begin with an unnumbered heading or remain
+headingless, as an epigraph often does; the adapter does not consume a chapter
+number in either case. Keep `document/references.md` where the generated
+bibliography should appear.
 
 Shared Quarto settings live in `_quarto.yml`. `_quarto-binding.yml` changes
 only the binding PDF's filename and two-sided layout. The ordinary PDF uses
@@ -102,8 +104,17 @@ it cannot create both PDF layouts and the combined GFM edition in one render.
 
 ## Check The Result
 
-The build command fails if a required output is missing or empty. For layout
-changes, also inspect both PDFs and the DOCX rather than relying on exit status.
+The build command fails if a required output is missing or empty. After
+citation processing, it sanitizes the generated DOCX package: machine-local
+bibliography and CSL properties and sample statistics inherited from the
+reference DOCX are removed. An office application may calculate
+layout-dependent statistics when it opens or saves the rendered document.
+The DOCX table of contents is likewise a live field rather than a cached page
+index. Microsoft Word refreshes it when fields are updated; previewers that do
+not update Word fields may show only the contents heading until then.
+
+For layout changes, also inspect both PDFs and the DOCX rather than relying on
+exit status.
 Check that the binding PDF uses KOMA's default mirrored margins. Both PDFs
 should retain blank verso pages so chapters begin on recto pages; the ordinary
 PDF uses KOMA's default equal margins instead.

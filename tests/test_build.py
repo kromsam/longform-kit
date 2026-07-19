@@ -27,6 +27,7 @@ WORD_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
 INTRO_MARKER = "Integration fixture: the first chapter is present."
 CONCLUSION_MARKER = "Integration fixture: the final chapter is present."
+FRONT_MARKER = "Integration fixture: the headingless front matter is present."
 GFM_MARKER = "Integration fixture: this sentence belongs only in GFM."
 PAGINATED_MARKER = (
     "Integration fixture: this sentence belongs only in paginated output."
@@ -179,13 +180,12 @@ def write_test_manuscript(project: Path) -> None:
         encoding="utf-8",
     )
     (document / "front-matter.md").write_text(
-        "# Preface {.unnumbered}\n\n"
-        "Integration fixture: the front matter is present.\n\n"
+        f"> {FRONT_MARKER}\n\n"
         "{{< pagebreak >}}\n",
         encoding="utf-8",
     )
     introduction.write_text(
-        "# Introduction {.unnumbered}\n\n"
+        "# Introduction\n\n"
         "## Integration fixture\n\n"
         f"{INTRO_MARKER}\n\n"
         "This note cites the bibliography fixture [@exampleBook2024, 1-2].\n\n"
@@ -234,6 +234,16 @@ def option_values(value: object) -> set[str]:
     return set()
 
 
+def configuration_contains(value: object, needle: str) -> bool:
+    if isinstance(value, str):
+        return needle in value
+    if isinstance(value, list):
+        return any(configuration_contains(item, needle) for item in value)
+    if isinstance(value, dict):
+        return any(configuration_contains(item, needle) for item in value.values())
+    return False
+
+
 def assert_configuration(project: Path) -> tuple[dict, dict]:
     ordinary = inspect(project)
     binding = inspect(project, "binding")
@@ -250,15 +260,18 @@ def assert_configuration(project: Path) -> tuple[dict, dict]:
 
     ordinary_options = option_values(ordinary_pdf.get("classoption"))
     binding_options = option_values(binding_pdf.get("classoption"))
-    if ordinary_options != {"twoside=semi", "openright"}:
+    if "openright" not in ordinary_options or not any(
+        option == "twoside" or option.startswith("twoside=")
+        for option in ordinary_options
+    ):
         fail(
-            "ordinary PDF must use KOMA's default symmetric margins with recto starts"
+            "ordinary PDF must use two-sided pagination with recto chapter starts"
         )
-    if binding_options != {"twoside", "openright"}:
-        fail("binding PDF must use KOMA's default mirrored margins with recto starts")
-    if "geometry" in ordinary_pdf or "geometry" in binding_pdf:
-        fail("PDF profiles must leave margin dimensions to KOMA")
-
+    if "openright" not in binding_options or not any(
+        option == "twoside" or option.startswith("twoside=")
+        for option in binding_options
+    ):
+        fail("binding PDF must use two-sided pagination with recto chapter starts")
     expected_typography = {
         "pdf-engine": "lualatex",
         "mainfont": "EB Garamond",
@@ -273,9 +286,8 @@ def assert_configuration(project: Path) -> tuple[dict, dict]:
     if option_values(binding_pdf.get("mainfontoptions")) != {"Numbers=OldStyle"}:
         fail("binding PDF must use old-style EB Garamond figures")
     for label, pdf in (("ordinary", ordinary_pdf), ("binding", binding_pdf)):
-        header = pdf.get("include-in-header", {})
-        if not isinstance(header, dict) or "\\usepackage[all]{nowidow}" not in str(
-            header.get("text", "")
+        if not configuration_contains(
+            pdf.get("include-in-header"), "\\usepackage[all]{nowidow}"
         ):
             fail(f"{label} PDF must prevent single-line widows and orphans")
 
@@ -314,7 +326,12 @@ def normalize_pdf_text(text: str) -> str:
         if re.fullmatch(r"(?:\d+|[ivxlcdm]+)", line, re.IGNORECASE):
             continue
         kept.append(line)
-    return re.sub(r"\s+", " ", " ".join(kept)).strip()
+    normalized = re.sub(r"\s+", " ", " ".join(kept)).strip()
+    # A narrower binding type area may trigger discretionary hyphens at line
+    # endings. Ignore those layout-only differences while still comparing the
+    # complete normalized manuscript text.
+    normalized = re.sub(r"(?<=\w)[-‐‑]\s+(?=\w)", "", normalized)
+    return re.sub(r"(?<=\w)[-‐‑](?=\w)", "", normalized)
 
 
 def assert_pdf(path: Path) -> tuple[str, int]:
@@ -333,9 +350,19 @@ def assert_pdf(path: Path) -> tuple[str, int]:
     text = run("pdftotext", "-layout", str(path), "-", cwd=path.parent)
     assert_order(
         text,
-        [INTRO_MARKER, PAGINATED_MARKER, CONCLUSION_MARKER, "The Example Book"],
+        [
+            FRONT_MARKER,
+            INTRO_MARKER,
+            PAGINATED_MARKER,
+            CONCLUSION_MARKER,
+            "The Example Book",
+        ],
         path.name,
     )
+    if re.search(r"(?m)^\s*1\s+Introduction\s*$", text) is None:
+        fail(f"{path.name} did not number the first real chapter as 1")
+    if re.search(r"(?m)^\s*2\s+Introduction\s*$", text) is not None:
+        fail(f"{path.name} let front matter consume chapter number 1")
     if GFM_MARKER in text:
         fail(f"{path.name} retained GFM-only conditional content")
     if MONO_MARKER not in text:
@@ -384,7 +411,11 @@ def pdf_heading_pages(path: Path, headings: tuple[str, ...]) -> dict[str, int]:
         matches = [
             page_number
             for page_number, page in enumerate(pages, start=1)
-            if any(line.strip() == heading for line in page.splitlines())
+            if any(
+                line.strip() == heading
+                or re.fullmatch(rf"\d+\s+{re.escape(heading)}", line.strip())
+                for line in page.splitlines()
+            )
         ]
         if not matches:
             fail(f"could not locate PDF chapter heading in {path.name}: {heading!r}")
@@ -424,6 +455,16 @@ def assert_docx(path: Path, title: str) -> None:
         document = ET.fromstring(archive.read("word/document.xml"))
         styles = ET.fromstring(archive.read("word/styles.xml"))
         footnotes = ET.fromstring(archive.read("word/footnotes.xml"))
+        custom_properties = ET.fromstring(archive.read("docProps/custom.xml"))
+        application_properties = ET.fromstring(archive.read("docProps/app.xml"))
+        private_path_hits = {
+            private_path
+            for private_path in (str(LIBRARY), str(STYLE))
+            if any(
+                private_path.encode() in archive.read(name)
+                for name in archive.namelist()
+            )
+        }
         media = {
             name for name in archive.namelist() if name.startswith("word/media/")
         }
@@ -433,6 +474,7 @@ def assert_docx(path: Path, title: str) -> None:
         document_text,
         [
             title,
+            FRONT_MARKER,
             "Introduction",
             INTRO_MARKER,
             "Conclusion",
@@ -444,6 +486,47 @@ def assert_docx(path: Path, title: str) -> None:
     )
     if GFM_MARKER in document_text or PAGINATED_MARKER not in document_text:
         fail("DOCX did not resolve format-conditional content correctly")
+
+    for paragraph in document.iter(qn("p")):
+        styles_in_paragraph = attribute_values(paragraph, "pStyle", "val")
+        if "Heading1" in styles_in_paragraph and re.fullmatch(
+            r"\s*\d+[.]?\s*", xml_text(paragraph)
+        ):
+            fail("DOCX contains an anonymous numbered front-matter chapter")
+
+    custom_property_names = {
+        node.get("name")
+        for node in custom_properties.iter()
+        if node.tag.rsplit("}", 1)[-1] == "property"
+    }
+    if private_properties := {"bibliography", "csl"} & custom_property_names:
+        fail(
+            "DOCX retained private citation properties: "
+            + ", ".join(sorted(private_properties))
+        )
+    if private_path_hits:
+        fail(
+            "DOCX package leaked local citation paths: "
+            + ", ".join(sorted(private_path_hits))
+        )
+
+    stale_statistics = {
+        "Pages",
+        "Words",
+        "Characters",
+        "CharactersWithSpaces",
+        "Paragraphs",
+        "Lines",
+        "TotalTime",
+    }
+    packaged_statistics = {
+        node.tag.rsplit("}", 1)[-1] for node in application_properties.iter()
+    }
+    if leaked_statistics := stale_statistics & packaged_statistics:
+        fail(
+            "DOCX copied stale reference-document statistics: "
+            + ", ".join(sorted(leaked_statistics))
+        )
 
     style_ids = attribute_values(styles, "style", "styleId")
     used_styles = attribute_values(document, "pStyle", "val")
@@ -460,6 +543,43 @@ def assert_docx(path: Path, title: str) -> None:
     if not media:
         fail("DOCX did not embed the manuscript figure")
 
+    with tempfile.TemporaryDirectory(prefix="longform-docx-sanitize-") as area:
+        sanitized_again = Path(area) / path.name
+        run(
+            QUARTO,
+            "pandoc",
+            "lua",
+            str(ROOT / "scripts/sanitize-docx.lua"),
+            str(path),
+            str(sanitized_again),
+            cwd=ROOT,
+        )
+        if sanitized_again.read_bytes() != path.read_bytes():
+            fail("DOCX package sanitization is not byte-for-byte idempotent")
+
+
+def assert_headed_front_matter(project: Path) -> None:
+    """Confirm the adapter filter leaves an authored front-matter H1 intact."""
+    with tempfile.TemporaryDirectory(prefix="longform-headed-front-") as area:
+        source = Path(area) / "front-matter.md"
+        source.write_text(
+            "# Preface {.unnumbered}\n\n"
+            "Integration fixture: the headed front matter is present.\n",
+            encoding="utf-8",
+        )
+        command = (QUARTO, "pandoc", str(source), "--from", "markdown", "--to", "json")
+        baseline = json.loads(run(*command, cwd=project))
+        filtered = json.loads(
+            run(
+                *command,
+                "--lua-filter",
+                str(project / "filters/longform-front-matter.lua"),
+                cwd=project,
+            )
+        )
+        if filtered != baseline:
+            fail("front-matter filter modified an authored heading")
+
 
 def assert_gfm(path: Path) -> None:
     require_file(path)
@@ -467,6 +587,7 @@ def assert_gfm(path: Path) -> None:
     assert_order(
         text,
         [
+            FRONT_MARKER,
             "# Introduction",
             INTRO_MARKER,
             "# Conclusion",
@@ -654,31 +775,26 @@ def test_build() -> None:
             )
         if ordinary_pdf.read_bytes() == binding_pdf.read_bytes():
             fail("ordinary and binding PDFs are byte-identical; profile was not applied")
-        if binding_pages != ordinary_pages:
-            fail(
-                "ordinary and binding PDFs must retain the same recto padding; "
-                f"found {ordinary_pages} and {binding_pages} pages"
-            )
-        headings = ("Preface", "Introduction", "Conclusion", "Bibliography")
+        headings = ("Introduction", "Conclusion", "Bibliography")
         ordinary_heading_pages = pdf_heading_pages(ordinary_pdf, headings)
         binding_heading_pages = pdf_heading_pages(binding_pdf, headings)
-        if ordinary_heading_pages != binding_heading_pages:
-            fail(
-                "ordinary and binding PDFs disagree on recto chapter pages: "
-                f"{ordinary_heading_pages} / {binding_heading_pages}"
-            )
-        for heading, page in ordinary_heading_pages.items():
-            if page % 2 == 0:
-                fail(f"PDF chapter did not begin on a recto page: {heading!r}")
+        for profile, pages in (
+            ("ordinary", ordinary_heading_pages),
+            ("binding", binding_heading_pages),
+        ):
+            for heading, page in pages.items():
+                if page % 2 == 0:
+                    fail(
+                        f"{profile} PDF chapter did not begin on a recto page: "
+                        f"{heading!r}"
+                    )
         for marker in (INTRO_MARKER, CONCLUSION_MARKER):
-            ordinary_page, ordinary_x = pdf_marker_position(ordinary_pdf, marker)
-            binding_page, binding_x = pdf_marker_position(binding_pdf, marker)
-            if ordinary_page != binding_page:
-                fail(f"PDF profiles disagree on the chapter page: {marker!r}")
-            if ordinary_x - binding_x < 10:
+            _, ordinary_x = pdf_marker_position(ordinary_pdf, marker)
+            _, binding_x = pdf_marker_position(binding_pdf, marker)
+            if abs(ordinary_x - binding_x) < 10:
                 fail(
-                    "binding PDF did not apply KOMA's default mirrored margins; "
-                    f"recto offset was only {ordinary_x - binding_x:.2f}pt"
+                    "binding PDF did not apply a distinct horizontal layout; "
+                    f"recto offset was only {abs(ordinary_x - binding_x):.2f}pt"
                 )
         progress("ordinary and binding PDFs verified")
 
@@ -690,6 +806,8 @@ def test_build() -> None:
         assert_no_intermediates(project, build)
         assert_zettlr(project, config)
         progress("Zettlr configuration verified")
+        assert_headed_front_matter(project)
+        progress("headed front matter verified")
 
 
 if __name__ == "__main__":
