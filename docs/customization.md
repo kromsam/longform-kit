@@ -26,6 +26,10 @@ number-sections: true
 EB Garamond is also assigned to the PDF mono family by default. Override
 `format.pdf.monofont` when source code must retain fixed-width alignment.
 
+The starter leaves both PDF profiles' margin dimensions to KOMA-Script.
+Downstreams can add Quarto's `geometry` option when they prefer fixed,
+project-specific measurements instead.
+
 For Word styles, edit a copy of `references/reference.docx` in Word or
 LibreOffice and retain it at that tracked path. Quarto applies its named styles
 when producing DOCX.
