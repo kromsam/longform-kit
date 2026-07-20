@@ -24,6 +24,7 @@ QUARTO = os.environ.get("QUARTO", "quarto")
 LIBRARY = (ROOT / "tests/fixtures/references/library.json").resolve()
 STYLE = (ROOT / "tests/fixtures/references/longform-test-note.csl").resolve()
 WORD_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+DRAWING_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
 
 INTRO_MARKER = "Integration fixture: the first chapter is present."
 CONCLUSION_MARKER = "Integration fixture: the final chapter is present."
@@ -33,7 +34,8 @@ PAGINATED_MARKER = (
     "Integration fixture: this sentence belongs only in paginated output."
 )
 FIGURE_ALT = "Integration fixture figure"
-MONO_MARKER = "-> => != <= >= :: 0123456789"
+GLYPH_MARKER = "-> => != <= >= :: 0123456789"
+SECTION_HEADING = "Fixture Section Omitted From Contents"
 TEST_OUTPUT = "Longform Kit integration fixture"
 ONE_PIXEL_PNG = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
@@ -186,10 +188,10 @@ def write_test_manuscript(project: Path) -> None:
     )
     introduction.write_text(
         "# Introduction\n\n"
-        "## Integration fixture\n\n"
+        f"## {SECTION_HEADING}\n\n"
         f"{INTRO_MARKER}\n\n"
         "This note cites the bibliography fixture [@exampleBook2024, 1-2].\n\n"
-        f"Operator extraction fixture: `{MONO_MARKER}`.\n\n"
+        f"Operator extraction fixture: `{GLYPH_MARKER}`.\n\n"
         f"![{FIGURE_ALT}](/resources/integration-fixture.png)\n",
         encoding="utf-8",
     )
@@ -258,6 +260,14 @@ def assert_configuration(project: Path) -> tuple[dict, dict]:
     if "documentclass" in ordinary_pdf or "documentclass" in binding_pdf:
         fail("PDF profiles must rely on Quarto's default document class")
 
+    for label, effective in (("ordinary", ordinary), ("binding", binding)):
+        if effective.get("toc") is not True:
+            fail(f"{label} profile must enable the table of contents")
+        if effective.get("toc-depth") != 1:
+            fail(f"{label} profile must list chapter headings only in the TOC")
+        if effective.get("number-sections") is not False:
+            fail(f"{label} profile must leave headings unnumbered")
+
     ordinary_options = option_values(ordinary_pdf.get("classoption"))
     binding_options = option_values(binding_pdf.get("classoption"))
     if "openright" not in ordinary_options or not any(
@@ -275,17 +285,16 @@ def assert_configuration(project: Path) -> tuple[dict, dict]:
     expected_typography = {
         "pdf-engine": "lualatex",
         "mainfont": "EB Garamond",
-        "sansfont": "Fira Sans",
-        "monofont": "Fira Mono",
+        "sansfont": "EB Garamond",
+        "monofont": "EB Garamond",
     }
     for key, expected in expected_typography.items():
         if ordinary_pdf.get(key) != expected or binding_pdf.get(key) != expected:
             fail(f"both PDF profiles must set {key} to {expected!r}")
-    if option_values(ordinary_pdf.get("mainfontoptions")) != {"Numbers=OldStyle"}:
-        fail("ordinary PDF must use old-style EB Garamond figures")
-    if option_values(binding_pdf.get("mainfontoptions")) != {"Numbers=OldStyle"}:
-        fail("binding PDF must use old-style EB Garamond figures")
     for label, pdf in (("ordinary", ordinary_pdf), ("binding", binding_pdf)):
+        for option in ("mainfontoptions", "sansfontoptions", "monofontoptions"):
+            if option_values(pdf.get(option)) != {"Numbers=OldStyle"}:
+                fail(f"{label} PDF must use old-style EB Garamond figures")
         if not configuration_contains(
             pdf.get("include-in-header"), "\\usepackage[all]{nowidow}"
         ):
@@ -359,25 +368,36 @@ def assert_pdf(path: Path) -> tuple[str, int]:
         ],
         path.name,
     )
-    if re.search(r"(?m)^\s*1\s+Introduction\s*$", text) is None:
-        fail(f"{path.name} did not number the first real chapter as 1")
-    if re.search(r"(?m)^\s*2\s+Introduction\s*$", text) is not None:
-        fail(f"{path.name} let front matter consume chapter number 1")
+    if re.search(r"(?m)^[ \t\f]*Introduction[ \t]*$", text) is None:
+        fail(f"{path.name} is missing the unnumbered Introduction heading")
+    for heading in ("Introduction", SECTION_HEADING, "Conclusion", "Bibliography"):
+        if re.search(
+            rf"(?m)^[ \t\f]*\d+(?:\.\d+)*[.)]?[ \t]+"
+            rf"{re.escape(heading)}(?:[ \t]|$)",
+            text,
+        ):
+            fail(f"{path.name} rendered a numbered heading: {heading!r}")
+    if text.count(SECTION_HEADING) != 1:
+        fail(f"{path.name} included a section heading in the chapter-only TOC")
     if GFM_MARKER in text:
         fail(f"{path.name} retained GFM-only conditional content")
-    if MONO_MARKER not in text:
-        fail(f"{path.name} did not preserve Fira Mono operator extraction")
+    if GLYPH_MARKER not in text:
+        fail(f"{path.name} did not preserve inline-code glyph extraction")
 
     font_table = run("pdffonts", str(path), cwd=path.parent)
     font_rows = [line.split() for line in font_table.splitlines()[2:] if line.strip()]
-    for family in ("EBGaramond", "FiraSans", "FiraMono"):
-        rows = [row for row in font_rows if family in row[0]]
-        if not rows:
-            fail(f"{path.name} did not embed the expected {family} family")
-        if any(len(row) < 5 or row[-5:-2] != ["yes", "yes", "yes"] for row in rows):
-            fail(
-                f"{path.name} must subset and embed {family} with a Unicode map"
-            )
+    garamond_rows = [row for row in font_rows if "EBGaramond" in row[0]]
+    if not garamond_rows:
+        fail(f"{path.name} did not embed EB Garamond")
+    if unexpected := sorted(
+        {row[0] for row in font_rows if "EBGaramond" not in row[0]}
+    ):
+        fail(f"{path.name} embedded non-EB-Garamond text fonts: {unexpected}")
+    if any(
+        len(row) < 5 or row[-5:-2] != ["yes", "yes", "yes"]
+        for row in garamond_rows
+    ):
+        fail(f"{path.name} must subset and embed EB Garamond with a Unicode map")
     return normalize_pdf_text(text), page_count
 
 
@@ -411,11 +431,7 @@ def pdf_heading_pages(path: Path, headings: tuple[str, ...]) -> dict[str, int]:
         matches = [
             page_number
             for page_number, page in enumerate(pages, start=1)
-            if any(
-                line.strip() == heading
-                or re.fullmatch(rf"\d+\s+{re.escape(heading)}", line.strip())
-                for line in page.splitlines()
-            )
+            if any(line.strip() == heading for line in page.splitlines())
         ]
         if not matches:
             fail(f"could not locate PDF chapter heading in {path.name}: {heading!r}")
@@ -446,6 +462,7 @@ def assert_docx(path: Path, title: str) -> None:
         "word/document.xml",
         "word/styles.xml",
         "word/footnotes.xml",
+        "word/theme/theme1.xml",
     }
     with ZipFile(path) as archive:
         if corrupt := archive.testzip():
@@ -454,9 +471,15 @@ def assert_docx(path: Path, title: str) -> None:
             fail(f"DOCX is missing package members: {', '.join(sorted(missing))}")
         document = ET.fromstring(archive.read("word/document.xml"))
         styles = ET.fromstring(archive.read("word/styles.xml"))
+        theme = ET.fromstring(archive.read("word/theme/theme1.xml"))
         footnotes = ET.fromstring(archive.read("word/footnotes.xml"))
         custom_properties = ET.fromstring(archive.read("docProps/custom.xml"))
         application_properties = ET.fromstring(archive.read("docProps/app.xml"))
+        word_xml_parts = {
+            name: ET.fromstring(archive.read(name))
+            for name in archive.namelist()
+            if name.startswith("word/") and name.endswith(".xml")
+        }
         private_path_hits = {
             private_path
             for private_path in (str(LIBRARY), str(STYLE))
@@ -487,12 +510,50 @@ def assert_docx(path: Path, title: str) -> None:
     if GFM_MARKER in document_text or PAGINATED_MARKER not in document_text:
         fail("DOCX did not resolve format-conditional content correctly")
 
+    rendered_headings: set[str] = set()
     for paragraph in document.iter(qn("p")):
         styles_in_paragraph = attribute_values(paragraph, "pStyle", "val")
-        if "Heading1" in styles_in_paragraph and re.fullmatch(
-            r"\s*\d+[.]?\s*", xml_text(paragraph)
-        ):
-            fail("DOCX contains an anonymous numbered front-matter chapter")
+        heading_styles = {
+            style for style in styles_in_paragraph if re.fullmatch(r"Heading[1-9]", style)
+        }
+        if not heading_styles:
+            continue
+        heading = xml_text(paragraph).strip()
+        rendered_headings.add(heading)
+        if re.match(r"^\d+(?:\.\d+)*[.)]?\s+", heading):
+            fail(f"DOCX rendered a numbered heading: {heading!r}")
+        if any(node.tag == qn("numPr") for node in paragraph.iter()):
+            fail(f"DOCX attached numbering properties to a heading: {heading!r}")
+        if "SectionNumber" in attribute_values(paragraph, "rStyle", "val"):
+            fail(f"DOCX attached a section number run to a heading: {heading!r}")
+    for heading in ("Introduction", SECTION_HEADING, "Conclusion", "Bibliography"):
+        if heading not in rendered_headings:
+            fail(f"DOCX is missing the unnumbered heading: {heading!r}")
+
+    toc_instructions = [
+        node.text or "" for node in document.iter(qn("instrText"))
+        if "TOC" in (node.text or "")
+    ]
+    if len(toc_instructions) != 1 or '\\o "1-1"' not in toc_instructions[0]:
+        fail("DOCX TOC field must include chapter headings only")
+
+    for name, root in word_xml_parts.items():
+        for fonts in root.iter(qn("rFonts")):
+            for slot in ("ascii", "hAnsi"):
+                value = fonts.get(qn(slot))
+                if value is not None and value != "EB Garamond":
+                    fail(
+                        f"DOCX uses a non-EB-Garamond Latin font in {name}: "
+                        f"{value}"
+                    )
+            for slot in ("asciiTheme", "hAnsiTheme"):
+                if fonts.get(qn(slot)) is not None:
+                    fail(f"DOCX retains a Latin theme font in {name}: {slot}")
+    theme_ns = f"{{{DRAWING_NS}}}"
+    for family in ("majorFont", "minorFont"):
+        node = theme.find(f".//{theme_ns}{family}/{theme_ns}latin")
+        if node is None or node.get("typeface") != "EB Garamond":
+            fail(f"DOCX {family} Latin theme must use EB Garamond")
 
     custom_property_names = {
         node.get("name")

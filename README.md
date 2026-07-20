@@ -15,11 +15,14 @@ sequence. The remaining outputs are a DOCX file and one combined GitHub
 Flavoured Markdown file. There is no setup command, generated scaffolding,
 citation symlink, or LaTeX deliverable.
 
+The publication defaults use EB Garamond throughout, leave headings
+unnumbered, and list chapter headings only in the table of contents.
+
 ## Requirements
 
 - Quarto 1.9.x
-- A TeX distribution with LuaLaTeX and the `ebgaramond`, `fira`, and
-  `nowidow` packages, such as TeX Live or MacTeX
+- A TeX distribution with LuaLaTeX and the `ebgaramond` and `nowidow`
+  packages, such as TeX Live or MacTeX
 - Zotero with Better BibTeX for citation-library exports
 - Zettlr if you want the optional writing interface
 - Vale, Harper, or Markdownlint if you want to run prose and Markdown checks

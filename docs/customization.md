@@ -14,6 +14,18 @@ Keep the binding profile's distinct `book.output-file` value. If you rename the
 shared `book.output-file`, give the binding profile the corresponding
 `-binding` name so one build cannot overwrite the other PDF.
 
+The defaults leave headings unnumbered and include chapters only in the table
+of contents. A downstream that needs numbered sections or a deeper contents
+list can opt in explicitly:
+
+```yaml
+toc-depth: 2
+number-sections: true
+```
+
+EB Garamond is also assigned to the PDF mono family by default. Override
+`format.pdf.monofont` when source code must retain fixed-width alignment.
+
 For Word styles, edit a copy of `references/reference.docx` in Word or
 LibreOffice and retain it at that tracked path. Quarto applies its named styles
 when producing DOCX.

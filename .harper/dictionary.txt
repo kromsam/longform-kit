@@ -1,7 +1,6 @@
 CSL
 DOCX
 EB
-Fira
 GFM
 Garamond
 KOMA

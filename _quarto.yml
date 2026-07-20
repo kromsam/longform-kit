@@ -13,8 +13,8 @@ book:
   output-file: "longform-document"
 
 toc: true
-toc-depth: 2
-number-sections: true
+toc-depth: 1
+number-sections: false
 link-citations: true
 
 # Keep the root adapter structurally invisible when front matter has no
@@ -33,8 +33,12 @@ format:
     mainfont: EB Garamond
     mainfontoptions:
       - Numbers=OldStyle
-    sansfont: Fira Sans
-    monofont: Fira Mono
+    sansfont: EB Garamond
+    sansfontoptions:
+      - Numbers=OldStyle
+    monofont: EB Garamond
+    monofontoptions:
+      - Numbers=OldStyle
     # Keep at least two lines of a paragraph together at page boundaries.
     include-in-header:
       text: |

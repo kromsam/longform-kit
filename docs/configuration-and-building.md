@@ -57,9 +57,9 @@ book:
 
 Keep `index.md` first and edit `document/front-matter.md` instead of the root
 adapter. Front matter may begin with an unnumbered heading or remain
-headingless, as an epigraph often does; the adapter does not consume a chapter
-number in either case. Keep `document/references.md` where the generated
-bibliography should appear.
+headingless, as an epigraph often does; the adapter keeps a synthetic empty
+heading out of the rendered document and table of contents. Keep
+`document/references.md` where the generated bibliography should appear.
 
 Shared Quarto settings live in `_quarto.yml`. `_quarto-binding.yml` changes
 only the binding PDF's filename and two-sided layout. The ordinary PDF uses
@@ -69,11 +69,19 @@ options combine that symmetric type area with two-sided pagination. The binding
 profile keeps the same page sequence but switches to KOMA's default mirrored
 margins with `twoside,openright`.
 
-The default PDF uses EB Garamond with old-style figures for body text, Fira
-Sans for KOMA headings, and Fira Mono for code. LuaLaTeX applies its
-standard microtype support without project-specific tuning. The `nowidow`
-package keeps single opening or closing paragraph lines from being stranded at
-page boundaries. These shared typography choices apply to both PDF profiles.
+All headings are unnumbered by default. The table of contents includes chapter
+headings only; section and subsection headings remain in the document without
+appearing in the contents.
+
+The default PDF maps its main, sans, and mono families to EB Garamond with
+old-style figures, so body text, titles, headings, code, and page furniture use
+one typeface. This deliberately makes code proportional. A downstream with
+alignment-sensitive code can override `format.pdf.monofont` while retaining EB
+Garamond elsewhere. LuaLaTeX applies its standard microtype support without
+project-specific tuning. The `nowidow` package keeps single opening or closing
+paragraph lines from being stranded at page boundaries. These shared
+typography choices apply to both PDF profiles. The tracked reference DOCX uses
+the same EB Garamond policy for Latin text.
 
 ## Build Every Format
 
