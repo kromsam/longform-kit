@@ -67,7 +67,8 @@ KOMA's default equal left and right margins while retaining blank verso pages
 so every chapter begins on a recto page. The `twoside=semi,openright` class
 options combine that symmetric type area with two-sided pagination. The binding
 profile keeps the same page sequence but switches to KOMA's default mirrored
-margins with `twoside,openright`.
+margins with `twoside,openright`. Neither profile sets Quarto's `geometry`
+option: KOMA-Script calculates both type areas.
 
 All headings are unnumbered by default. The table of contents includes chapter
 headings only; section and subsection headings remain in the document without
@@ -125,7 +126,8 @@ For layout changes, also inspect both PDFs and the DOCX rather than relying on
 exit status.
 Check that the binding PDF uses KOMA's default mirrored margins. Both PDFs
 should retain blank verso pages so chapters begin on recto pages; the ordinary
-PDF uses KOMA's default equal margins instead.
+PDF uses KOMA's default equal margins instead. An effective `geometry` value
+means the project has replaced these defaults with custom dimensions.
 
 Useful diagnostics are:
 

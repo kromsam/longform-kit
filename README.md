@@ -8,12 +8,13 @@ and produce the complete publication set with one command:
 quarto run scripts/longform.ts build
 ```
 
-Every build produces four public files. The ordinary PDF uses symmetric
-margins, while the binding PDF uses the default KOMA mirrored margins. Both
-retain blank verso pages for recto chapter starts and share the same page
-sequence. The remaining outputs are a DOCX file and one combined GitHub
-Flavoured Markdown file. There is no setup command, generated scaffolding,
-citation symlink, or LaTeX deliverable.
+Every build produces four public files. The ordinary PDF uses KOMA-Script's
+calculated symmetric margins, while the binding PDF uses KOMA-Script's
+calculated mirrored margins. Longform Kit does not set explicit margin
+dimensions. Both PDFs retain blank verso pages for recto chapter starts and
+share the same page sequence. The remaining outputs are a DOCX file and one
+combined GitHub Flavoured Markdown file. There is no setup command, generated
+scaffolding, citation symlink, or LaTeX deliverable.
 
 The publication defaults use EB Garamond throughout, leave headings
 unnumbered, and list chapter headings only in the table of contents.
