@@ -36,8 +36,9 @@ program; plain `quarto render` does not create the complete output set.
 - Never patch generated outputs. Fix Markdown, root Quarto configuration, the
   reference DOCX, or an explicitly installed extension as appropriate.
 - Keep the symmetric-margin ordinary PDF and mirrored-margin binding profile
-  distinct; KOMA-Script calculation is the starter default, downstreams may
-  deliberately set explicit geometry, and both profiles retain blank verso
+  distinct. The starter's shared KOMA-Script `areaset` fixes the type area and
+  preserves `BCOR`; downstreams may deliberately choose another `areaset`, a
+  `DIV` construction, or explicit geometry. Both profiles retain blank verso
   pages for recto chapter starts.
 - The GFM edition is assembled as a temporary standalone Quarto document
   because Quarto books do not have a native combined GFM format. Confirm that
