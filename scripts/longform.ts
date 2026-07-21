@@ -62,6 +62,7 @@ const scriptPath = Deno.build.os === "windows"
   : decodedScriptPath;
 const projectDir = dirname(dirname(scriptPath));
 const quarto = Deno.env.get("QUARTO") || "quarto";
+const pdfjam = Deno.env.get("PDFJAM") || "pdfjam";
 const decoder = new TextDecoder();
 
 async function runQuarto(
@@ -106,9 +107,8 @@ async function runQuarto(
   return "";
 }
 
-async function inspect(profile?: string): Promise<Json> {
+async function inspect(): Promise<Json> {
   const args = ["inspect"];
-  if (profile) args.push("--profile", profile);
   return JSON.parse(await runQuarto(args, { capture: true })) as Json;
 }
 
@@ -234,12 +234,10 @@ async function renderNative(
   format: "pdf" | "docx",
   stage: string,
   filename: string,
-  profile?: string,
 ): Promise<string> {
-  console.log(`Rendering ${profile === "binding" ? "binding PDF" : format.toUpperCase()}`);
+  console.log(`Rendering ${format.toUpperCase()}`);
   await Deno.mkdir(stage, { recursive: true });
   const args = ["render"];
-  if (profile) args.push("--profile", profile);
   args.push("--to", format, "--output-dir", stage);
   const env: Record<string, string> = {};
   if (format === "pdf") {
@@ -260,6 +258,52 @@ async function renderNative(
   }
   await requireOutput(output);
   return output;
+}
+
+async function imposeTwoUp(
+  source: string,
+  destination: string,
+): Promise<string> {
+  console.log("Imposing PDF two-up");
+  await Deno.mkdir(dirname(destination), { recursive: true });
+  let result: Deno.CommandOutput;
+  try {
+    result = await new Deno.Command(pdfjam, {
+      args: [
+        "--vanilla",
+        "--quiet",
+        "--keepinfo",
+        source,
+        "{},1-",
+        "--nup",
+        "2x1",
+        "--landscape",
+        "--paper",
+        "a4paper",
+        "--outfile",
+        destination,
+      ],
+      cwd: projectDir,
+      stdout: "piped",
+      stderr: "piped",
+    }).output();
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) {
+      throw new Error(
+        `${pdfjam} is required to create the two-up PDF`,
+      );
+    }
+    throw error;
+  }
+  if (!result.success) {
+    const detail = [
+      decoder.decode(result.stderr).trim(),
+      decoder.decode(result.stdout).trim(),
+    ].filter(Boolean).join("\n");
+    throw new Error(detail || `${pdfjam} failed to impose the PDF`);
+  }
+  await requireOutput(destination);
+  return destination;
 }
 
 async function sanitizeDocx(
@@ -405,11 +449,10 @@ async function promoteFile(source: string, destination: string) {
 
 async function build(): Promise<void> {
   const data = await inspect();
-  const bindingData = await inspect("binding");
   const config = configFrom(data);
   const destination = outputDir(config);
   const base = outputFile(config);
-  const bindingBase = outputFile(configFrom(bindingData));
+  const twoUpBase = `${base}-2up`;
   const stage = await Deno.makeTempDir({ prefix: "longform-build-" });
 
   try {
@@ -418,11 +461,9 @@ async function build(): Promise<void> {
       join(stage, "pdf"),
       `${base}.pdf`,
     );
-    const binding = await renderNative(
-      "pdf",
-      join(stage, "binding"),
-      `${bindingBase}.pdf`,
-      "binding",
+    const twoUp = await imposeTwoUp(
+      pdf,
+      join(stage, "pdf-2up", `${twoUpBase}.pdf`),
     );
     const renderedDocx = await renderNative(
       "docx",
@@ -441,7 +482,7 @@ async function build(): Promise<void> {
 
     await Deno.mkdir(destination, { recursive: true });
     await promoteFile(pdf, join(destination, `${base}.pdf`));
-    await promoteFile(binding, join(destination, `${bindingBase}.pdf`));
+    await promoteFile(twoUp, join(destination, `${twoUpBase}.pdf`));
     await promoteFile(docx, join(destination, `${base}.docx`));
     await promoteFile(gfm.markdown, join(destination, `${base}.md`));
 
@@ -449,8 +490,10 @@ async function build(): Promise<void> {
     await removeIfPresent(mediaDestination);
     if (gfm.media) await copyDirectory(gfm.media, mediaDestination);
 
-    // Remove products from the retired LaTeX export without touching any
-    // author-owned files or unrelated build outputs.
+    // Remove products from retired exports without touching author-owned files
+    // or unrelated build outputs.
+    await removeIfPresent(join(destination, `${base}-binding.pdf`));
+    await removeIfPresent(join(destination, `${base}-binding-2up.pdf`));
     await removeIfPresent(join(destination, `${base}.tex`));
     await removeIfPresent(join(destination, `${base}-latex`));
   } finally {
@@ -491,7 +534,7 @@ function usage(): string {
   return [
     "Usage: quarto run scripts/longform.ts build|zettlr",
     "",
-    "  build   Render one-sided PDF, binding PDF, DOCX, and combined GFM",
+    "  build   Render PDF, two-up PDF, DOCX, and combined GFM",
     "  zettlr  Synchronize document/.ztr-directory with Quarto chapter order",
   ].join("\n");
 }

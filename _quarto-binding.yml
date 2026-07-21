@@ -1,9 +1,0 @@
-# Binding profile: preserve the manuscript settings from _quarto.yml while
-# switching to KOMA's mirrored margins. BCOR remains at its neutral default
-# until the physical binding method and its paper loss are known.
-book:
-  output-file: "longform-document-binding"
-
-format:
-  pdf:
-    classoption: "twoside,openright,BCOR=0mm,fontsize=15.25pt"

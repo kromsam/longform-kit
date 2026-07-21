@@ -6,13 +6,11 @@ your own repository.
 
 ## Change Shared Output Settings
 
-Edit root `_quarto.yml` for settings shared by the project, such as paper size,
-font size, table of contents depth, PDF typography, or the DOCX reference file.
-Edit `_quarto-binding.yml` only when the binding PDF must differ.
+Edit root `_quarto.yml` for the table of contents, PDF paper size, typography,
+type area, binding correction, DOCX reference file, and output filename.
 
-Keep the binding profile's distinct `book.output-file` value. If you rename the
-shared `book.output-file`, give the binding profile the corresponding
-`-binding` name so one build cannot overwrite the other PDF.
+If you rename `book.output-file`, the build uses that name for the PDF, DOCX,
+and combined Markdown, and appends `-2up` for the imposed PDF.
 
 The defaults leave headings unnumbered and include chapters only in the table
 of contents. A downstream that needs numbered sections or a deeper contents
@@ -26,25 +24,26 @@ number-sections: true
 EB Garamond is also assigned to the PDF mono family by default. Override
 `format.pdf.monofont` when source code must retain fixed-width alignment.
 
-The starter sets the shared PDF type area with
+The starter sets the PDF type area with
 `\areaset[current]{140mm}{227mm}` in `_quarto.yml`. Change both dimensions
-together and inspect both PDFs when a downstream needs a different measure or
-page depth. Adjust `linestretch` with the measure rather than in isolation:
-longer lines generally need more leading, while shorter lines need less.
+together and inspect the PDF and derived two-up PDF when a downstream needs a
+different measure or page depth. Adjust `linestretch` with the measure rather
+than in isolation: longer lines generally need more leading, while shorter
+lines need less.
 
-The non-standard 15.25 pt body size is a keyed KOMA class option in both PDF
-profiles. Keep `fontsize=15.25pt` in both class-option strings when changing
-other profile-specific options; Quarto's bare `fontsize` field does not make
-this arbitrary size effective. The shared header also sets footnotes to
+The non-standard 15.25 pt body size is a keyed KOMA class option. Keep
+`fontsize=15.25pt` in the class-option string when changing other options;
+Quarto's bare `fontsize` field does not make this arbitrary size effective. The
+PDF header also sets footnotes to
 11.4/15.25, uses KOMA's `\deffootnote` for full-size hanging labels, and removes
 the separator rule while retaining the ordinary whitespace above the notes.
 Change these three decisions together if a downstream needs a different note
 hierarchy. KOMA's `footinclude`, `footheight`, and `footlines` settings concern
 the page footer, not footnotes.
 
-The binding profile deliberately starts with `BCOR=0mm`. Once a printer or
-binding method supplies the width of paper lost at the spine, replace only that
-value, for example:
+The PDF deliberately starts with `BCOR=0mm`. Once a printer or binding method
+supplies the width of paper lost at the spine, replace only that value, for
+example:
 
 ```yaml
 format:
@@ -52,11 +51,10 @@ format:
     classoption: "twoside,openright,BCOR=8mm,fontsize=15.25pt"
 ```
 
-Do not use `BCOR` merely to request a wider-looking gutter. The shared
+Do not use `BCOR` merely to request a wider-looking gutter.
 `areaset[current]` preserves a replacement binding correction automatically.
 A downstream that prefers KOMA's divisor construction can remove `areaset` and
-add the same `DIV` option to both PDF profiles; the binding profile's
-`classoption` scalar replaces the shared value. Quarto's `geometry` option is
+add a `DIV` option to the PDF configuration. Quarto's `geometry` option is
 still available for a downstream that intentionally wants to bypass KOMA.
 
 For Word styles, edit a copy of `references/reference.docx` in Word or

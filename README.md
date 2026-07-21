@@ -8,13 +8,13 @@ and produce the complete publication set with one command:
 quarto run scripts/longform.ts build
 ```
 
-Every build produces four public files. Both PDFs use KOMA-Script `areaset` for
-a 140 by 227 mm type area on A4. The ordinary PDF centres it between 35 mm side
-margins; the binding PDF uses Bringhurst's mirrored margins of approximately
-23.3 mm at the spine and 46.7 mm outside. Its binding correction remains at the
-honest neutral default, `BCOR=0mm`, until a physical binding method is known.
-Both PDFs retain blank verso pages for recto chapter starts and share the same
-page sequence. Longform Kit uses KOMA-Script rather than Quarto `geometry`.
+Every build produces four public files. The PDF uses KOMA-Script
+`areaset` for a 140 by 227 mm type area on A4, with Bringhurst's mirrored
+margins of approximately 23.3 mm at the spine and 46.7 mm outside. Its binding
+correction remains at the honest neutral default, `BCOR=0mm`, until a physical
+binding method is known. The second PDF places two consecutive binding pages
+on each A4 landscape sheet. A leading blank slot puts the title and every other
+recto on the right. Longform Kit uses KOMA-Script rather than Quarto `geometry`.
 
 The remaining outputs are a DOCX file and one combined GitHub Flavoured
 Markdown file. There is no setup command, generated scaffolding, citation
@@ -29,6 +29,7 @@ unnumbered, and the table of contents lists chapters only.
 - Quarto 1.9.x
 - A TeX distribution with LuaLaTeX and the `ebgaramond` and `nowidow`
   packages, such as TeX Live or MacTeX
+- `pdfjam` from TeX Live for the two-up PDF
 - Zotero with Better BibTeX for citation-library exports
 - Zettlr if you want the optional writing interface
 - Vale, Harper, or Markdownlint if you want to run prose and Markdown checks
@@ -66,8 +67,7 @@ commit `_quarto.yml.local`.
 
 ## Project Shape
 
-- `_quarto.yml` contains the shared Quarto project and format configuration.
-- `_quarto-binding.yml` contains only the binding-PDF overrides.
+- `_quarto.yml` contains the Quarto project, PDF, and DOCX configuration.
 - `document/metadata.yml` contains manuscript metadata.
 - `document/chapters.yml` defines the reading order.
 - `document/front-matter.md`, `document/manuscript/`, and
@@ -87,15 +87,17 @@ The build command writes:
 
 ```text
 build/longform-document.pdf
-build/longform-document-binding.pdf
+build/longform-document-2up.pdf
 build/longform-document.docx
 build/longform-document.md
 ```
 
 Referenced media in the Markdown edition is extracted beside the Markdown
-when necessary. PDF, binding PDF, and DOCX are native Quarto book renders. The
-combined GFM edition is rendered from a temporary standalone Quarto document
-so citations, shortcodes, includes, and format conditionals are resolved before
+when necessary. The PDF and DOCX are native Quarto book renders. The two-up PDF
+is imposed from the PDF; print it at one PDF page per A4
+sheet, without applying another pages-per-sheet transformation. The combined
+GFM edition is rendered from a temporary standalone Quarto document so
+citations, shortcodes, includes, and format conditionals are resolved before
 Pandoc writes Markdown. No build-generated temporary source or public LaTeX
 deliverable is retained.
 
