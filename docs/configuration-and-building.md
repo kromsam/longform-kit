@@ -61,8 +61,10 @@ headingless, as an epigraph often does; the adapter keeps a synthetic empty
 heading out of the rendered document and table of contents. Keep
 `document/references.md` where the generated bibliography should appear.
 
-Shared Quarto, PDF, and DOCX settings live in `_quarto.yml`. The PDF uses
-KOMA-Script's `\areaset[current]{140mm}{227mm}`. The `current` argument keeps
+Shared Quarto, PDF, and DOCX defaults live in `_quarto.yml`. Committed
+document-specific rendering overrides live in the active
+`_quarto-custom.yml` profile. The PDF uses KOMA-Script's
+`\areaset[current]{140mm}{227mm}`. The `current` argument keeps
 the active binding correction while KOMA allocates the remaining page area.
 The resulting vertical text-block margins are approximately 23.3 mm above and
 46.7 mm below, with room for about 33 uninterrupted body lines. The block's

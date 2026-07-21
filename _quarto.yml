@@ -5,6 +5,9 @@ metadata-files:
   - document/metadata.yml
   - document/chapters.yml
 
+profile:
+  default: custom
+
 project:
   type: book
   output-dir: build

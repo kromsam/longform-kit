@@ -1,13 +1,16 @@
 # Customize The Project
 
-The starter keeps only configuration needed by every document. Add optional
-Quarto features in the conventional way and keep manuscript-specific policy in
-your own repository.
+The starter keeps only configuration needed by every document. Root
+`_quarto.yml` activates the tracked `_quarto-custom.yml` profile, which starts
+as a no-op and is the normal home for committed document-specific rendering
+policy. Keep machine-specific paths in ignored `_quarto.yml.local`.
 
 ## Change Output Settings
 
-Edit root `_quarto.yml` for the table of contents, PDF paper size, typography,
-type area, binding correction, and DOCX reference file. Keep the document's
+Add scalar and additive document overrides, such as table-of-contents depth,
+section numbering, binding correction, extra filters, and extra header
+includes, to `_quarto-custom.yml`. Edit root `_quarto.yml` when changing shared
+defaults or replacing an inherited list entry. Keep the document's
 `book.output-file` beside its title and author in `document/metadata.yml`.
 
 If you rename `book.output-file`, the build uses that name for the PDF, DOCX,
@@ -26,7 +29,8 @@ EB Garamond is also assigned to the PDF mono family by default. Override
 `format.pdf.monofont` when source code must retain fixed-width alignment.
 
 The starter sets the PDF type area with
-`\areaset[current]{140mm}{227mm}` in `_quarto.yml`. Change both dimensions
+`\areaset[current]{140mm}{227mm}` in `_quarto.yml`. Because profile arrays are
+combined rather than replaced, change both dimensions in the shared header
 together and inspect the PDF and derived two-up PDF when a downstream needs a
 different measure or page depth. Adjust `linestretch` with the measure rather
 than in isolation: longer lines generally need more leading, while shorter
@@ -53,7 +57,8 @@ format:
 ```
 
 Do not use `BCOR` merely to request a wider-looking gutter.
-`areaset[current]` preserves a replacement binding correction automatically.
+`areaset[current]` preserves a replacement binding correction automatically;
+the scalar `classoption` override can live in `_quarto-custom.yml`.
 A downstream that prefers KOMA's divisor construction can remove `areaset` and
 add a `DIV` option to the PDF configuration. Quarto's `geometry` option is
 still available for a downstream that intentionally wants to bypass KOMA.
@@ -73,8 +78,7 @@ quarto add andrewheiss/fancy-epigraphs-quarto
 
 Review and commit the installed `_extensions/` files so builds remain offline
 and reproducible. The shortcode emits `\epigraph` for PDF, so add the package
-and the preferred spacing to the existing `format.pdf` configuration in
-`_quarto.yml`:
+and the preferred spacing to `format.pdf` in `_quarto-custom.yml`:
 
 ```yaml
 format:

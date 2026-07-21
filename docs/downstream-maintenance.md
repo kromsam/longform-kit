@@ -64,7 +64,7 @@ side for the entire tree.
 | Ownership | Paths | Merge rule |
 | --- | --- | --- |
 | Upstream | `scripts/longform.ts`, `tests/`, root `index.md`, `references/reference.docx`, `.agents/skills/`, generic documentation, and generic lint rules | Prefer the released upstream version. Contribute reusable changes to Longform Kit first. |
-| Document | `document/`, `resources/`, notes, drafts, feedback, archives, submissions, and committed document profiles such as `_quarto-thesis.yml` | Preserve the document version. Upstream starter-prose changes do not replace manuscript content. |
+| Document | `document/`, `resources/`, notes, drafts, feedback, archives, submissions, and `_quarto-custom.yml` or another committed document profile | Preserve the document version. Upstream starter-prose changes do not replace manuscript content. |
 | Local only | `_quarto.yml.local`, `document/.ztr-directory`, `build/`, and citation exports | Keep ignored and out of every merge and commit. |
 | Merge seams | `_quarto.yml`, `.github/workflows/ci.yml`, `.gitignore`, `README.md`, `AGENTS.md`, `LICENSE`, and `.harper/dictionary.txt` | Reconcile deliberately. Keep `_quarto.yml` aligned except for the document's default-profile declaration, and retain document identity and vocabulary while incorporating compatible upstream machinery and policy. |
 
@@ -76,21 +76,22 @@ the ignored paths `references/library.json` and `references/style.csl`.
 
 ## Layer Document Configuration
 
-Keep committed document-specific rendering changes in a named Quarto profile
-instead of repeatedly editing the shared settings. For a thesis, add only the
-profile activation to `_quarto.yml`:
+Longform Kit activates a tracked document profile from `_quarto.yml`:
 
 ```yaml
 profile:
-  default: thesis
+  default: custom
 ```
 
-Then put the document-owned overrides in `_quarto-thesis.yml`. Quarto
-deep-merges objects and combines arrays, so a profile can add filters, header
-includes, template partials, and post-render hooks while retaining the shared
-Longform Kit configuration. Keep the document's output filename with its other
-identity metadata in `document/metadata.yml`. Machine-specific bibliography and
-CSL paths still belong only in ignored `_quarto.yml.local`.
+Put document-owned overrides in the shipped `_quarto-custom.yml` stub instead
+of repeatedly editing the shared settings. A downstream may rename that file
+to something descriptive, such as `_quarto-thesis.yml`, by changing only the
+default profile name above. Quarto deep-merges objects and combines arrays, so
+a profile can add filters, header includes, template partials, and post-render
+hooks while retaining the shared Longform Kit configuration. Keep the
+document's output filename with its other identity metadata in
+`document/metadata.yml`. Machine-specific bibliography and CSL paths still
+belong only in ignored `_quarto.yml.local`.
 
 ## Merge a Released Version
 

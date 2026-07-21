@@ -53,9 +53,11 @@ merge later Longform Kit releases, follow the
 
 4. Edit the title, subtitle, author, date, date format, language, and output
    filename in `document/metadata.yml`.
-5. Edit the ordered chapter list in `document/chapters.yml` and write the
+5. Add any committed document-specific rendering overrides to
+   `_quarto-custom.yml`.
+6. Edit the ordered chapter list in `document/chapters.yml` and write the
    manuscript under `document/`.
-6. Build everything:
+7. Build everything:
 
    ```sh
    quarto run scripts/longform.ts build
@@ -67,7 +69,10 @@ commit `_quarto.yml.local`.
 
 ## Project Shape
 
-- `_quarto.yml` contains the Quarto project, PDF, and DOCX configuration.
+- `_quarto.yml` contains the shared Quarto project, PDF, and DOCX defaults and
+  activates the `custom` profile.
+- `_quarto-custom.yml` is the committed home for document-specific rendering
+  overrides.
 - `document/metadata.yml` contains manuscript metadata and the output filename.
 - `document/chapters.yml` defines the reading order.
 - `document/front-matter.md`, `document/manuscript/`, and

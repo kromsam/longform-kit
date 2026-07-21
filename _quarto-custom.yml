@@ -1,0 +1,7 @@
+# Committed document-specific Quarto overrides.
+#
+# Longform Kit activates this profile from _quarto.yml. Add rendering settings
+# that belong to this document here so the shared defaults remain easy to merge.
+# Keep machine-local bibliography and CSL paths in _quarto.yml.local instead.
+# Replace the empty mapping below when adding the first override.
+{}

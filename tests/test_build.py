@@ -163,6 +163,23 @@ def write_local_configuration(project: Path) -> None:
     )
 
 
+def assert_default_custom_profile(project: Path) -> None:
+    """Confirm the shipped no-op document profile is active and valid."""
+    profile = (project / "_quarto-custom.yml").resolve()
+    require_file(profile)
+    payload = json.loads(run(QUARTO, "inspect", cwd=project))
+    files = payload.get("files", {}).get("config", [])
+    if isinstance(files, str):
+        files = [files]
+    active = {
+        resolve_from(project, value)
+        for value in files
+        if isinstance(value, str)
+    }
+    if profile not in active:
+        fail("root _quarto.yml must activate the shipped custom profile")
+
+
 def write_test_profile(project: Path) -> None:
     """Exercise default-profile merging and URL-safe output names."""
     path = project / "_quarto.yml"
@@ -1072,6 +1089,7 @@ def test_build() -> None:
         project = Path(test_area) / "project with spaces"
         copy_project(project)
         write_local_configuration(project)
+        assert_default_custom_profile(project)
         write_test_profile(project)
         write_test_manuscript(project)
         config = assert_configuration(project)

@@ -8,7 +8,8 @@ user-local Zotero/Better BibTeX export. Zettlr is an optional authoring tool.
 
 - Edit title, subtitle, author, date, language, and output filename in
   `document/metadata.yml`; edit chapter order in `document/chapters.yml`.
-- Edit shared project, PDF, and DOCX settings in root `_quarto.yml`.
+- Edit shared project, PDF, and DOCX defaults in root `_quarto.yml`; put
+  committed document-specific rendering overrides in `_quarto-custom.yml`.
 - Under `document/`, keep only author-owned content: front matter, manuscript
   chapters, the bibliography target, manuscript metadata, and chapter order.
 - Do not edit root `index.md`; it is Quarto's adapter for the author-owned front
