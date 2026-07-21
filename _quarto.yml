@@ -27,9 +27,9 @@ format:
     colorlinks: false
     pdf-engine: lualatex
     papersize: a4
-    fontsize: 12pt
-    # KOMA's 12 pt baseline is 14.5 pt; 1.05 yields approximately 12/15.2.
-    linestretch: 1.05
+    # KOMA needs a keyed class option (below) for the non-standard 15.25 pt
+    # body size. Its 18.3 pt native baseline and this stretch yield 19.3 pt.
+    linestretch: 1.055
     indent: true
     mainfont: EB Garamond
     mainfontoptions:
@@ -41,18 +41,18 @@ format:
     monofontoptions:
       - Numbers=OldStyle
     # Keep at least two lines of a paragraph together at page boundaries. Set
-    # an exact Bringhurst-informed measure through KOMA, preserving any BCOR.
+    # Bringhurst's page-175 ISO construction through KOMA, preserving any BCOR.
     include-in-header:
       text: |
         \usepackage[all]{nowidow}
-        \areaset[current]{110mm}{178mm}
-        % Bringhurst-style notes: 9/12 text, full-size hanging labels, and
+        \areaset[current]{140mm}{227mm}
+        % Proportionally scaled notes: 11.4/15.25 text, full-size hanging labels, and
         % whitespace instead of a separator rule. Normal note splitting stays enabled.
-        \setkomafont{footnote}{\normalfont\fontsize{9pt}{12pt}\selectfont}
-        \setkomafont{footnotelabel}{\normalfont\fontsize{9pt}{12pt}\selectfont}
+        \setkomafont{footnote}{\normalfont\fontsize{11.4pt}{15.25pt}\selectfont}
+        \setkomafont{footnotelabel}{\normalfont\fontsize{11.4pt}{15.25pt}\selectfont}
         \deffootnote[1.5em]{1.5em}{1em}{\thefootnotemark\enskip}
         \setfootnoterule[0pt]{0pt}
     # Centre the type area while retaining pagination for physical recto starts.
-    classoption: "twoside=semi,openright"
+    classoption: "twoside=semi,openright,fontsize=15.25pt"
   docx:
     reference-doc: references/reference.docx

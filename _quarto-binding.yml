@@ -6,4 +6,4 @@ book:
 
 format:
   pdf:
-    classoption: "twoside,openright,BCOR=0mm"
+    classoption: "twoside,openright,BCOR=0mm,fontsize=15.25pt"
