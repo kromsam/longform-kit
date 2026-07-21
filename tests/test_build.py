@@ -30,6 +30,7 @@ INTRO_MARKER = "Integration fixture: the first chapter is present."
 CONCLUSION_MARKER = "Integration fixture: the final chapter is present."
 FRONT_MARKER = "Fixture: headingless front matter is present."
 GFM_MARKER = "Integration fixture: this sentence belongs only in GFM."
+PROFILE_MARKER = "Integration fixture: the active profile reached GFM."
 PAGINATED_MARKER = (
     "Integration fixture: this sentence belongs only in paginated output."
 )
@@ -162,18 +163,31 @@ def write_local_configuration(project: Path) -> None:
     )
 
 
-def write_test_output_names(project: Path) -> None:
-    """Exercise configured output names that require URL-safe media links."""
+def write_test_profile(project: Path) -> None:
+    """Exercise default-profile merging and URL-safe output names."""
     path = project / "_quarto.yml"
-    updated, replacements = re.subn(
-        r"(?m)^(\s*output-file:\s*).+$",
-        rf'\1"{TEST_OUTPUT}"',
-        path.read_text(encoding="utf-8"),
-        count=1,
+    lines = path.read_text(encoding="utf-8").splitlines()
+    try:
+        profile_line = lines.index("profile:")
+    except ValueError:
+        lines.extend(("", "profile:", "  default: integration"))
+    else:
+        for index in range(profile_line + 1, len(lines)):
+            line = lines[index]
+            if line and not line[0].isspace():
+                lines.insert(profile_line + 1, "  default: integration")
+                break
+            if line.lstrip().startswith("default:"):
+                lines[index] = "  default: integration"
+                break
+        else:
+            lines.insert(profile_line + 1, "  default: integration")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (project / "_quarto-integration.yml").write_text(
+        "book:\n"
+        f'  output-file: "{TEST_OUTPUT}"\n',
+        encoding="utf-8",
     )
-    if replacements != 1:
-        fail("could not configure the fixture output name in _quarto.yml")
-    path.write_text(updated, encoding="utf-8")
 
 
 def write_test_manuscript(project: Path) -> None:
@@ -232,6 +246,9 @@ def write_test_manuscript(project: Path) -> None:
         "# Conclusion {.unnumbered}\n\n"
         "::: {.content-visible when-format=\"gfm\"}\n"
         f"{GFM_MARKER}\n"
+        ":::\n\n"
+        "::: {.content-visible when-profile=\"integration\"}\n"
+        f"{PROFILE_MARKER}\n"
         ":::\n\n"
         "::: {.content-hidden when-format=\"gfm\"}\n"
         f"{PAGINATED_MARKER}\n"
@@ -915,6 +932,7 @@ def assert_gfm(path: Path) -> None:
             INTRO_MARKER,
             "# Conclusion",
             GFM_MARKER,
+            PROFILE_MARKER,
             CONCLUSION_MARKER,
             "# Bibliography",
             "The Example Book",
@@ -1054,7 +1072,7 @@ def test_build() -> None:
         project = Path(test_area) / "project with spaces"
         copy_project(project)
         write_local_configuration(project)
-        write_test_output_names(project)
+        write_test_profile(project)
         write_test_manuscript(project)
         config = assert_configuration(project)
         progress("configuration verified; rendering four outputs")

@@ -4,10 +4,11 @@ The starter keeps only configuration needed by every document. Add optional
 Quarto features in the conventional way and keep manuscript-specific policy in
 your own repository.
 
-## Change Shared Output Settings
+## Change Output Settings
 
 Edit root `_quarto.yml` for the table of contents, PDF paper size, typography,
-type area, binding correction, DOCX reference file, and output filename.
+type area, binding correction, and DOCX reference file. Keep the document's
+`book.output-file` beside its title and author in `document/metadata.yml`.
 
 If you rename `book.output-file`, the build uses that name for the PDF, DOCX,
 and combined Markdown, and appends `-2up` for the imposed PDF.

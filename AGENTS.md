@@ -6,7 +6,7 @@ user-local Zotero/Better BibTeX export. Zettlr is an optional authoring tool.
 
 ## Source Of Truth
 
-- Edit title, subtitle, author, date, and language in
+- Edit title, subtitle, author, date, language, and output filename in
   `document/metadata.yml`; edit chapter order in `document/chapters.yml`.
 - Edit shared project, PDF, and DOCX settings in root `_quarto.yml`.
 - Under `document/`, keep only author-owned content: front matter, manuscript

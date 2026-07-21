@@ -56,6 +56,15 @@ function scalar(value: unknown, fallback = ""): string {
   return fallback;
 }
 
+function profilesWith(data: Json, temporary: string): string {
+  const active = strings(object(data.files).config)
+    .map(basename)
+    .filter((file) => file.startsWith("_quarto-") && file.endsWith(".yml"))
+    .map((file) => file.slice("_quarto-".length, -".yml".length));
+  return [temporary, ...active.filter((profile) => profile !== temporary)]
+    .join(",");
+}
+
 const decodedScriptPath = decodeURIComponent(new URL(import.meta.url).pathname);
 const scriptPath = Deno.build.os === "windows"
   ? decodedScriptPath.replace(/^\/(?=[A-Za-z]:)/, "")
@@ -393,7 +402,7 @@ async function renderGfm(
         "render",
         sourcePath,
         "--profile",
-        profile,
+        profilesWith(data, profile),
         "--to",
         "gfm",
         "--output",

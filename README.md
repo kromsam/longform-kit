@@ -51,8 +51,8 @@ merge later Longform Kit releases, follow the
    csl: /absolute/path/to/style.csl
    ```
 
-4. Edit the title, subtitle, author, date, date format, and language in
-   `document/metadata.yml`.
+4. Edit the title, subtitle, author, date, date format, language, and output
+   filename in `document/metadata.yml`.
 5. Edit the ordered chapter list in `document/chapters.yml` and write the
    manuscript under `document/`.
 6. Build everything:
@@ -68,7 +68,7 @@ commit `_quarto.yml.local`.
 ## Project Shape
 
 - `_quarto.yml` contains the Quarto project, PDF, and DOCX configuration.
-- `document/metadata.yml` contains manuscript metadata.
+- `document/metadata.yml` contains manuscript metadata and the output filename.
 - `document/chapters.yml` defines the reading order.
 - `document/front-matter.md`, `document/manuscript/`, and
   `document/references.md` contain author-owned prose.
