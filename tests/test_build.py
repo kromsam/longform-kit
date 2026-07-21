@@ -28,7 +28,7 @@ DRAWING_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
 
 INTRO_MARKER = "Integration fixture: the first chapter is present."
 CONCLUSION_MARKER = "Integration fixture: the final chapter is present."
-FRONT_MARKER = "Integration fixture: the headingless front matter is present."
+FRONT_MARKER = "Fixture: headingless front matter is present."
 GFM_MARKER = "Integration fixture: this sentence belongs only in GFM."
 PAGINATED_MARKER = (
     "Integration fixture: this sentence belongs only in paginated output."
@@ -36,7 +36,18 @@ PAGINATED_MARKER = (
 FIGURE_ALT = "Integration fixture figure"
 GLYPH_MARKER = "-> => != <= >= :: 0123456789"
 SECTION_HEADING = "Fixture Section Omitted From Contents"
+ODD_AREA_LEFT = "FixtureOddAreaLeft"
+ODD_AREA_RIGHT = "FixtureOddAreaRight"
+EVEN_AREA_LEFT = "FixtureEvenAreaLeft"
+EVEN_AREA_RIGHT = "FixtureEvenAreaRight"
+BOTTOM_AREA_LEFT = "FixtureBottomAreaLeft"
+BOTTOM_AREA_RIGHT = "FixtureBottomAreaRight"
+BASELINE_FIRST = "FixtureBaselineAB"
+BASELINE_SECOND = "FixtureBaselineBA"
+FOOTNOTE_FIRST = "FixtureFootnoteAB"
+FOOTNOTE_SECOND = "FixtureFootnoteBA"
 TEST_OUTPUT = "Longform Kit integration fixture"
+PDF_POINTS_PER_MM = 72 / 25.4
 ONE_PIXEL_PNG = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
 )
@@ -190,6 +201,25 @@ def write_test_manuscript(project: Path) -> None:
         "# Introduction\n\n"
         f"## {SECTION_HEADING}\n\n"
         f"{INTRO_MARKER}\n\n"
+        "```{=latex}\n"
+        f"\\noindent\\makebox[\\textwidth][s]{{{ODD_AREA_LEFT}"
+        f"\\hfill {ODD_AREA_RIGHT}}}\\par\n"
+        f"\\noindent {BASELINE_FIRST}\\\\\n"
+        f"{BASELINE_SECOND}\\par\n"
+        "```\n\n"
+        "{{< pagebreak >}}\n\n"
+        "```{=latex}\n"
+        f"\\noindent\\makebox[\\textwidth][s]{{{EVEN_AREA_LEFT}"
+        f"\\hfill {EVEN_AREA_RIGHT}}}\\par\n"
+        "\\vfill\n"
+        f"\\noindent\\makebox[\\textwidth][s]{{{BOTTOM_AREA_LEFT}"
+        f"\\hfill {BOTTOM_AREA_RIGHT}}}\\par\n"
+        "```\n\n"
+        "{{< pagebreak >}}\n\n"
+        "```{=latex}\n"
+        f"FixtureFootnoteCall\\footnote{{{FOOTNOTE_FIRST}\\newline\n"
+        f"{FOOTNOTE_SECOND}}}\n"
+        "```\n\n"
         "This note cites the bibliography fixture [@exampleBook2024, 1-2].\n\n"
         f"Operator extraction fixture: `{GLYPH_MARKER}`.\n\n"
         f"![{FIGURE_ALT}](/resources/integration-fixture.png)\n",
@@ -282,8 +312,19 @@ def assert_configuration(project: Path) -> tuple[dict, dict]:
         for option in binding_options
     ):
         fail("binding PDF must use two-sided pagination with recto chapter starts")
+    if "BCOR=0mm" not in binding_options:
+        fail("binding PDF must keep a neutral binding correction until specified")
+    if any(
+        option.startswith("DIV=")
+        for option in ordinary_options | binding_options
+    ):
+        fail("PDF profiles must use the shared KOMA areaset instead of DIV")
+    if "geometry" in ordinary_pdf or "geometry" in binding_pdf:
+        fail("PDF profiles must use KOMA typearea instead of geometry")
     expected_typography = {
         "pdf-engine": "lualatex",
+        "fontsize": "12pt",
+        "linestretch": 1.05,
         "mainfont": "EB Garamond",
         "sansfont": "EB Garamond",
         "monofont": "EB Garamond",
@@ -299,6 +340,24 @@ def assert_configuration(project: Path) -> tuple[dict, dict]:
             pdf.get("include-in-header"), "\\usepackage[all]{nowidow}"
         ):
             fail(f"{label} PDF must prevent single-line widows and orphans")
+        if not configuration_contains(
+            pdf.get("include-in-header"),
+            "\\areaset[current]{110mm}{178mm}",
+        ):
+            fail(f"{label} PDF must use KOMA's 110 by 178 mm type area")
+        footnote_settings = (
+            "\\setkomafont{footnote}{\\normalfont\\fontsize{9pt}{12pt}\\selectfont}",
+            "\\setkomafont{footnotelabel}{\\normalfont\\fontsize{9pt}{12pt}\\selectfont}",
+            "\\deffootnote[1.5em]{1.5em}{1em}{\\thefootnotemark\\enskip}",
+            "\\setfootnoterule[0pt]{0pt}",
+        )
+        for setting in footnote_settings:
+            if not configuration_contains(pdf.get("include-in-header"), setting):
+                fail(f"{label} PDF must retain the shared footnote treatment")
+        if configuration_contains(
+            pdf.get("include-in-header"), "\\interfootnotelinepenalty"
+        ):
+            fail(f"{label} PDF must retain normal cross-page footnote splitting")
 
     ordinary_output = ordinary.get("book", {}).get("output-file")
     binding_output = binding.get("book", {}).get("output-file")
@@ -401,25 +460,162 @@ def assert_pdf(path: Path) -> tuple[str, int]:
     return normalize_pdf_text(text), page_count
 
 
-def pdf_marker_position(path: Path, marker: str) -> tuple[int, float]:
-    """Return the physical page and left edge of a unique rendered marker."""
+def pdf_marker_box(
+    path: Path,
+    marker: str,
+) -> tuple[int, float, float, float, float]:
+    """Return the page and bounding box of a unique rendered marker."""
     payload = run("pdftotext", "-bbox-layout", str(path), "-", cwd=path.parent)
     root = ET.fromstring(payload)
     needle = marker.split()
-    matches: list[tuple[int, float]] = []
+    matches: list[tuple[int, float, float, float, float]] = []
     pages = [node for node in root.iter() if node.tag.endswith("}page")]
     for page_number, page in enumerate(pages, start=1):
         words = [node for node in page.iter() if node.tag.endswith("}word")]
         values = [unicodedata.normalize("NFKC", node.text or "") for node in words]
         for index in range(len(values) - len(needle) + 1):
             if values[index:index + len(needle)] == needle:
-                matches.append((page_number, float(words[index].attrib["xMin"])))
+                matches.append(
+                    (
+                        page_number,
+                        float(words[index].attrib["xMin"]),
+                        min(
+                            float(word.attrib["yMin"])
+                            for word in words[index:index + len(needle)]
+                        ),
+                        float(words[index + len(needle) - 1].attrib["xMax"]),
+                        max(
+                            float(word.attrib["yMax"])
+                            for word in words[index:index + len(needle)]
+                        ),
+                    )
+                )
     if len(matches) != 1:
         fail(
             f"expected one positioned marker in {path.name}, found "
             f"{len(matches)}: {marker!r}"
         )
     return matches[0]
+
+
+def pdf_marker_bounds(path: Path, marker: str) -> tuple[int, float, float]:
+    """Return the page and horizontal bounds of a unique rendered marker."""
+    page, left, _, right, _ = pdf_marker_box(path, marker)
+    return page, left, right
+
+
+def pdf_marker_position(path: Path, marker: str) -> tuple[int, float]:
+    """Return the physical page and left edge of a unique rendered marker."""
+    page, left, _ = pdf_marker_bounds(path, marker)
+    return page, left
+
+
+def pdf_page_size_mm(path: Path) -> tuple[float, float]:
+    """Return the PDF page dimensions reported by Poppler, in millimetres."""
+    information = run("pdfinfo", str(path), cwd=path.parent)
+    match = re.search(
+        r"^Page size:\s+([\d.]+) x ([\d.]+) pts",
+        information,
+        re.MULTILINE,
+    )
+    if match is None:
+        fail(f"could not read the page size from {path.name}")
+    width, height = map(float, match.groups())
+    return width / PDF_POINTS_PER_MM, height / PDF_POINTS_PER_MM
+
+
+def assert_pdf_type_area(
+    path: Path,
+    expected_margins: tuple[tuple[float, float], tuple[float, float]],
+) -> None:
+    """Verify the 110 mm measure and KOMA's recto/verso margin allocation."""
+    marker_pairs = (
+        (ODD_AREA_LEFT, ODD_AREA_RIGHT),
+        (EVEN_AREA_LEFT, EVEN_AREA_RIGHT),
+    )
+    page_width_mm, page_height_mm = pdf_page_size_mm(path)
+    for index, ((left_marker, right_marker), (left_mm, right_mm)) in enumerate(
+        zip(marker_pairs, expected_margins),
+        start=1,
+    ):
+        left_page, left, _ = pdf_marker_bounds(path, left_marker)
+        right_page, _, right = pdf_marker_bounds(path, right_marker)
+        expected_parity = 1 if index == 1 else 0
+        if left_page != right_page or left_page % 2 != expected_parity:
+            fail(f"{path.name} type-area markers are not on the expected page")
+        expected_left = left_mm * PDF_POINTS_PER_MM
+        expected_right = right_mm * PDF_POINTS_PER_MM
+        measured_right = page_width_mm * PDF_POINTS_PER_MM - right
+        measured_width = right - left
+        expected_width = 110 * PDF_POINTS_PER_MM
+        if abs(left - expected_left) > 2.5:
+            fail(
+                f"{path.name} left margin is {left / PDF_POINTS_PER_MM:.1f} mm; "
+                f"expected {left_mm:.1f} mm"
+            )
+        if abs(measured_right - expected_right) > 2.5:
+            fail(
+                f"{path.name} right margin is "
+                f"{measured_right / PDF_POINTS_PER_MM:.1f} mm; "
+                f"expected {right_mm:.1f} mm"
+            )
+        if abs(measured_width - expected_width) > 3:
+            fail(
+                f"{path.name} text measure is "
+                f"{measured_width / PDF_POINTS_PER_MM:.1f} mm; expected 110.0 mm"
+            )
+
+    top_page, _, top, _, _ = pdf_marker_box(path, EVEN_AREA_LEFT)
+    bottom_page, _, _, _, bottom = pdf_marker_box(path, BOTTOM_AREA_LEFT)
+    if top_page != bottom_page:
+        fail(f"{path.name} vertical type-area markers are not on one page")
+    measured_top = top / PDF_POINTS_PER_MM
+    measured_bottom = page_height_mm - bottom / PDF_POINTS_PER_MM
+    if abs(measured_top - 39.7) > 1.5:
+        fail(f"{path.name} top margin is {measured_top:.1f} mm; expected 39.7 mm")
+    if abs(measured_bottom - 79.3) > 1.5:
+        fail(
+            f"{path.name} bottom margin is {measured_bottom:.1f} mm; "
+            "expected 79.3 mm"
+        )
+
+
+def assert_pdf_body_leading(path: Path) -> None:
+    """Verify the effective baseline produced by KOMA and setspace."""
+    first_page, _, first_top, _, _ = pdf_marker_box(path, BASELINE_FIRST)
+    second_page, _, second_top, _, _ = pdf_marker_box(path, BASELINE_SECOND)
+    if first_page != second_page:
+        fail(f"{path.name} baseline markers are not on the same page")
+    measured = second_top - first_top
+    if abs(measured - 15.2) > 0.5:
+        fail(
+            f"{path.name} body leading is {measured:.2f} pt; "
+            "expected approximately 15.2 pt"
+        )
+
+
+def assert_pdf_footnote_typography(path: Path) -> None:
+    """Verify the rendered note size and leading relative to the 12 pt body."""
+    first_page, _, first_top, _, first_bottom = pdf_marker_box(path, FOOTNOTE_FIRST)
+    second_page, _, second_top, _, _ = pdf_marker_box(path, FOOTNOTE_SECOND)
+    if first_page != second_page:
+        fail(f"{path.name} footnote fixture is split unexpectedly")
+    measured_leading = second_top - first_top
+    if abs(measured_leading - 12.0) > 0.5:
+        fail(
+            f"{path.name} footnote leading is {measured_leading:.2f} pt; "
+            "expected approximately 12 pt"
+        )
+
+    _, _, body_top, _, body_bottom = pdf_marker_box(path, BASELINE_FIRST)
+    footnote_height = first_bottom - first_top
+    body_height = body_bottom - body_top
+    size_ratio = footnote_height / body_height
+    if not 0.70 <= size_ratio <= 0.80:
+        fail(
+            f"{path.name} footnote-to-body glyph ratio is {size_ratio:.2f}; "
+            "expected approximately 9/12"
+        )
 
 
 def pdf_heading_pages(path: Path, headings: tuple[str, ...]) -> dict[str, int]:
@@ -554,6 +750,29 @@ def assert_docx(path: Path, title: str) -> None:
         node = theme.find(f".//{theme_ns}{family}/{theme_ns}latin")
         if node is None or node.get("typeface") != "EB Garamond":
             fail(f"DOCX {family} Latin theme must use EB Garamond")
+
+    paragraph_styles = {
+        node.get(qn("styleId")): node
+        for node in styles.iter(qn("style"))
+        if node.get(qn("type")) == "paragraph"
+    }
+    normal_style = paragraph_styles.get("Normal")
+    widow_control = None if normal_style is None else normal_style.find(
+        f"./{qn('pPr')}/{qn('widowControl')}"
+    )
+    widow_value = (
+        None if widow_control is None else widow_control.get(qn("val"))
+    )
+    if widow_control is None or (widow_value or "").lower() in {
+        "0",
+        "false",
+        "off",
+    }:
+        fail("DOCX Normal style must enable widow and orphan control")
+    body_style = paragraph_styles.get("BodyText")
+    body_base = None if body_style is None else body_style.find(qn("basedOn"))
+    if body_base is None or body_base.get(qn("val")) != "Normal":
+        fail("DOCX Body Text must inherit widow control from the Normal style")
 
     custom_property_names = {
         node.get("name")
@@ -818,6 +1037,18 @@ def test_build() -> None:
 
         ordinary_text, ordinary_pages = assert_pdf(ordinary_pdf)
         binding_text, binding_pages = assert_pdf(binding_pdf)
+        assert_pdf_body_leading(ordinary_pdf)
+        assert_pdf_body_leading(binding_pdf)
+        assert_pdf_footnote_typography(ordinary_pdf)
+        assert_pdf_footnote_typography(binding_pdf)
+        assert_pdf_type_area(
+            ordinary_pdf,
+            expected_margins=((50.0, 50.0), (50.0, 50.0)),
+        )
+        assert_pdf_type_area(
+            binding_pdf,
+            expected_margins=((100 / 3, 200 / 3), (200 / 3, 100 / 3)),
+        )
         if ordinary_text != binding_text:
             difference = "\n".join(
                 list(

@@ -26,9 +26,34 @@ number-sections: true
 EB Garamond is also assigned to the PDF mono family by default. Override
 `format.pdf.monofont` when source code must retain fixed-width alignment.
 
-The starter leaves both PDF profiles' margin dimensions to KOMA-Script.
-Downstreams can add Quarto's `geometry` option when they prefer fixed,
-project-specific measurements instead.
+The starter sets the shared PDF type area with
+`\areaset[current]{110mm}{178mm}` in `_quarto.yml`. Change both dimensions
+together and inspect both PDFs when a downstream needs a different measure or
+page depth. Adjust `linestretch` with the measure rather than in isolation:
+longer lines generally need more leading, while shorter lines need less.
+
+The shared header also sets footnotes to 9/12, uses KOMA's `\deffootnote` for
+full-size hanging labels, and removes the separator rule while retaining the
+ordinary whitespace above the notes. Change these three decisions together if
+a downstream needs a different note hierarchy. KOMA's `footinclude`,
+`footheight`, and `footlines` settings concern the page footer, not footnotes.
+
+The binding profile deliberately starts with `BCOR=0mm`. Once a printer or
+binding method supplies the width of paper lost at the spine, replace only that
+value, for example:
+
+```yaml
+format:
+  pdf:
+    classoption: "twoside,openright,BCOR=8mm"
+```
+
+Do not use `BCOR` merely to request a wider-looking gutter. The shared
+`areaset[current]` preserves a replacement binding correction automatically.
+A downstream that prefers KOMA's divisor construction can remove `areaset` and
+add the same `DIV` option to both PDF profiles; the binding profile's
+`classoption` scalar replaces the shared value. Quarto's `geometry` option is
+still available for a downstream that intentionally wants to bypass KOMA.
 
 For Word styles, edit a copy of `references/reference.docx` in Word or
 LibreOffice and retain it at that tracked path. Quarto applies its named styles
