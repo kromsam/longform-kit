@@ -27,16 +27,20 @@ EB Garamond is also assigned to the PDF mono family by default. Override
 `format.pdf.monofont` when source code must retain fixed-width alignment.
 
 The starter sets the shared PDF type area with
-`\areaset[current]{110mm}{178mm}` in `_quarto.yml`. Change both dimensions
+`\areaset[current]{140mm}{227mm}` in `_quarto.yml`. Change both dimensions
 together and inspect both PDFs when a downstream needs a different measure or
 page depth. Adjust `linestretch` with the measure rather than in isolation:
 longer lines generally need more leading, while shorter lines need less.
 
-The shared header also sets footnotes to 9/12, uses KOMA's `\deffootnote` for
-full-size hanging labels, and removes the separator rule while retaining the
-ordinary whitespace above the notes. Change these three decisions together if
-a downstream needs a different note hierarchy. KOMA's `footinclude`,
-`footheight`, and `footlines` settings concern the page footer, not footnotes.
+The non-standard 15.25 pt body size is a keyed KOMA class option in both PDF
+profiles. Keep `fontsize=15.25pt` in both class-option strings when changing
+other profile-specific options; Quarto's bare `fontsize` field does not make
+this arbitrary size effective. The shared header also sets footnotes to
+11.4/15.25, uses KOMA's `\deffootnote` for full-size hanging labels, and removes
+the separator rule while retaining the ordinary whitespace above the notes.
+Change these three decisions together if a downstream needs a different note
+hierarchy. KOMA's `footinclude`, `footheight`, and `footlines` settings concern
+the page footer, not footnotes.
 
 The binding profile deliberately starts with `BCOR=0mm`. Once a printer or
 binding method supplies the width of paper lost at the spine, replace only that
@@ -45,7 +49,7 @@ value, for example:
 ```yaml
 format:
   pdf:
-    classoption: "twoside,openright,BCOR=8mm"
+    classoption: "twoside,openright,BCOR=8mm,fontsize=15.25pt"
 ```
 
 Do not use `BCOR` merely to request a wider-looking gutter. The shared

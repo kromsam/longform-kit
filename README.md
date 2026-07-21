@@ -9,9 +9,9 @@ quarto run scripts/longform.ts build
 ```
 
 Every build produces four public files. Both PDFs use KOMA-Script `areaset` for
-a 110 by 178 mm type area on A4. The ordinary PDF centres it between 50 mm side
-margins; the binding PDF uses classical mirrored margins of approximately
-33.3 mm at the spine and 66.7 mm outside. Its binding correction remains at the
+a 140 by 227 mm type area on A4. The ordinary PDF centres it between 35 mm side
+margins; the binding PDF uses Bringhurst's mirrored margins of approximately
+23.3 mm at the spine and 46.7 mm outside. Its binding correction remains at the
 honest neutral default, `BCOR=0mm`, until a physical binding method is known.
 Both PDFs retain blank verso pages for recto chapter starts and share the same
 page sequence. Longform Kit uses KOMA-Script rather than Quarto `geometry`.
@@ -19,10 +19,10 @@ page sequence. Longform Kit uses KOMA-Script rather than Quarto `geometry`.
 The remaining outputs are a DOCX file and one combined GitHub Flavoured
 Markdown file. There is no setup command, generated scaffolding, citation
 symlink, or LaTeX deliverable. Publication defaults use EB Garamond with
-old-style figures throughout, approximately 12/15.2 body typography, 9/12
-footnotes with full-size hanging labels and whitespace separation, paragraph
-indentation, and two-line widow and orphan control. Headings are unnumbered,
-and the table of contents lists chapters only.
+old-style figures throughout, approximately 15.25/19.3 body typography,
+11.4/15.25 footnotes with full-size hanging labels and whitespace separation,
+paragraph indentation, and two-line widow and orphan control. Headings are
+unnumbered, and the table of contents lists chapters only.
 
 ## Requirements
 

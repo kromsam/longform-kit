@@ -314,6 +314,12 @@ def assert_configuration(project: Path) -> tuple[dict, dict]:
         fail("binding PDF must use two-sided pagination with recto chapter starts")
     if "BCOR=0mm" not in binding_options:
         fail("binding PDF must keep a neutral binding correction until specified")
+    for label, options in (
+        ("ordinary", ordinary_options),
+        ("binding", binding_options),
+    ):
+        if "fontsize=15.25pt" not in options:
+            fail(f"{label} PDF must set KOMA's effective body size to 15.25pt")
     if any(
         option.startswith("DIV=")
         for option in ordinary_options | binding_options
@@ -323,8 +329,7 @@ def assert_configuration(project: Path) -> tuple[dict, dict]:
         fail("PDF profiles must use KOMA typearea instead of geometry")
     expected_typography = {
         "pdf-engine": "lualatex",
-        "fontsize": "12pt",
-        "linestretch": 1.05,
+        "linestretch": 1.055,
         "mainfont": "EB Garamond",
         "sansfont": "EB Garamond",
         "monofont": "EB Garamond",
@@ -332,6 +337,11 @@ def assert_configuration(project: Path) -> tuple[dict, dict]:
     for key, expected in expected_typography.items():
         if ordinary_pdf.get(key) != expected or binding_pdf.get(key) != expected:
             fail(f"both PDF profiles must set {key} to {expected!r}")
+    if "fontsize" in ordinary_pdf or "fontsize" in binding_pdf:
+        fail(
+            "the non-standard PDF body size must use KOMA's keyed class option, "
+            "not Quarto's bare fontsize option"
+        )
     for label, pdf in (("ordinary", ordinary_pdf), ("binding", binding_pdf)):
         for option in ("mainfontoptions", "sansfontoptions", "monofontoptions"):
             if option_values(pdf.get(option)) != {"Numbers=OldStyle"}:
@@ -342,12 +352,12 @@ def assert_configuration(project: Path) -> tuple[dict, dict]:
             fail(f"{label} PDF must prevent single-line widows and orphans")
         if not configuration_contains(
             pdf.get("include-in-header"),
-            "\\areaset[current]{110mm}{178mm}",
+            "\\areaset[current]{140mm}{227mm}",
         ):
-            fail(f"{label} PDF must use KOMA's 110 by 178 mm type area")
+            fail(f"{label} PDF must use KOMA's 140 by 227 mm type area")
         footnote_settings = (
-            "\\setkomafont{footnote}{\\normalfont\\fontsize{9pt}{12pt}\\selectfont}",
-            "\\setkomafont{footnotelabel}{\\normalfont\\fontsize{9pt}{12pt}\\selectfont}",
+            "\\setkomafont{footnote}{\\normalfont\\fontsize{11.4pt}{15.25pt}\\selectfont}",
+            "\\setkomafont{footnotelabel}{\\normalfont\\fontsize{11.4pt}{15.25pt}\\selectfont}",
             "\\deffootnote[1.5em]{1.5em}{1em}{\\thefootnotemark\\enskip}",
             "\\setfootnoterule[0pt]{0pt}",
         )
@@ -528,7 +538,7 @@ def assert_pdf_type_area(
     path: Path,
     expected_margins: tuple[tuple[float, float], tuple[float, float]],
 ) -> None:
-    """Verify the 110 mm measure and KOMA's recto/verso margin allocation."""
+    """Verify the 140 mm measure and KOMA's recto/verso margin allocation."""
     marker_pairs = (
         (ODD_AREA_LEFT, ODD_AREA_RIGHT),
         (EVEN_AREA_LEFT, EVEN_AREA_RIGHT),
@@ -547,7 +557,7 @@ def assert_pdf_type_area(
         expected_right = right_mm * PDF_POINTS_PER_MM
         measured_right = page_width_mm * PDF_POINTS_PER_MM - right
         measured_width = right - left
-        expected_width = 110 * PDF_POINTS_PER_MM
+        expected_width = 140 * PDF_POINTS_PER_MM
         if abs(left - expected_left) > 2.5:
             fail(
                 f"{path.name} left margin is {left / PDF_POINTS_PER_MM:.1f} mm; "
@@ -562,7 +572,7 @@ def assert_pdf_type_area(
         if abs(measured_width - expected_width) > 3:
             fail(
                 f"{path.name} text measure is "
-                f"{measured_width / PDF_POINTS_PER_MM:.1f} mm; expected 110.0 mm"
+                f"{measured_width / PDF_POINTS_PER_MM:.1f} mm; expected 140.0 mm"
             )
 
     top_page, _, top, _, _ = pdf_marker_box(path, EVEN_AREA_LEFT)
@@ -571,12 +581,14 @@ def assert_pdf_type_area(
         fail(f"{path.name} vertical type-area markers are not on one page")
     measured_top = top / PDF_POINTS_PER_MM
     measured_bottom = page_height_mm - bottom / PDF_POINTS_PER_MM
-    if abs(measured_top - 39.7) > 1.5:
-        fail(f"{path.name} top margin is {measured_top:.1f} mm; expected 39.7 mm")
-    if abs(measured_bottom - 79.3) > 1.5:
+    # Marker glyph bounds extend beyond their baselines; the larger faithful
+    # body size needs slightly more tolerance than the former 12 pt probe.
+    if abs(measured_top - 70 / 3) > 2.0:
+        fail(f"{path.name} top margin is {measured_top:.1f} mm; expected 23.3 mm")
+    if abs(measured_bottom - 140 / 3) > 2.0:
         fail(
             f"{path.name} bottom margin is {measured_bottom:.1f} mm; "
-            "expected 79.3 mm"
+            "expected 46.7 mm"
         )
 
 
@@ -587,24 +599,24 @@ def assert_pdf_body_leading(path: Path) -> None:
     if first_page != second_page:
         fail(f"{path.name} baseline markers are not on the same page")
     measured = second_top - first_top
-    if abs(measured - 15.2) > 0.5:
+    if abs(measured - 19.3) > 0.5:
         fail(
             f"{path.name} body leading is {measured:.2f} pt; "
-            "expected approximately 15.2 pt"
+            "expected approximately 19.3 pt"
         )
 
 
 def assert_pdf_footnote_typography(path: Path) -> None:
-    """Verify the rendered note size and leading relative to the 12 pt body."""
+    """Verify note size and leading relative to the 15.25 pt body."""
     first_page, _, first_top, _, first_bottom = pdf_marker_box(path, FOOTNOTE_FIRST)
     second_page, _, second_top, _, _ = pdf_marker_box(path, FOOTNOTE_SECOND)
     if first_page != second_page:
         fail(f"{path.name} footnote fixture is split unexpectedly")
     measured_leading = second_top - first_top
-    if abs(measured_leading - 12.0) > 0.5:
+    if abs(measured_leading - 15.25) > 0.5:
         fail(
             f"{path.name} footnote leading is {measured_leading:.2f} pt; "
-            "expected approximately 12 pt"
+            "expected approximately 15.25 pt"
         )
 
     _, _, body_top, _, body_bottom = pdf_marker_box(path, BASELINE_FIRST)
@@ -614,7 +626,7 @@ def assert_pdf_footnote_typography(path: Path) -> None:
     if not 0.70 <= size_ratio <= 0.80:
         fail(
             f"{path.name} footnote-to-body glyph ratio is {size_ratio:.2f}; "
-            "expected approximately 9/12"
+            "expected approximately 11.4/15.25"
         )
 
 
@@ -1043,11 +1055,11 @@ def test_build() -> None:
         assert_pdf_footnote_typography(binding_pdf)
         assert_pdf_type_area(
             ordinary_pdf,
-            expected_margins=((50.0, 50.0), (50.0, 50.0)),
+            expected_margins=((35.0, 35.0), (35.0, 35.0)),
         )
         assert_pdf_type_area(
             binding_pdf,
-            expected_margins=((100 / 3, 200 / 3), (200 / 3, 100 / 3)),
+            expected_margins=((70 / 3, 140 / 3), (140 / 3, 70 / 3)),
         )
         if ordinary_text != binding_text:
             difference = "\n".join(
