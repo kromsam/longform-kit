@@ -66,7 +66,7 @@ side for the entire tree.
 | Upstream | `scripts/longform.ts`, `tests/`, root `index.md`, `references/reference.docx`, `.agents/skills/`, generic documentation, and generic lint rules | Prefer the released upstream version. Contribute reusable changes to Longform Kit first. |
 | Document | `document/`, `resources/`, notes, drafts, feedback, archives, and submissions | Preserve the document version. Upstream starter-prose changes do not replace manuscript content. |
 | Local only | `_quarto.yml.local`, `document/.ztr-directory`, `build/`, and citation exports | Keep ignored and out of every merge and commit. |
-| Merge seams | `_quarto.yml`, `_quarto-binding.yml`, `.github/workflows/ci.yml`, `.gitignore`, `README.md`, `AGENTS.md`, `LICENSE`, and `.harper/dictionary.txt` | Reconcile deliberately: retain document identity and vocabulary while incorporating compatible upstream machinery and policy. |
+| Merge seams | `_quarto.yml`, `.github/workflows/ci.yml`, `.gitignore`, `README.md`, `AGENTS.md`, `LICENSE`, and `.harper/dictionary.txt` | Reconcile deliberately: retain document identity and vocabulary while incorporating compatible upstream machinery and policy. |
 
 `document/metadata.yml` and `document/chapters.yml` are document-owned even
 though Longform Kit supplies starter versions. Keep citation metadata in Zotero

@@ -61,8 +61,7 @@ headingless, as an epigraph often does; the adapter keeps a synthetic empty
 heading out of the rendered document and table of contents. Keep
 `document/references.md` where the generated bibliography should appear.
 
-Shared Quarto settings live in `_quarto.yml`. `_quarto-binding.yml` changes
-only the binding PDF filename and binding-specific class options. Both PDFs use
+Shared Quarto, PDF, and DOCX settings live in `_quarto.yml`. The PDF uses
 KOMA-Script's `\areaset[current]{140mm}{227mm}`. The `current` argument keeps
 the active binding correction while KOMA allocates the remaining page area.
 The resulting vertical text-block margins are approximately 23.3 mm above and
@@ -72,23 +71,21 @@ retaining KOMA's 1:2 vertical margin relationship. Running heads and page
 numbers occupy the surrounding page furniture rather than changing the
 measure.
 
-The ordinary PDF uses `twoside=semi,openright`. This retains blank verso pages
-so every chapter starts on a recto while centring the measure between equal
-35 mm side margins. The binding profile uses fully mirrored pages: with the
-provisional `BCOR=0mm`, rectos have an approximately 23.3 mm inner and 46.7 mm
-outer margin, and versos reverse them. `BCOR` is the width of paper physically
-lost in binding, not a decorative gutter. Replace zero only after the binding
-method is known.
+The PDF uses `twoside,openright` and fully mirrored pages. This retains blank
+verso pages so every chapter starts on a recto. With the provisional
+`BCOR=0mm`, rectos have an approximately 23.3 mm inner and 46.7 mm outer
+margin, and versos reverse them. `BCOR` is the width of paper physically lost
+in binding, not a decorative gutter. Replace zero only after the binding method
+is known.
 
 Bringhurst's A4 example on page 175 is already a two-sided construction: each
 page has a spine margin of one unit and an outer margin of two, so the two
 spine margins across an open spread together equal one outer margin. It does
-not add a binding correction. The binding profile reproduces the complete
-page-175 construction; the ordinary profile deliberately centres the same
-text block.
+not add a binding correction. The PDF reproduces the complete page-175
+construction.
 
-Neither profile sets Quarto's `geometry` option. `areaset` is KOMA-Script's own
-interface for an exact type area, so KOMA still allocates and mirrors the
+The project does not set Quarto's `geometry` option. `areaset` is KOMA-Script's
+own interface for an exact type area, so KOMA still allocates and mirrors the
 margins. The fixed type area applies consistently to the title, contents, and
 manuscript body.
 
@@ -97,8 +94,8 @@ leading have to work together. His conventional book measure is roughly 30
 times the type size, with a practical range of about 20 to 40. At 15.25 pt, the
 140 mm measure is about 26 times the nominal type size; the measured character
 count below confirms that the combination is sound. KOMA receives the
-non-standard size as `fontsize=15.25pt` in both profile-specific class-option
-strings. Quarto's `fontsize` field would emit it as an ineffective bare option.
+non-standard size as `fontsize=15.25pt` in the PDF's class-option string.
+Quarto's `fontsize` field would emit it as an ineffective bare option.
 
 The PDF uses `linestretch: 1.055`. KOMA's native baseline at 15.25 pt is about
 18.3 pt, so Pandoc and `setspace` produce an actual baseline of approximately
@@ -127,17 +124,17 @@ All headings are unnumbered by default. The table of contents includes chapter
 headings only; section and subsection headings remain in the document without
 appearing in the contents.
 
-The default PDF maps its main, sans, and mono families to EB Garamond with
+The PDF maps its main, sans, and mono families to EB Garamond with
 old-style figures, so body text, titles, headings, code, and page furniture use
 one typeface. This deliberately makes code proportional. A downstream with
 alignment-sensitive code can override `format.pdf.monofont` while retaining EB
 Garamond elsewhere. LuaLaTeX applies its standard microtype support without
 project-specific tuning. The `nowidow` package keeps at least two opening and
-two closing lines of a paragraph together at page boundaries. These shared
-typography choices, including the 11.4/15.25 footnote treatment, apply to both
-PDF profiles. The tracked reference DOCX uses the same EB Garamond policy for Latin
-text, and its body styles inherit Word's widow and orphan control from the
-Normal style.
+two closing lines of a paragraph together at page boundaries. These typography
+choices, including the 11.4/15.25 footnote treatment, are preserved when the
+PDF is imposed two-up. The tracked reference DOCX uses the same EB
+Garamond policy for Latin text, and its body styles inherit Word's widow and
+orphan control from the Normal style.
 
 ## Build Every Format
 
@@ -151,20 +148,28 @@ One invocation always creates the complete set:
 
 ```text
 build/longform-document.pdf
-build/longform-document-binding.pdf
+build/longform-document-2up.pdf
 build/longform-document.docx
 build/longform-document.md
 ```
 
-The two PDFs and DOCX are native combined Quarto book renders. GFM is the one
-special case: the build program resolves the chapter list into a temporary
-standalone Quarto document, renders it through Pandoc, extracts referenced
-media, and removes the temporary source. This preserves citations, includes,
-shortcodes, and `when-format="gfm"` conditionals without keeping a LaTeX
-intermediate.
+The PDF and DOCX are native combined Quarto book renders. The build program
+derives the two-up PDF from the PDF with `pdfjam`, placing the
+source pages as `[blank | 1]`, `[2 | 3]`, `[4 | 5]`, and so on. This makes the
+title page and every recto the right-hand page of an A4 landscape sheet without
+changing the source PDF's logical page parity. Print the two-up PDF at one PDF
+page per physical sheet; do not apply the print dialog's pages-per-sheet option
+again. This is sequential spread imposition, not booklet or signature
+imposition for folded sheets.
+
+GFM is the other derived case: the build program resolves the chapter list
+into a temporary standalone Quarto document, renders it through Pandoc,
+extracts referenced media, and removes the temporary source. This preserves
+citations, includes, shortcodes, and `when-format="gfm"` conditionals without
+keeping a LaTeX intermediate.
 
 Plain `quarto render` is useful for diagnosis but is not the production build:
-it cannot create both PDF layouts and the combined GFM edition in one render.
+it cannot create the imposed PDF and combined GFM edition in one render.
 
 ## Check The Result
 
@@ -178,11 +183,12 @@ index. Microsoft Word refreshes it when fields are updated; previewers that do
 not update Word fields may show only the contents heading until then.
 
 For layout changes, also inspect both PDFs and the DOCX rather than relying on
-exit status. Check the 140 mm measure, 227 mm depth, equal 35 mm margins in the
-ordinary PDF, and mirrored 23.3/46.7 mm margins in the binding PDF at
-`BCOR=0mm`. Both PDFs should retain blank verso pages so chapters begin on
-rectos. An effective `geometry` value means the project has bypassed the KOMA
-type-area policy.
+exit status. Check the 140 mm measure, 227 mm depth, and mirrored 23.3/46.7 mm
+margins in the PDF at `BCOR=0mm`. Chapters should begin on odd PDF pages. In
+the two-up PDF, the first sheet should be blank on the left with
+the title on the right; later rectos should also occupy right-hand slots. An
+effective `geometry` value means the project has bypassed the KOMA type-area
+policy.
 
 Useful diagnostics are:
 

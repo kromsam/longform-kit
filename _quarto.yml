@@ -52,7 +52,6 @@ format:
         \setkomafont{footnotelabel}{\normalfont\fontsize{11.4pt}{15.25pt}\selectfont}
         \deffootnote[1.5em]{1.5em}{1em}{\thefootnotemark\enskip}
         \setfootnoterule[0pt]{0pt}
-    # Centre the type area while retaining pagination for physical recto starts.
-    classoption: "twoside=semi,openright,fontsize=15.25pt"
+    classoption: "twoside,openright,BCOR=0mm,fontsize=15.25pt"
   docx:
     reference-doc: references/reference.docx

@@ -8,8 +8,7 @@ user-local Zotero/Better BibTeX export. Zettlr is an optional authoring tool.
 
 - Edit title, subtitle, author, date, and language in
   `document/metadata.yml`; edit chapter order in `document/chapters.yml`.
-- Edit shared formats and build settings in root `_quarto.yml`, and edit only
-  binding-specific PDF settings in `_quarto-binding.yml`.
+- Edit shared project, PDF, and DOCX settings in root `_quarto.yml`.
 - Under `document/`, keep only author-owned content: front matter, manuscript
   chapters, the bibliography target, manuscript metadata, and chapter order.
 - Do not edit root `index.md`; it is Quarto's adapter for the author-owned front
@@ -61,8 +60,8 @@ After build or configuration changes, run:
 quarto run scripts/longform.ts build
 ```
 
-This must produce non-empty ordinary PDF, binding PDF, DOCX, and combined GFM
-outputs. No LaTeX output is part of the public build.
+This must produce non-empty PDF, two-up PDF, DOCX, and combined GFM outputs. No
+LaTeX output is part of the public build.
 
 After prose changes, run whichever configured linters are installed:
 

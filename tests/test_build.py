@@ -93,7 +93,14 @@ def run(
 
 
 def require_tools() -> None:
-    for command in (QUARTO, "git", "pdffonts", "pdfinfo", "pdftotext"):
+    for command in (
+        QUARTO,
+        "git",
+        "pdfjam",
+        "pdffonts",
+        "pdfinfo",
+        "pdftotext",
+    ):
         if shutil.which(command) is None:
             fail(f"missing required command: {command}")
     for path in (LIBRARY, STYLE):
@@ -157,20 +164,16 @@ def write_local_configuration(project: Path) -> None:
 
 def write_test_output_names(project: Path) -> None:
     """Exercise configured output names that require URL-safe media links."""
-    for relative, output in (
-        ("_quarto.yml", TEST_OUTPUT),
-        ("_quarto-binding.yml", f"{TEST_OUTPUT}-binding"),
-    ):
-        path = project / relative
-        updated, replacements = re.subn(
-            r"(?m)^(\s*output-file:\s*).+$",
-            rf'\1"{output}"',
-            path.read_text(encoding="utf-8"),
-            count=1,
-        )
-        if replacements != 1:
-            fail(f"could not configure the fixture output name in {relative}")
-        path.write_text(updated, encoding="utf-8")
+    path = project / "_quarto.yml"
+    updated, replacements = re.subn(
+        r"(?m)^(\s*output-file:\s*).+$",
+        rf'\1"{TEST_OUTPUT}"',
+        path.read_text(encoding="utf-8"),
+        count=1,
+    )
+    if replacements != 1:
+        fail("could not configure the fixture output name in _quarto.yml")
+    path.write_text(updated, encoding="utf-8")
 
 
 def write_test_manuscript(project: Path) -> None:
@@ -242,11 +245,8 @@ def write_test_manuscript(project: Path) -> None:
     )
 
 
-def inspect(project: Path, profile: str | None = None) -> dict:
-    command = [QUARTO, "inspect"]
-    if profile:
-        command.extend(["--profile", profile])
-    payload = json.loads(run(*command, cwd=project))
+def inspect(project: Path) -> dict:
+    payload = json.loads(run(QUARTO, "inspect", cwd=project))
     config = payload.get("config")
     if not isinstance(config, dict):
         fail("quarto inspect did not return an effective project configuration")
@@ -276,57 +276,38 @@ def configuration_contains(value: object, needle: str) -> bool:
     return False
 
 
-def assert_configuration(project: Path) -> tuple[dict, dict]:
-    ordinary = inspect(project)
-    binding = inspect(project, "binding")
+def assert_configuration(project: Path) -> dict:
+    config = inspect(project)
+    formats = config.get("format", {})
+    if not isinstance(formats, dict) or set(formats) != {"docx", "pdf"}:
+        fail("the project must expose only the native PDF and DOCX formats")
+    pdf = formats.get("pdf", {})
+    if not isinstance(pdf, dict):
+        fail("the project must configure PDF output")
+    if "documentclass" in pdf:
+        fail("the PDF must rely on Quarto's default document class")
 
-    formats = ordinary.get("format", {})
-    if not isinstance(formats, dict) or set(formats) != {"pdf", "docx"}:
-        fail("the project must expose only native PDF and DOCX formats")
-    ordinary_pdf = formats.get("pdf", {})
-    binding_pdf = binding.get("format", {}).get("pdf", {})
-    if not isinstance(ordinary_pdf, dict) or not isinstance(binding_pdf, dict):
-        fail("both ordinary and binding profiles must configure PDF output")
-    if "documentclass" in ordinary_pdf or "documentclass" in binding_pdf:
-        fail("PDF profiles must rely on Quarto's default document class")
+    if config.get("toc") is not True:
+        fail("the project must enable the table of contents")
+    if config.get("toc-depth") != 1:
+        fail("the project must list chapter headings only in the TOC")
+    if config.get("number-sections") is not False:
+        fail("the project must leave headings unnumbered")
 
-    for label, effective in (("ordinary", ordinary), ("binding", binding)):
-        if effective.get("toc") is not True:
-            fail(f"{label} profile must enable the table of contents")
-        if effective.get("toc-depth") != 1:
-            fail(f"{label} profile must list chapter headings only in the TOC")
-        if effective.get("number-sections") is not False:
-            fail(f"{label} profile must leave headings unnumbered")
-
-    ordinary_options = option_values(ordinary_pdf.get("classoption"))
-    binding_options = option_values(binding_pdf.get("classoption"))
-    if "openright" not in ordinary_options or not any(
+    options = option_values(pdf.get("classoption"))
+    if "openright" not in options or not any(
         option == "twoside" or option.startswith("twoside=")
-        for option in ordinary_options
+        for option in options
     ):
-        fail(
-            "ordinary PDF must use two-sided pagination with recto chapter starts"
-        )
-    if "openright" not in binding_options or not any(
-        option == "twoside" or option.startswith("twoside=")
-        for option in binding_options
-    ):
-        fail("binding PDF must use two-sided pagination with recto chapter starts")
-    if "BCOR=0mm" not in binding_options:
-        fail("binding PDF must keep a neutral binding correction until specified")
-    for label, options in (
-        ("ordinary", ordinary_options),
-        ("binding", binding_options),
-    ):
-        if "fontsize=15.25pt" not in options:
-            fail(f"{label} PDF must set KOMA's effective body size to 15.25pt")
-    if any(
-        option.startswith("DIV=")
-        for option in ordinary_options | binding_options
-    ):
-        fail("PDF profiles must use the shared KOMA areaset instead of DIV")
-    if "geometry" in ordinary_pdf or "geometry" in binding_pdf:
-        fail("PDF profiles must use KOMA typearea instead of geometry")
+        fail("PDF must use two-sided pagination with recto chapter starts")
+    if "BCOR=0mm" not in options:
+        fail("PDF must keep a neutral binding correction until specified")
+    if "fontsize=15.25pt" not in options:
+        fail("PDF must set KOMA's effective body size to 15.25pt")
+    if any(option.startswith("DIV=") for option in options):
+        fail("PDF must use the configured KOMA areaset instead of DIV")
+    if "geometry" in pdf:
+        fail("PDF must use KOMA typearea instead of geometry")
     expected_typography = {
         "pdf-engine": "lualatex",
         "linestretch": 1.055,
@@ -335,47 +316,43 @@ def assert_configuration(project: Path) -> tuple[dict, dict]:
         "monofont": "EB Garamond",
     }
     for key, expected in expected_typography.items():
-        if ordinary_pdf.get(key) != expected or binding_pdf.get(key) != expected:
-            fail(f"both PDF profiles must set {key} to {expected!r}")
-    if "fontsize" in ordinary_pdf or "fontsize" in binding_pdf:
+        if pdf.get(key) != expected:
+            fail(f"PDF must set {key} to {expected!r}")
+    if "fontsize" in pdf:
         fail(
             "the non-standard PDF body size must use KOMA's keyed class option, "
             "not Quarto's bare fontsize option"
         )
-    for label, pdf in (("ordinary", ordinary_pdf), ("binding", binding_pdf)):
-        for option in ("mainfontoptions", "sansfontoptions", "monofontoptions"):
-            if option_values(pdf.get(option)) != {"Numbers=OldStyle"}:
-                fail(f"{label} PDF must use old-style EB Garamond figures")
-        if not configuration_contains(
-            pdf.get("include-in-header"), "\\usepackage[all]{nowidow}"
-        ):
-            fail(f"{label} PDF must prevent single-line widows and orphans")
-        if not configuration_contains(
-            pdf.get("include-in-header"),
-            "\\areaset[current]{140mm}{227mm}",
-        ):
-            fail(f"{label} PDF must use KOMA's 140 by 227 mm type area")
-        footnote_settings = (
-            "\\setkomafont{footnote}{\\normalfont\\fontsize{11.4pt}{15.25pt}\\selectfont}",
-            "\\setkomafont{footnotelabel}{\\normalfont\\fontsize{11.4pt}{15.25pt}\\selectfont}",
-            "\\deffootnote[1.5em]{1.5em}{1em}{\\thefootnotemark\\enskip}",
-            "\\setfootnoterule[0pt]{0pt}",
-        )
-        for setting in footnote_settings:
-            if not configuration_contains(pdf.get("include-in-header"), setting):
-                fail(f"{label} PDF must retain the shared footnote treatment")
-        if configuration_contains(
-            pdf.get("include-in-header"), "\\interfootnotelinepenalty"
-        ):
-            fail(f"{label} PDF must retain normal cross-page footnote splitting")
+    for option in ("mainfontoptions", "sansfontoptions", "monofontoptions"):
+        if option_values(pdf.get(option)) != {"Numbers=OldStyle"}:
+            fail("PDF must use old-style EB Garamond figures")
+    if not configuration_contains(
+        pdf.get("include-in-header"), "\\usepackage[all]{nowidow}"
+    ):
+        fail("PDF must prevent single-line widows and orphans")
+    if not configuration_contains(
+        pdf.get("include-in-header"),
+        "\\areaset[current]{140mm}{227mm}",
+    ):
+        fail("PDF must use KOMA's 140 by 227 mm type area")
+    footnote_settings = (
+        "\\setkomafont{footnote}{\\normalfont\\fontsize{11.4pt}{15.25pt}\\selectfont}",
+        "\\setkomafont{footnotelabel}{\\normalfont\\fontsize{11.4pt}{15.25pt}\\selectfont}",
+        "\\deffootnote[1.5em]{1.5em}{1em}{\\thefootnotemark\\enskip}",
+        "\\setfootnoterule[0pt]{0pt}",
+    )
+    for setting in footnote_settings:
+        if not configuration_contains(pdf.get("include-in-header"), setting):
+            fail("PDF must retain the configured footnote treatment")
+    if configuration_contains(
+        pdf.get("include-in-header"), "\\interfootnotelinepenalty"
+    ):
+        fail("PDF must retain normal cross-page footnote splitting")
 
-    ordinary_output = ordinary.get("book", {}).get("output-file")
-    binding_output = binding.get("book", {}).get("output-file")
-    if not isinstance(ordinary_output, str) or not ordinary_output.strip():
-        fail("ordinary output filename must be a non-empty string")
-    if binding_output != f"{ordinary_output}-binding":
-        fail("binding output filename must add the -binding suffix")
-    return ordinary, binding
+    output = config.get("book", {}).get("output-file")
+    if not isinstance(output, str) or not output.strip():
+        fail("output filename must be a non-empty string")
+    return config
 
 
 def require_file(path: Path) -> None:
@@ -514,12 +491,6 @@ def pdf_marker_bounds(path: Path, marker: str) -> tuple[int, float, float]:
     return page, left, right
 
 
-def pdf_marker_position(path: Path, marker: str) -> tuple[int, float]:
-    """Return the physical page and left edge of a unique rendered marker."""
-    page, left, _ = pdf_marker_bounds(path, marker)
-    return page, left
-
-
 def pdf_page_size_mm(path: Path) -> tuple[float, float]:
     """Return the PDF page dimensions reported by Poppler, in millimetres."""
     information = run("pdfinfo", str(path), cwd=path.parent)
@@ -532,6 +503,66 @@ def pdf_page_size_mm(path: Path) -> tuple[float, float]:
         fail(f"could not read the page size from {path.name}")
     width, height = map(float, match.groups())
     return width / PDF_POINTS_PER_MM, height / PDF_POINTS_PER_MM
+
+
+def assert_two_up_pdf(
+    source: Path,
+    two_up: Path,
+    source_text: str,
+    source_pages: int,
+    title: str,
+) -> None:
+    """Verify A4-landscape imposition with rectos in the right-hand slot."""
+    two_up_text, two_up_pages = assert_pdf(two_up)
+    expected_pages = (source_pages + 2) // 2
+    if two_up_pages != expected_pages:
+        fail(
+            f"{two_up.name} has {two_up_pages} sheets; expected {expected_pages} "
+            f"for {source_pages} source pages plus the leading blank slot"
+        )
+    source_words = sorted(source_text.split())
+    two_up_words = sorted(two_up_text.split())
+    if two_up_words != source_words:
+        difference = "\n".join(
+            list(
+                difflib.unified_diff(
+                    source_words,
+                    two_up_words,
+                    fromfile="document.pdf",
+                    tofile="document-2up.pdf",
+                    lineterm="",
+                )
+            )[:80]
+        )
+        fail(
+            "source and two-up PDFs contain different normalized manuscript text"
+            f"\n{difference}"
+        )
+
+    width_mm, height_mm = pdf_page_size_mm(two_up)
+    if abs(width_mm - 297) > 0.2 or abs(height_mm - 210) > 0.2:
+        fail(
+            f"{two_up.name} is {width_mm:.1f} by {height_mm:.1f} mm; "
+            "expected A4 landscape"
+        )
+    midpoint = width_mm * PDF_POINTS_PER_MM / 2
+    for marker in (title, INTRO_MARKER, CONCLUSION_MARKER):
+        source_page, _, _ = pdf_marker_bounds(source, marker)
+        sheet, left, _ = pdf_marker_bounds(two_up, marker)
+        expected_sheet = (source_page + 2) // 2
+        if source_page % 2 != 1 or sheet != expected_sheet or left <= midpoint:
+            fail(
+                f"{two_up.name} did not place recto content in the right-hand "
+                f"slot: {marker!r}"
+            )
+
+    source_page, _, _ = pdf_marker_bounds(source, EVEN_AREA_LEFT)
+    sheet, _, right = pdf_marker_bounds(two_up, EVEN_AREA_LEFT)
+    expected_sheet = (source_page + 2) // 2
+    if source_page % 2 != 0 or sheet != expected_sheet or right >= midpoint:
+        fail(
+            f"{two_up.name} did not place verso content in the left-hand slot"
+        )
 
 
 def assert_pdf_type_area(
@@ -1025,8 +1056,18 @@ def test_build() -> None:
         write_local_configuration(project)
         write_test_output_names(project)
         write_test_manuscript(project)
-        config, binding_config = assert_configuration(project)
+        config = assert_configuration(project)
         progress("configuration verified; rendering four outputs")
+
+        build = project / config.get("project", {}).get("output-dir", "build")
+        output_name = config["book"]["output-file"]
+        retired_pdfs = (
+            build / f"{output_name}-binding.pdf",
+            build / f"{output_name}-binding-2up.pdf",
+        )
+        build.mkdir(parents=True, exist_ok=True)
+        for retired in retired_pdfs:
+            retired.write_bytes(b"%PDF-1.0\nretired binding-suffix output\n")
 
         run(
             QUARTO,
@@ -1037,72 +1078,41 @@ def test_build() -> None:
             capture=False,
         )
         progress("build command completed; inspecting artifacts")
-        build = project / config.get("project", {}).get("output-dir", "build")
-        ordinary_name = config["book"]["output-file"]
-        binding_name = binding_config["book"]["output-file"]
-        ordinary_pdf = build / f"{ordinary_name}.pdf"
-        binding_pdf = build / f"{binding_name}.pdf"
-        docx = build / f"{ordinary_name}.docx"
-        gfm = build / f"{ordinary_name}.md"
-        for artifact in (ordinary_pdf, binding_pdf, docx, gfm):
+        pdf = build / f"{output_name}.pdf"
+        two_up_pdf = build / f"{output_name}-2up.pdf"
+        docx = build / f"{output_name}.docx"
+        gfm = build / f"{output_name}.md"
+        for artifact in (pdf, two_up_pdf, docx, gfm):
             require_file(artifact)
+        for retired in retired_pdfs:
+            if retired.exists():
+                fail(f"build retained a retired binding-suffix PDF: {retired.name}")
 
-        ordinary_text, ordinary_pages = assert_pdf(ordinary_pdf)
-        binding_text, binding_pages = assert_pdf(binding_pdf)
-        assert_pdf_body_leading(ordinary_pdf)
-        assert_pdf_body_leading(binding_pdf)
-        assert_pdf_footnote_typography(ordinary_pdf)
-        assert_pdf_footnote_typography(binding_pdf)
+        pdf_text, pdf_pages = assert_pdf(pdf)
+        assert_pdf_body_leading(pdf)
+        assert_pdf_footnote_typography(pdf)
         assert_pdf_type_area(
-            ordinary_pdf,
-            expected_margins=((35.0, 35.0), (35.0, 35.0)),
-        )
-        assert_pdf_type_area(
-            binding_pdf,
+            pdf,
             expected_margins=((70 / 3, 140 / 3), (140 / 3, 70 / 3)),
         )
-        if ordinary_text != binding_text:
-            difference = "\n".join(
-                list(
-                    difflib.unified_diff(
-                        ordinary_text.split(),
-                        binding_text.split(),
-                        fromfile="ordinary.pdf",
-                        tofile="binding.pdf",
-                        lineterm="",
-                    )
-                )[:80]
-            )
-            fail(
-                "ordinary and binding PDFs contain different normalized manuscript text"
-                f"\n{difference}"
-            )
-        if ordinary_pdf.read_bytes() == binding_pdf.read_bytes():
-            fail("ordinary and binding PDFs are byte-identical; profile was not applied")
-        headings = ("Introduction", "Conclusion", "Bibliography")
-        ordinary_heading_pages = pdf_heading_pages(ordinary_pdf, headings)
-        binding_heading_pages = pdf_heading_pages(binding_pdf, headings)
-        for profile, pages in (
-            ("ordinary", ordinary_heading_pages),
-            ("binding", binding_heading_pages),
-        ):
-            for heading, page in pages.items():
-                if page % 2 == 0:
-                    fail(
-                        f"{profile} PDF chapter did not begin on a recto page: "
-                        f"{heading!r}"
-                    )
-        for marker in (INTRO_MARKER, CONCLUSION_MARKER):
-            _, ordinary_x = pdf_marker_position(ordinary_pdf, marker)
-            _, binding_x = pdf_marker_position(binding_pdf, marker)
-            if abs(ordinary_x - binding_x) < 10:
-                fail(
-                    "binding PDF did not apply a distinct horizontal layout; "
-                    f"recto offset was only {abs(ordinary_x - binding_x):.2f}pt"
-                )
-        progress("ordinary and binding PDFs verified")
-
         title = config.get("book", {}).get("title", "A Longform Document")
+        assert_two_up_pdf(
+            pdf,
+            two_up_pdf,
+            pdf_text,
+            pdf_pages,
+            title,
+        )
+        headings = ("Introduction", "Conclusion", "Bibliography")
+        heading_pages = pdf_heading_pages(pdf, headings)
+        for heading, page in heading_pages.items():
+            if page % 2 == 0:
+                fail(
+                    "PDF chapter did not begin on a recto page: "
+                    f"{heading!r}"
+                )
+        progress("PDF and two-up PDF verified")
+
         assert_docx(docx, title)
         progress("DOCX verified")
         assert_gfm(gfm)
