@@ -23,6 +23,9 @@ implementation.
   PDF management is supplied by the LaTeX core
 - The LaTeX `epigraph` package when the bundled epigraph feature is enabled
 - `pdfjam` from TeX Live for the two-up PDF
+- EB Garamond 1.001 OTF files only when DOCX font embedding is explicitly
+  enabled with `LONGFORM_EMBED_DOCX_FONTS=1`; set the absolute
+  `LONGFORM_EB_GARAMOND_DIR` when they are not at the documented system path
 - Java 21 and veraPDF only for strict release validation
 - Zotero with Better BibTeX for citation-library exports
 - Zettlr if you want the optional writing interface
@@ -134,7 +137,8 @@ and are activated only through a copied `_quarto-custom.yml` snippet.
 The [optional-feature catalogue](publishing/features/README.md) defines the
 documentation, activation, compatibility, failure, verification, ownership,
 and licence contract for every bundled feature. It includes academic-title-page
-and semantic-epigraph features. An empty custom profile enables none of them.
+semantic-epigraph, and DOCX-typography features. An empty custom profile
+enables none of them.
 
 ## Outputs
 

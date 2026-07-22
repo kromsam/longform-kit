@@ -51,6 +51,25 @@ jobs:
           tagpdf
           pdfjam pdfpages
 
+      - name: Provision checked DOCX font sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          commit=e608414f52e532b68e2182f96b4ce9db35335593
+          archive="$RUNNER_TEMP/EBGaramond12-$commit.zip"
+          expected=07ec82a5b503922f5d45afbb2ef585059308419a446d5fd79488f964d233c93c
+          curl --fail --location --silent --show-error \
+            "https://github.com/octaviopardo/EBGaramond12/archive/$commit.zip" \
+            --output "$archive"
+          actual="$(openssl dgst -sha256 "$archive" | awk '{print $NF}')"
+          if [ "$actual" != "$expected" ]; then
+            echo "EB Garamond archive checksum mismatch" >&2
+            exit 1
+          fi
+          unzip -q "$archive" -d "$RUNNER_TEMP"
+          font_dir="$RUNNER_TEMP/EBGaramond12-$commit/fonts/otf"
+          echo "LONGFORM_EB_GARAMOND_DIR=$font_dir" >> "$GITHUB_ENV"
+
       - name: Install PDF inspection tools (Linux)
         if: runner.os == 'Linux'
         run: |
