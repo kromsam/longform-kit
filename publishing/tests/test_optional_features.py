@@ -10,7 +10,7 @@ import subprocess
 import sys
 import tempfile
 from xml.etree import ElementTree as ET
-from zipfile import ZipFile
+from zipfile import ZIP_DEFLATED, ZipFile
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -95,6 +95,25 @@ def defined_styles(path: Path) -> set[str]:
 def embedded_fonts(path: Path) -> list[str]:
     with ZipFile(path) as archive:
         return [name for name in archive.namelist() if name.endswith(".odttf")]
+
+
+def remove_defined_styles(path: Path, style_ids: set[str]) -> None:
+    """Model LibreOffice dropping unused locale/user character aliases."""
+
+    with ZipFile(path) as archive:
+        parts = {name: archive.read(name) for name in archive.namelist()}
+    styles = ET.fromstring(parts["word/styles.xml"])
+    for style in list(styles.findall(W("style"))):
+        if style.get(W("styleId")) in style_ids:
+            styles.remove(style)
+    parts["word/styles.xml"] = ET.tostring(
+        styles,
+        encoding="utf-8",
+        xml_declaration=True,
+    )
+    with ZipFile(path, "w", compression=ZIP_DEFLATED) as archive:
+        for name, data in parts.items():
+            archive.writestr(name, data)
 
 
 def render_docx(
@@ -452,6 +471,27 @@ def test_docx_typography() -> None:
 
         if output is None:
             fail("DOCX typography fixture was not rendered")
+
+        aliases = directory / "libreoffice-alias-rewrite.docx"
+        shutil.copy2(output, aliases)
+        remove_defined_styles(
+            aliases,
+            {"FootnoteCharactersuser", "Voetnoottekens"},
+        )
+        no_embedding = os.environ.copy()
+        no_embedding["LONGFORM_EMBED_DOCX_FONTS"] = "0"
+        process(
+            FEATURES / "docx-typography/stabilize.py",
+            aliases,
+            no_embedding,
+        )
+        alias_styles = defined_styles(aliases)
+        if not {
+            "FootnoteCharactersuser",
+            "Voetnoottekens",
+        }.issubset(alias_styles):
+            fail("stabilizer did not restore known LibreOffice note aliases")
+
         font_environment = os.environ.copy()
         font_environment["LONGFORM_EMBED_DOCX_FONTS"] = "1"
         embedded = directory / "embedded.docx"

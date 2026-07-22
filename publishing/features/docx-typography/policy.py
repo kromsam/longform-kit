@@ -1777,9 +1777,28 @@ def _validate_known_toc_rewrites(parts: dict[str, bytes]) -> None:
     """
 
     styles = _xml(parts["word/styles.xml"])
+    defined_style_ids = {
+        style.get(W("styleId"), "") for style in styles.findall(W("style"))
+    }
+    footnotes = _xml(parts["word/footnotes.xml"])
+    for reference in footnotes.findall(
+        f".//{W('footnoteRef')}/../{W('rPr')}/{W('rStyle')}"
+    ):
+        style_id = reference.get(W("val"), "")
+        if style_id not in defined_style_ids:
+            raise RuntimeError(
+                f"DOCX layout drift: note references missing style {style_id}"
+            )
     expected = (NOTE_SIZE, None)
     expected_with_baseline = {expected, (NOTE_SIZE, "baseline")}
-    for style_id in ("FootnoteLabel", "FootnoteCharactersuser", "Voetnoottekens"):
+    if _note_label_state(styles, "FootnoteLabel") not in expected_with_baseline:
+        raise RuntimeError("DOCX layout drift in FootnoteLabel")
+    # LibreOffice may discard unused locale/user aliases while retaining the
+    # canonical style referenced by every rendered note. Their absence is a
+    # known rewrite; when present, their metrics remain strictly checked.
+    for style_id in ("FootnoteCharactersuser", "Voetnoottekens"):
+        if _style(styles, style_id) is None:
+            continue
         if _note_label_state(styles, style_id) not in expected_with_baseline:
             raise RuntimeError(f"DOCX layout drift in {style_id}")
     characters_state = _note_label_state(styles, "FootnoteCharacters")
