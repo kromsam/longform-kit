@@ -1,16 +1,17 @@
 # Longform Kit keeps its shared build configuration here. Author metadata and
-# chapter order remain in document/ so they can be edited without touching the
-# rendering setup. Put machine-local citation paths in _quarto.yml.local.
+# chapter order remain in writing/manuscript/ so they can be edited without
+# touching the rendering setup. Put machine-local citation paths in
+# _quarto.yml.local.
 metadata-files:
-  - document/metadata.yml
-  - document/chapters.yml
+  - writing/manuscript/metadata.yml
+  - writing/manuscript/chapters.yml
 
 profile:
   default: custom
 
 project:
   type: book
-  output-dir: build
+  output-dir: output
 
 toc: true
 toc-depth: 1
@@ -20,7 +21,7 @@ link-citations: true
 # Keep the root adapter structurally invisible when front matter has no
 # heading. The build script separately sanitizes generated DOCX properties.
 filters:
-  - filters/longform-front-matter.lua
+  - publishing/filters/front-matter.lua
 
 format:
   pdf:
@@ -54,4 +55,4 @@ format:
           \setfootnoterule[0pt]{0pt}
     classoption: "twoside,openright,BCOR=0mm,fontsize=15.25pt"
   docx:
-    reference-doc: references/reference.docx
+    reference-doc: publishing/docx/reference.docx

@@ -7,11 +7,16 @@ user-local Zotero/Better BibTeX export. Zettlr is an optional authoring tool.
 ## Source Of Truth
 
 - Edit title, subtitle, author, date, language, and output filename in
-  `document/metadata.yml`; edit chapter order in `document/chapters.yml`.
+  `writing/manuscript/metadata.yml`; edit chapter order in
+  `writing/manuscript/chapters.yml`.
 - Edit shared project, PDF, and DOCX defaults in root `_quarto.yml`; put
   committed document-specific rendering overrides in `_quarto-custom.yml`.
-- Under `document/`, keep only author-owned content: front matter, manuscript
-  chapters, the bibliography target, manuscript metadata, and chapter order.
+- Keep the rendered manuscript under `writing/manuscript/`. Use
+  `writing/drafts/`, `writing/notes/`, and `writing/planning/` for other
+  author-owned writing material.
+- Treat `style/editorial.md` and `style/typography.md` as document-owned policy.
+  Downstreams should customize them; implement rendering changes in Quarto
+  configuration or `publishing/`, not by placing executable files in `style/`.
 - Do not edit root `index.md`; it is Quarto's adapter for the author-owned front
   matter.
 - Treat `_quarto.yml.local` as ignored, user-local configuration. It contains
@@ -20,26 +25,28 @@ user-local Zotero/Better BibTeX export. Zettlr is an optional authoring tool.
   auto-export update. Never edit that generated JSON by hand.
 - Treat `.harper/dictionary.txt` as document-owned vocabulary. It starts empty;
   do not add terminology from Longform Kit's own documentation or tooling.
-- Never edit `build/`, `.cache/`, `.quarto/`, or rendered artefacts.
-- `document/.ztr-directory` is optional generated state. Regenerate it with
-  `quarto run scripts/longform.ts zettlr`; do not edit or commit it.
+- Never edit `output/`, `.cache/`, `.quarto/`, or rendered artefacts.
+- `writing/.ztr-directory` is optional generated state. Regenerate it with
+  `quarto run publishing/longform.ts zettlr`; do not edit or commit it.
 
 ## Working Rules
 
-- Read any project editorial style guide before changing prose.
+- Read `style/editorial.md` before changing prose and `style/typography.md`
+  before changing presentation policy.
 - Preserve citation keys, quotations, factual claims, headings, shortcodes,
   conditional Divs, and authorial meaning during editorial work.
 - Do not guess citation details. Verify uncertain metadata in Zotero or through
   an available read-only connector, then update Zotero rather than the export.
-- Use `quarto run scripts/longform.ts build` for production builds. Plain
+- Use `quarto run publishing/longform.ts build` for production builds. Plain
   `quarto render` does not create the complete output set.
 - Do not commit absolute home-directory paths or modify a user's global Zettlr
   profile.
-- Keep figures and attachments outside `document/` and use Quarto project-root
-  paths such as `/resources/figure.png` so combined GFM can extract them.
+- Keep figures and attachments under `materials/`, outside the rendered
+  manuscript, and use Quarto project-root paths such as `/materials/figure.png`
+  so combined GFM can extract them.
 - Keep routine builds offline and provider-independent.
-- Apply Harper only to sources under `document/`, as shown in the verification
-  command below.
+- Apply Harper only to sources under `writing/manuscript/`, as shown in the
+  verification command below.
 - Treat project scripts, workflows, Quarto extensions, and Agent Skills as
   executable code. Inspect untrusted changes before running them.
 
@@ -56,24 +63,27 @@ csl: /absolute/path/to/style.csl
 After changing chapter order, run:
 
 ```sh
-quarto run scripts/longform.ts zettlr
+quarto run publishing/longform.ts zettlr
 ```
 
 After build or configuration changes, run:
 
 ```sh
-quarto run scripts/longform.ts build
+python3 publishing/tests/test_build.py
+quarto run publishing/longform.ts build
 ```
 
-This must produce non-empty PDF, two-up PDF, DOCX, and combined GFM outputs. No
-LaTeX output is part of the public build.
+This must produce non-empty PDF, two-up PDF, DOCX, and combined GFM files under
+`output/`. No LaTeX output is part of the public build.
 
 After prose changes, run whichever configured linters are installed:
 
 ```sh
-vale document
-harper-cli lint -d british -u .harper/dictionary.txt document/*.md document/manuscript/*.md
-markdownlint-cli2 README.md "docs/**/*.md" "document/**/*.md"
+vale writing/manuscript
+harper-cli lint -d british -u .harper/dictionary.txt \
+  writing/manuscript/*.md writing/manuscript/chapters/*.md
+markdownlint-cli2 README.md "docs/**/*.md" "style/**/*.md" \
+  "writing/**/*.md"
 ```
 
 ## Agent Skills

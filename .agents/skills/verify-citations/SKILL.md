@@ -25,10 +25,10 @@ replace either input by hand.
 4. Correct the Zotero item or add it to the project collection.
 5. Let the Better CSL JSON auto-export update its configured file; never repair
    generated JSON directly.
-6. Run `quarto run scripts/longform.ts build` when citation formatting matters,
-   then inspect the affected rendered citation and bibliography. Citation
-   inputs are not versioned, so keep an archival snapshot separately when exact
-   reproduction is required.
+6. Run `quarto run publishing/longform.ts build` when citation formatting
+   matters, then inspect the affected rendered citation and bibliography.
+   Citation inputs are not versioned, so keep an archival snapshot separately
+   when exact reproduction is required.
 
 Use Pandoc citation forms, for example:
 

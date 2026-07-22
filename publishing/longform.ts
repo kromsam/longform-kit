@@ -130,7 +130,7 @@ function outputFile(config: Json): string {
 }
 
 function outputDir(config: Json): string {
-  return absolute(scalar(object(config.project)["output-dir"], "build"));
+  return absolute(scalar(object(config.project)["output-dir"], "output"));
 }
 
 function chapterFiles(data: Json): string[] {
@@ -325,7 +325,7 @@ async function sanitizeDocx(
     [
       "pandoc",
       "lua",
-      join(projectDir, "scripts", "sanitize-docx.lua"),
+      join(projectDir, "publishing", "docx", "sanitize.lua"),
       source,
       destination,
     ],
@@ -511,10 +511,10 @@ async function build(): Promise<void> {
   console.log("Build complete");
 }
 
-function documentRelative(path: string): string {
+function writingRelative(path: string): string {
   if (isAbsolute(path)) return path;
-  return path.startsWith("document/")
-    ? path.slice("document/".length)
+  return path.startsWith("writing/")
+    ? path.slice("writing/".length)
     : `../${path}`;
 }
 
@@ -527,24 +527,24 @@ async function zettlr(): Promise<void> {
     project: {
       title: scalar(object(config.book).title, "Longform document"),
       profiles: [],
-      files: authorFiles(data).map(documentRelative),
-      cslStyle: csl ? documentRelative(csl) : "",
+      files: authorFiles(data).map(writingRelative),
+      cslStyle: csl ? writingRelative(csl) : "",
       templates: { tex: "", html: "" },
     },
     icon: null,
     color: null,
   };
-  const destination = join(projectDir, "document", ".ztr-directory");
+  const destination = join(projectDir, "writing", ".ztr-directory");
   await Deno.writeTextFile(destination, `${JSON.stringify(adapter, null, 2)}\n`);
   console.log(`Wrote ${relative(projectDir, destination)}`);
 }
 
 function usage(): string {
   return [
-    "Usage: quarto run scripts/longform.ts build|zettlr",
+    "Usage: quarto run publishing/longform.ts build|zettlr",
     "",
     "  build   Render PDF, two-up PDF, DOCX, and combined GFM",
-    "  zettlr  Synchronize document/.ztr-directory with Quarto chapter order",
+    "  zettlr  Synchronize writing/.ztr-directory with Quarto chapter order",
   ].join("\n");
 }
 

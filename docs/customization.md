@@ -1,54 +1,51 @@
 # Customize The Project
 
-The starter keeps only configuration needed by every document. Root
-`_quarto.yml` activates the tracked `_quarto-custom.yml` profile, which starts
-as a no-op and is the normal home for committed document-specific rendering
-policy. Keep machine-specific paths in ignored `_quarto.yml.local`.
+Longform Kit separates policy from implementation. Editorial and typographic
+decisions belong in `style/`; Quarto configuration, filters, templates, DOCX
+assets, and conversion code belong in `publishing/` or the root Quarto profile.
+
+Root `_quarto.yml` contains shared defaults and activates the tracked
+`_quarto-custom.yml` profile. Put committed document-specific overrides in
+that profile and machine-specific citation paths in ignored
+`_quarto.yml.local`.
 
 ## Change Output Settings
 
-Add scalar and additive document overrides, such as table-of-contents depth,
-section numbering, binding correction, extra filters, and extra header
-includes, to `_quarto-custom.yml`. Edit root `_quarto.yml` when changing shared
-defaults or replacing an inherited list entry. Keep the document's
-`book.output-file` beside its title and author in `document/metadata.yml`.
+Add document-specific settings such as table-of-contents depth, section
+numbering, binding correction, extra filters, and header includes to
+`_quarto-custom.yml`. Edit root `_quarto.yml` only when changing shared
+Longform Kit defaults or replacing an inherited list entry.
 
-If you rename `book.output-file`, the build uses that name for the PDF, DOCX,
-and combined Markdown, and appends `-2up` for the imposed PDF.
+Keep `book.output-file` beside the title and author in
+`writing/manuscript/metadata.yml`. The build uses that name for PDF, DOCX, and
+combined Markdown, and appends `-2up` for the imposed PDF.
 
 The defaults leave headings unnumbered and include chapters only in the table
-of contents. A downstream that needs numbered sections or a deeper contents
-list can opt in explicitly:
+of contents. A document that needs numbered sections or a deeper contents list
+can opt in:
 
 ```yaml
 toc-depth: 2
 number-sections: true
 ```
 
-EB Garamond is also assigned to the PDF mono family by default. Override
-`format.pdf.monofont` when source code must retain fixed-width alignment.
+## Change PDF Typography
 
-The starter sets the PDF type area with
-`\areaset[current]{140mm}{227mm}` in `_quarto.yml`. Because profile arrays are
-combined rather than replaced, change both dimensions in the shared header
-together and inspect the PDF and derived two-up PDF when a downstream needs a
-different measure or page depth. Adjust `linestretch` with the measure rather
-than in isolation: longer lines generally need more leading, while shorter
-lines need less.
+Read `style/typography.md` before changing the implementation. The default
+type area is set by `\areaset[current]{140mm}{227mm}` in `_quarto.yml`.
+`current` preserves the active KOMA binding correction. The project does not
+set Quarto's `geometry` option because that would bypass this KOMA type-area
+policy.
 
 The non-standard 15.25 pt body size is a keyed KOMA class option. Keep
 `fontsize=15.25pt` in the class-option string when changing other options;
-Quarto's bare `fontsize` field does not make this arbitrary size effective. The
-PDF header also sets footnotes to
-11.4/15.25, uses KOMA's `\deffootnote` for full-size hanging labels, and removes
-the separator rule while retaining the ordinary whitespace above the notes.
-Change these three decisions together if a downstream needs a different note
-hierarchy. KOMA's `footinclude`, `footheight`, and `footlines` settings concern
-the page footer, not footnotes.
+Quarto's bare `fontsize` field does not make this arbitrary size effective.
+Adjust measure, leading, body size, and footnote hierarchy as a system, then
+inspect both PDFs and the DOCX.
 
-The PDF deliberately starts with `BCOR=0mm`. Once a printer or binding method
-supplies the width of paper lost at the spine, replace only that value, for
-example:
+The PDF starts with `BCOR=0mm`. Once a printer or binding method supplies the
+width of paper physically lost at the spine, override that scalar in
+`_quarto-custom.yml`, for example:
 
 ```yaml
 format:
@@ -57,58 +54,49 @@ format:
 ```
 
 Do not use `BCOR` merely to request a wider-looking gutter.
-`areaset[current]` preserves a replacement binding correction automatically;
-the scalar `classoption` override can live in `_quarto-custom.yml`.
-A downstream that prefers KOMA's divisor construction can remove `areaset` and
-add a `DIV` option to the PDF configuration. Quarto's `geometry` option is
-still available for a downstream that intentionally wants to bypass KOMA.
+`areaset[current]` preserves the replacement correction automatically. A
+document may deliberately replace `areaset` with KOMA's divisor construction
+or Quarto geometry, but that is a different page-design policy and needs visual
+verification.
 
-For Word styles, edit a copy of `references/reference.docx` in Word or
-LibreOffice and retain it at that tracked path. Quarto applies its named styles
-when producing DOCX.
+EB Garamond is assigned to the PDF main, sans, and mono families by default.
+Override `format.pdf.monofont` when source code must retain fixed-width
+alignment.
 
-## Add Epigraphs
+## Change DOCX Styles
 
-Epigraphs are not part of the default manuscript or configuration. To add the
-Fancy Quarto Epigraphs extension, install it from the project root:
+Edit a copy of `publishing/docx/reference.docx` in Word or LibreOffice and
+retain it at that tracked path. Quarto applies its named styles when producing
+DOCX. Keep the generic reference document upstream-owned when maintaining a
+tracked downstream; reusable style changes should be contributed to Longform
+Kit first.
+
+The build runs `publishing/docx/sanitize.lua` after rendering. Do not patch a
+generated DOCX under `output/`.
+
+## Add A Publishing Feature
+
+A downstream-specific title page, epigraph, post-processor, or similar feature
+is executable publication code. Keep its files together under a descriptive
+directory such as `publishing/features/epigraph/`, rather than mixing them into
+`style/` or the manuscript.
+
+Register the feature from `_quarto-custom.yml`. Use `publishing/filters/` only
+for filters that are part of the generic Longform Kit build. Keep feature tests
+under `publishing/tests/` and exercise every public output that the feature
+affects.
+
+For an external Quarto extension, install it from the project root:
 
 ```sh
-quarto add andrewheiss/fancy-epigraphs-quarto
+quarto add OWNER/EXTENSION
 ```
 
-Review and commit the installed `_extensions/` files so builds remain offline
-and reproducible. The shortcode emits `\epigraph` for PDF, so add the package
-and the preferred spacing to `format.pdf` in `_quarto-custom.yml`:
+Inspect and commit the installed `_extensions/` files so routine builds remain
+offline and reproducible.
 
-```yaml
-format:
-  pdf:
-    include-in-header:
-      text: |
-        \usepackage{epigraph}
-        \setlength{\epigraphrule}{0em}
-        \setlength{\beforeepigraphskip}{-2em}
-        \setlength{\afterepigraphskip}{1em}
-```
-
-Then use the extension's shortcode below a chapter heading or in front matter:
-
-```markdown
-{{< epigraph "Do or **do not**. There *is* no try." source="Yoda" >}}
-```
-
-The source is optional. The extension renders a portable blockquote in formats
-such as DOCX and GFM. Because the combined GFM edition runs through Quarto,
-registered shortcodes are expanded there as well.
-
-If you implement an epigraph without an extension, prefer semantic Markdown
-such as a block quote. Avoid raw LaTeX when the same passage must survive DOCX
-and GFM conversion.
-
-## Add Format-Specific Content
-
-Use Quarto's native conditional Divs instead of embedding output-specific raw
-markup:
+Prefer semantic Markdown when content must survive PDF, DOCX, and GFM. Use
+Quarto conditional Divs for genuinely format-specific material:
 
 ```markdown
 ::: {.content-visible when-format="gfm"}
@@ -120,27 +108,30 @@ This paragraph is omitted from that edition.
 :::
 ```
 
-Use the native page-break shortcode when a deliberate break is needed:
+Use Quarto's page-break shortcode for a deliberate break:
 
 ```markdown
 {{< pagebreak >}}
 ```
 
-After adding a filter, shortcode, extension, or resource, run the complete
-build and inspect all four outputs. A customization that works in PDF can still
-degrade in DOCX or GFM.
+After adding a filter, shortcode, extension, template, or post-processor, run
+the complete build and inspect all four outputs:
+
+```sh
+python3 publishing/tests/test_build.py
+quarto run publishing/longform.ts build
+```
 
 ## Adjust Editorial Rules
 
-The Vale house style is under `.vale/styles/Academic/`. Edit those rules when
-the document follows a different spelling, quotation, date, dash, or citation
-policy. `.vale.ini` deliberately keeps proselint at suggestion level.
+Record document-facing conventions in `style/editorial.md`. Vale's executable
+house rules remain under `.vale/styles/Academic/`; update them when the stated
+policy changes. `.vale.ini` keeps proselint at suggestion level.
 
-Harper's live document dictionary is `.harper/dictionary.txt`. It is empty in a
-fresh Longform Kit clone. Add a term only when it is accepted specialist
-vocabulary or a proper name in the document. Do not add vocabulary from the
-toolkit's own documentation or apply this dictionary outside `document/`.
+Harper's document dictionary is `.harper/dictionary.txt`. Add a term only when
+it is accepted specialist vocabulary or a proper name in the manuscript. Do
+not populate it from toolkit documentation or publishing code.
 
 Root `.markdownlint.json` extends the Prettier-compatible Markdownlint style.
-Override individual rules there only when the manuscript structure requires
-it.
+Override individual rules there only when the writing or documentation
+structure requires it.
