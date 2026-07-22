@@ -1,12 +1,106 @@
 % Longform Kit core PDF typography.
 %
-% This is the former inline root header, extracted without changing output.
+% Quarto loads this file after fontspec, Babel, microtype, and KOMA-Script.
+% The measurements are part of the default publication design and therefore
+% remain active in an unchanged checkout.
 
+\usepackage{etoolbox}
 \usepackage[all]{nowidow}
+
+\newfontfamily\LongformSemibold[
+  UprightFont={EB Garamond SemiBold},
+  ItalicFont={EB Garamond SemiBold Italic},
+  BoldFont={EB Garamond Bold},
+  BoldItalicFont={EB Garamond Bold Italic},
+  Numbers=OldStyle
+]{EB Garamond}
+
 \areaset[current]{140mm}{227mm}
-% Proportionally scaled notes: 11.4/15.25 text, full-size hanging labels, and
-% whitespace instead of a separator rule. Normal note splitting stays enabled.
-\setkomafont{footnote}{\normalfont\fontsize{11.4pt}{15.25pt}\selectfont}
-\setkomafont{footnotelabel}{\normalfont\fontsize{11.4pt}{15.25pt}\selectfont}
+\frenchspacing
+\setlength{\emergencystretch}{1.5em}
+\AtBeginEnvironment{quote}{%
+  \setlength{\emergencystretch}{1.5em}%
+}
+
+\AtBeginDocument{%
+  \lefthyphenmin=3\relax
+  \righthyphenmin=3\relax
+  \hyphenpenalty=100\relax
+  \doublehyphendemerits=100000\relax
+}
+
+% Microtype is compositional infrastructure, not a best-effort enhancement.
+\makeatletter
+\AtBeginDocument{%
+  \@ifpackageloaded{microtype}{%
+    \microtypesetup{%
+      protrusion=true,
+      expansion=true,
+      tracking=false,
+      kerning=false,
+      spacing=false
+    }%
+  }{%
+    \PackageError{LongformTypography}%
+      {The microtype package is required}%
+      {Install microtype and render the document again.}%
+  }%
+}
+\makeatother
+
+% Preserve the legacy footnote/floats composition through the documented
+% June 2025 LaTeX output socket. A missing socket must fail rather than alter
+% pagination silently.
+\IfFormatAtLeastTF{2025-06-01}{%
+  \AssignSocketPlug{build/column/outputbox}{footnotes-floats-legacy}%
+}{%
+  \PackageError{LongformTypography}%
+    {The LaTeX 2025-06-01 output sockets are required}%
+    {Update LaTeX before rendering this document.}%
+}
+
+\setkomafont{disposition}{\normalfont}
+\setkomafont{chapter}{%
+  \normalfont\LongformSemibold\fontsize{27.5pt}{31.5pt}\selectfont}
+\setkomafont{section}{%
+  \normalfont\LongformSemibold\fontsize{20.7pt}{24pt}\selectfont}
+\setkomafont{subsection}{%
+  \normalfont\LongformSemibold\fontsize{17.3pt}{20.5pt}\selectfont}
+\renewcommand*{\raggedsection}{\raggedright}
+\renewcommand*{\raggedchapter}{\raggedright}
+
+\RedeclareSectionCommand[
+  beforeskip=63.69pt,
+  afterskip=24.125pt,
+  afterindent=false
+]{chapter}
+\RedeclareSectionCommand[
+  beforeskip=28.95pt,
+  afterskip=9.65pt,
+  afterindent=false
+]{section}
+\RedeclareSectionCommand[
+  beforeskip=19.3pt,
+  afterskip=4.825pt,
+  afterindent=false
+]{subsection}
+
+\AddToHook{cmd/chapter/before}{\setcounter{footnote}{0}}
+
+\setkomafont{chapterentry}{%
+  \normalfont\fontsize{15.25pt}{19.3pt}\selectfont}
+\setkomafont{chapterentrypagenumber}{%
+  \normalfont\fontsize{15.25pt}{19.3pt}\selectfont}
+
+\setkomafont{footnote}{%
+  \normalfont\fontsize{12.7pt}{16pt}\selectfont}
+\setkomafont{footnotelabel}{%
+  \normalfont\fontsize{12.7pt}{16pt}\selectfont}
 \deffootnote[1.5em]{1.5em}{1em}{\thefootnotemark\enskip}
 \setfootnoterule[0pt]{0pt}
+
+\AtBeginEnvironment{CSLReferences}{%
+  \setlength{\itemsep}{.25\baselineskip}%
+  \setlength{\emergencystretch}{1.5em}%
+  \interlinepenalty=10000\relax
+}

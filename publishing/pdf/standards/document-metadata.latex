@@ -1,0 +1,27 @@
+$--
+$-- Longform Kit's KOMA-compatible PDF/A initialisation.
+$--
+$-- The dedicated pdfmanagement route avoids loading the LaTeX tagging layer,
+$-- which remains incompatible with KOMA-Script and tocbasic. This partial
+$-- intentionally replaces Quarto's document-metadata.latex partial and must
+$-- therefore remain before \documentclass.
+$--
+$if(pdfstandard)$
+$if(pdfstandard.tagging)$
+\PackageError{LongformPdfStandards}
+  {PDF/UA cannot be combined with the KOMA compatibility path}
+  {Use PDF/A alone until the KOMA tagging incompatibility is resolved.}
+$endif$
+\RequirePackage{pdfmanagement}
+\SetKeys[document/metadata]{
+$if(pdfstandard.version)$
+  pdfversion=$pdfstandard.version$,
+$endif$
+$if(pdfstandard.standards)$
+  pdfstandard={$for(pdfstandard.standards)$$it$$sep$,$endfor$},
+$endif$
+$if(lang)$
+  lang=$lang$
+$endif$
+}
+$endif$

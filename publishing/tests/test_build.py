@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import shutil
 import stat
 import subprocess
@@ -67,6 +68,7 @@ def run(
     *command: str,
     cwd: Path,
     capture: bool = True,
+    env: dict[str, str] | None = None,
 ) -> str:
     """Run a command and include its complete output in any failure."""
     log = None if capture else tempfile.TemporaryFile(mode="w+t", encoding="utf-8")
@@ -78,6 +80,7 @@ def run(
             stdout=subprocess.PIPE if capture else log,
             stderr=subprocess.STDOUT,
             text=True,
+            env=env,
         )
         if capture:
             output = result.stdout or ""
@@ -263,6 +266,42 @@ def write_local_configuration(project: Path) -> None:
         f"csl: {json.dumps(str(STYLE))}\n",
         encoding="utf-8",
     )
+
+
+def write_verapdf_shim(project: Path) -> tuple[dict[str, str], Path]:
+    """Exercise strict PDF validation without a networked validator."""
+    directory = project / "tool shims"
+    directory.mkdir()
+    marker = directory / "verapdf-invocations.txt"
+    verifier = directory / "verapdf override"
+    verifier.write_text(
+        "#!/bin/sh\n"
+        f"printf '%s\\n' \"$*\" >> {shlex.quote(str(marker))}\n"
+        "printf '%s\\n' '<validationReport isCompliant=\"true\"/>'\n",
+        encoding="utf-8",
+    )
+    verifier.chmod(0o755)
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "LONGFORM_VALIDATE_PDF": "1",
+            "QUARTO_VERAPDF": str(verifier),
+        }
+    )
+    return environment, marker
+
+
+def incoming_real_verapdf() -> str | None:
+    """Return the caller-supplied release validator, if validation is enabled."""
+    if os.environ.get("LONGFORM_VALIDATE_PDF") != "1":
+        return None
+    verifier = os.environ.get("QUARTO_VERAPDF", "").strip()
+    if not verifier:
+        return None
+    candidate = Path(verifier)
+    if not candidate.is_absolute() and ("/" in verifier or "\\" in verifier):
+        return str((ROOT / candidate).resolve())
+    return verifier
 
 
 def assert_default_custom_profile(project: Path) -> None:
@@ -494,13 +533,16 @@ def assert_configuration(project: Path) -> dict:
         if option_values(pdf.get(option)) != {"Numbers=OldStyle"}:
             fail("PDF must use old-style EB Garamond figures")
     header_text = included_header_text(project, pdf)
-    if "\\usepackage[all]{nowidow}" not in header_text:
-        fail("PDF must prevent single-line widows and orphans")
-    if "\\areaset[current]{140mm}{227mm}" not in header_text:
-        fail("PDF must use KOMA's 140 by 227 mm type area")
+    for required in (
+        "\\usepackage[all]{nowidow}",
+        "\\areaset[current]{140mm}{227mm}",
+        "\\LongformSemibold",
+        "\\AssignSocketPlug{build/column/outputbox}{footnotes-floats-legacy}",
+    ):
+        if required not in header_text:
+            fail(f"core PDF typography is missing {required}")
     footnote_settings = (
-        "\\setkomafont{footnote}{\\normalfont\\fontsize{11.4pt}{15.25pt}\\selectfont}",
-        "\\setkomafont{footnotelabel}{\\normalfont\\fontsize{11.4pt}{15.25pt}\\selectfont}",
+        "\\fontsize{12.7pt}{16pt}\\selectfont",
         "\\deffootnote[1.5em]{1.5em}{1em}{\\thefootnotemark\\enskip}",
         "\\setfootnoterule[0pt]{0pt}",
     )
@@ -509,6 +551,23 @@ def assert_configuration(project: Path) -> dict:
             fail("PDF must retain the configured footnote treatment")
     if "\\interfootnotelinepenalty" in header_text:
         fail("PDF must retain normal cross-page footnote splitting")
+    if option_values(pdf.get("pdf-standard")) != {"a-4f"}:
+        fail("core PDF must target PDF/A-4f")
+    microtype = option_values(pdf.get("microtypeoptions"))
+    for option in (
+        "protrusion=true",
+        "expansion=true",
+        "tracking=false",
+        "kerning=false",
+        "spacing=false",
+    ):
+        if option not in microtype:
+            fail(f"core PDF microtype options are missing {option}")
+    partials = pdf.get("template-partials", [])
+    if not configuration_contains(
+        partials, "publishing/pdf/standards/document-metadata.latex"
+    ):
+        fail("core PDF/A compatibility partial is not registered")
 
     output = config.get("book", {}).get("output-file")
     if not isinstance(output, str) or not output.strip():
@@ -805,20 +864,20 @@ def assert_pdf_footnote_typography(path: Path) -> None:
     if first_page != second_page:
         fail(f"{path.name} footnote fixture is split unexpectedly")
     measured_leading = second_top - first_top
-    if abs(measured_leading - 15.25) > 0.5:
+    if abs(measured_leading - 16) > 0.5:
         fail(
             f"{path.name} footnote leading is {measured_leading:.2f} pt; "
-            "expected approximately 15.25 pt"
+            "expected approximately 16 pt"
         )
 
     _, _, body_top, _, body_bottom = pdf_marker_box(path, BASELINE_FIRST)
     footnote_height = first_bottom - first_top
     body_height = body_bottom - body_top
     size_ratio = footnote_height / body_height
-    if not 0.70 <= size_ratio <= 0.80:
+    if not 0.78 <= size_ratio <= 0.88:
         fail(
             f"{path.name} footnote-to-body glyph ratio is {size_ratio:.2f}; "
-            "expected approximately 11.4/15.25"
+            "expected approximately 12.7/15.25"
         )
 
 
@@ -1065,6 +1124,61 @@ def assert_headed_front_matter(project: Path) -> None:
             fail("front-matter filter modified an authored heading")
 
 
+def assert_real_pdf_standards(path: Path, verifier: str | None) -> None:
+    """Validate the generated fixture with CI's real veraPDF executable."""
+    if verifier is None:
+        return
+    result = subprocess.run(
+        (verifier, "-f", "4f", str(path)),
+        cwd=path.parent,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    output = result.stdout or ""
+    compliance = re.findall(r'isCompliant=["\'](true|false)["\']', output)
+    if result.returncode != 0:
+        fail(f"real veraPDF profile 4f exited with {result.returncode}:\n{output}")
+    if not compliance:
+        fail(f"real veraPDF profile 4f returned no explicit result:\n{output}")
+    if any(value == "false" for value in compliance):
+        fail(f"fixture PDF is not compliant with veraPDF profile 4f:\n{output}")
+    progress("real veraPDF profile 4f passed")
+
+
+def assert_strict_pdf_validation_fails_closed(
+    project: Path,
+    environment: dict[str, str],
+) -> None:
+    """A non-compliant veraPDF report must stop before output promotion."""
+    verifier = Path(environment["QUARTO_VERAPDF"])
+    if verifier.parent != project / "tool shims":
+        fail("refusing to replace a veraPDF executable outside the test shims")
+    verifier.write_text(
+        "#!/bin/sh\n"
+        "printf '%s\\n' '<validationReport isCompliant=\"false\"/>'\n",
+        encoding="utf-8",
+    )
+    verifier.chmod(0o755)
+    result = subprocess.run(
+        (QUARTO, "run", "publishing/longform.ts", "build"),
+        cwd=project,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        env=environment,
+    )
+    if result.returncode == 0:
+        fail("strict PDF validation accepted a non-compliant veraPDF report")
+    if "veraPDF validation failed for profile 4f" not in result.stdout:
+        fail(
+            "strict PDF validation failed without the expected diagnostic:\n"
+            f"{result.stdout}"
+        )
+
+
 def assert_gfm(path: Path) -> None:
     require_file(path)
     text = path.read_text(encoding="utf-8")
@@ -1215,6 +1329,7 @@ def test_build() -> None:
     require_tools()
     assert_ignored_generated_files()
     assert_copy_project_boundaries()
+    real_verapdf = incoming_real_verapdf()
     with tempfile.TemporaryDirectory(prefix="longform-kit-test-") as test_area:
         project = Path(test_area) / "project with spaces"
         copy_project(project)
@@ -1222,6 +1337,7 @@ def test_build() -> None:
         write_test_manuscript(project)
         assert_default_custom_profile(project)
         write_test_profile(project)
+        build_environment, verapdf_marker = write_verapdf_shim(project)
         config = assert_configuration(project)
         progress("configuration verified; rendering four outputs")
 
@@ -1242,7 +1358,13 @@ def test_build() -> None:
             "build",
             cwd=project,
             capture=False,
+            env=build_environment,
         )
+        verapdf_invocations = verapdf_marker.read_text(encoding="utf-8")
+        if re.search(r"(?:^|\s)-f\s+4f(?:\s|$)", verapdf_invocations) is None:
+            fail("strict PDF validation did not request veraPDF profile 4f")
+        if re.search(r"(?:^|\s)-f\s+ua2(?:\s|$)", verapdf_invocations):
+            fail("PDF/A-only configuration unexpectedly requested the ua2 profile")
         progress("build command completed; inspecting artifacts")
         pdf = build / f"{output_name}.pdf"
         two_up_pdf = build / f"{output_name}-2up.pdf"
@@ -1255,6 +1377,7 @@ def test_build() -> None:
                 fail(f"build retained a retired binding-suffix PDF: {retired.name}")
 
         pdf_text, pdf_pages = assert_pdf(pdf)
+        assert_real_pdf_standards(pdf, real_verapdf)
         assert_pdf_body_leading(pdf)
         assert_pdf_footnote_typography(pdf)
         assert_pdf_type_area(
@@ -1288,6 +1411,8 @@ def test_build() -> None:
         progress("Zettlr configuration verified")
         assert_headed_front_matter(project)
         progress("headed front matter verified")
+        assert_strict_pdf_validation_fails_closed(project, build_environment)
+        progress("strict PDF validation failure verified")
 
 
 if __name__ == "__main__":
