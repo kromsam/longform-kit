@@ -1,0 +1,11 @@
+\usepackage{epigraph}
+\setlength{\epigraphrule}{0pt}
+
+\makeatletter
+\newcommand{\LongformEpigraphSeparator}{%
+  \par\vspace{0.25\baselineskip}%
+  \noindent\hfill\rule{\epigraphwidth}{0.4pt}\par
+  \vspace{0.75\baselineskip}%
+  \@afterindentfalse\@afterheading
+}
+\makeatother

@@ -21,6 +21,7 @@ implementation.
 - A TeX distribution no older than June 2025, with LuaLaTeX and the
   `ebgaramond`, `etoolbox`, `microtype`, `nowidow`, and `tagpdf` packages;
   PDF management is supplied by the LaTeX core
+- The LaTeX `epigraph` package when the bundled epigraph feature is enabled
 - `pdfjam` from TeX Live for the two-up PDF
 - Java 21 and veraPDF only for strict release validation
 - Zotero with Better BibTeX for citation-library exports
@@ -132,8 +133,8 @@ and are activated only through a copied `_quarto-custom.yml` snippet.
 
 The [optional-feature catalogue](publishing/features/README.md) defines the
 documentation, activation, compatibility, failure, verification, ownership,
-and licence contract for every bundled feature. An empty custom profile enables
-none of them.
+and licence contract for every bundled feature. It includes academic-title-page
+and semantic-epigraph features. An empty custom profile enables none of them.
 
 ## Outputs
 
