@@ -35,6 +35,8 @@ activatable features, and must document that status in their own README.
 - `academic-title-page`: PDF composition plus independent DOCX fields and
   styles.
 - `epigraph`: semantic front and chapter epigraphs across outputs.
+- `docx-typography`: an alternate publication DOCX reference and deterministic
+  preparation and stabilization policy.
 
 ## Academic Title Page And Epigraph
 
@@ -54,6 +56,31 @@ format:
       - file: publishing/features/epigraph/pdf.tex
     template-partials:
       - publishing/features/academic-title-page/title.tex
+```
+
+## Academic Title Page, Epigraph, And DOCX Typography
+
+Copy this complete snippet to activate all currently bundled features in their
+supported order:
+
+```yaml
+project:
+  post-render:
+    - publishing/features/academic-title-page/docx.py
+    - publishing/features/epigraph/docx.py
+    - publishing/features/docx-typography/prepare.py
+    - publishing/features/docx-typography/stabilize.py
+filters:
+  - publishing/features/academic-title-page/filter.lua
+  - publishing/features/epigraph/filter.lua
+format:
+  pdf:
+    include-in-header:
+      - file: publishing/features/epigraph/pdf.tex
+    template-partials:
+      - publishing/features/academic-title-page/title.tex
+  docx:
+    reference-doc: publishing/features/docx-typography/reference.docx
 ```
 
 Bundled generalized features are MIT-licensed Longform Kit infrastructure. A
