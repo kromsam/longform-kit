@@ -1,0 +1,12 @@
+% Longform Kit core PDF typography.
+%
+% This is the former inline root header, extracted without changing output.
+
+\usepackage[all]{nowidow}
+\areaset[current]{140mm}{227mm}
+% Proportionally scaled notes: 11.4/15.25 text, full-size hanging labels, and
+% whitespace instead of a separator rule. Normal note splitting stays enabled.
+\setkomafont{footnote}{\normalfont\fontsize{11.4pt}{15.25pt}\selectfont}
+\setkomafont{footnotelabel}{\normalfont\fontsize{11.4pt}{15.25pt}\selectfont}
+\deffootnote[1.5em]{1.5em}{1em}{\thefootnotemark\enskip}
+\setfootnoterule[0pt]{0pt}

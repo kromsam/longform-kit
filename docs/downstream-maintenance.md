@@ -55,8 +55,8 @@ than accepting one side across the tree.
 
 | Ownership | Paths | Merge rule |
 | --- | --- | --- |
-| Upstream | `publishing/longform.ts`, `publishing/filters/`, `publishing/docx/`, `publishing/tests/test_build.py`, generic fixtures under `publishing/tests/fixtures/`, root `index.md`, `.agents/skills/`, generic documentation, and generic lint rules | Prefer the released upstream version. Contribute reusable changes to Longform Kit first. |
-| Document | `writing/`, `materials/`, `style/`, downstream `publishing/features/`, downstream-specific files under `publishing/tests/`, archives, submissions, `.harper/dictionary.txt`, and `_quarto-custom.yml` | Preserve the document version. Upstream starter prose and policy do not replace document content. |
+| Upstream | `publishing/longform.ts`, `publishing/filters/`, `publishing/docx/`, `publishing/pdf/`, each explicitly listed bundled feature directory, `publishing/tests/test_build.py`, `publishing/tests/test_optional_features.py`, generic fixtures under `publishing/tests/fixtures/`, root `index.md`, `.agents/skills/`, generic documentation, and generic lint rules | Prefer the released upstream version. Contribute reusable changes to Longform Kit first. |
+| Document | `writing/`, `materials/`, `style/`, each explicitly identified downstream-added feature directory, downstream-specific files under `publishing/tests/`, archives, submissions, `.harper/dictionary.txt`, and `_quarto-custom.yml` | Preserve the document version. Upstream starter prose and policy do not replace document content. |
 | Local only | `_quarto.yml.local`, `writing/.ztr-directory`, `output/`, citation exports, and tool caches | Keep ignored and out of every merge and commit. |
 | Merge seams | `_quarto.yml`, `.github/workflows/ci.yml`, `.gitignore`, `README.md`, `AGENTS.md`, and `LICENSE` | Reconcile deliberately. Incorporate compatible upstream machinery while preserving document ownership and licensing. |
 
@@ -67,6 +67,12 @@ absolute `bibliography` and `csl` paths in ignored `_quarto.yml.local`.
 
 The Harper dictionary is also document-owned. Upstream starts it empty; a
 downstream should populate it only with accepted manuscript vocabulary.
+
+Ownership under `publishing/features/` is assigned per immediate directory.
+Never infer ownership from the parent directory or use a wildcard rule:
+bundled generalized features remain upstream infrastructure, while a
+downstream-added feature remains document-owned only when that directory is
+identified explicitly.
 
 ## Layer Document Configuration
 

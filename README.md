@@ -86,6 +86,8 @@ publishing/
   filters/front-matter.lua
   docx/reference.docx
   docx/sanitize.lua
+  pdf/typography.tex
+  features/README.md
   tests/
 
 output/                 # generated and ignored
@@ -104,6 +106,9 @@ The layout separates concerns:
 - `style/` states editorial and typographic policy. Executable filters,
   templates, and document conversion code belong under `publishing/`.
 - `publishing/` contains the reusable rendering implementation and its tests.
+- `publishing/pdf/` contains core PDF implementation enabled by root
+  configuration. `publishing/features/` contains optional, explicitly
+  activated extensions.
 - `docs/` explains how to use and maintain the repository.
 - `output/` contains generated deliverables and must not be edited or
   committed.
@@ -115,6 +120,18 @@ adapter for `writing/manuscript/front-matter.md`.
 Use project-root paths for figures and attachments, for example
 `![Description](/materials/figure.png)`, so all output formats resolve them
 consistently.
+
+## Core And Optional Features
+
+Core behaviour lives outside `publishing/features/`, is registered in root
+`_quarto.yml`, and is enabled in an unchanged checkout. Optional features live
+in named directories under `publishing/features/`, are never auto-discovered,
+and are activated only through a copied `_quarto-custom.yml` snippet.
+
+The [optional-feature catalogue](publishing/features/README.md) defines the
+documentation, activation, compatibility, failure, verification, ownership,
+and licence contract for every bundled feature. An empty custom profile enables
+none of them.
 
 ## Outputs
 
@@ -149,6 +166,7 @@ Run the integration test and whichever linters are installed:
 
 ```sh
 python3 publishing/tests/test_build.py
+python3 publishing/tests/test_optional_features.py
 vale sync
 vale writing/manuscript
 harper-cli lint -d british -u .harper/dictionary.txt \
@@ -165,5 +183,6 @@ editorial suggestions, especially in quotations and specialist terminology.
 - [Configure and build](docs/configuration-and-building.md)
 - [Use Zettlr](docs/zettlr.md)
 - [Customize the project](docs/customization.md)
+- [Optional publishing features](publishing/features/README.md)
 - [Maintain a tracked downstream](docs/downstream-maintenance.md)
 - [Migrate to v0.5](docs/migrating-to-v0.5.md)

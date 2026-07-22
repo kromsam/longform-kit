@@ -266,7 +266,7 @@ def write_local_configuration(project: Path) -> None:
 
 
 def assert_default_custom_profile(project: Path) -> None:
-    """Confirm the shipped no-op document profile is active and valid."""
+    """Confirm the shipped empty custom profile is active and inert."""
     profile = (project / "_quarto-custom.yml").resolve()
     require_file(profile)
     payload = json.loads(run(QUARTO, "inspect", cwd=project))
@@ -279,7 +279,10 @@ def assert_default_custom_profile(project: Path) -> None:
         if isinstance(value, str)
     }
     if profile not in active:
-        fail("root _quarto.yml must activate the shipped custom profile")
+        fail("root _quarto.yml must activate the committed custom profile")
+    config = payload.get("config", {})
+    if configuration_contains(config, "publishing/features/"):
+        fail("an empty custom profile must not enable optional features")
 
 
 def write_test_profile(project: Path) -> None:
@@ -412,7 +415,35 @@ def configuration_contains(value: object, needle: str) -> bool:
     return False
 
 
+def included_header_text(project: Path, pdf: dict) -> str:
+    """Resolve effective inline and file-backed PDF header includes."""
+    sources: list[str] = []
+    includes = pdf.get("include-in-header", [])
+    if not isinstance(includes, list):
+        includes = [includes]
+    for include in includes:
+        if isinstance(include, str):
+            path = resolve_from(project, include)
+            if path.is_file():
+                sources.append(path.read_text(encoding="utf-8"))
+            else:
+                sources.append(include)
+        elif isinstance(include, dict):
+            text = include.get("text")
+            if isinstance(text, str):
+                sources.append(text)
+            file = include.get("file")
+            if isinstance(file, str):
+                path = resolve_from(project, file)
+                require_file(path)
+                sources.append(path.read_text(encoding="utf-8"))
+    return "\n".join(sources)
+
+
 def assert_configuration(project: Path) -> dict:
+    root_configuration = (project / "_quarto.yml").read_text(encoding="utf-8")
+    if "publishing/features/" in root_configuration:
+        fail("root _quarto.yml must never reference optional features")
     config = inspect(project)
     formats = config.get("format", {})
     if not isinstance(formats, dict) or set(formats) != {"docx", "pdf"}:
@@ -462,14 +493,10 @@ def assert_configuration(project: Path) -> dict:
     for option in ("mainfontoptions", "sansfontoptions", "monofontoptions"):
         if option_values(pdf.get(option)) != {"Numbers=OldStyle"}:
             fail("PDF must use old-style EB Garamond figures")
-    if not configuration_contains(
-        pdf.get("include-in-header"), "\\usepackage[all]{nowidow}"
-    ):
+    header_text = included_header_text(project, pdf)
+    if "\\usepackage[all]{nowidow}" not in header_text:
         fail("PDF must prevent single-line widows and orphans")
-    if not configuration_contains(
-        pdf.get("include-in-header"),
-        "\\areaset[current]{140mm}{227mm}",
-    ):
+    if "\\areaset[current]{140mm}{227mm}" not in header_text:
         fail("PDF must use KOMA's 140 by 227 mm type area")
     footnote_settings = (
         "\\setkomafont{footnote}{\\normalfont\\fontsize{11.4pt}{15.25pt}\\selectfont}",
@@ -478,11 +505,9 @@ def assert_configuration(project: Path) -> dict:
         "\\setfootnoterule[0pt]{0pt}",
     )
     for setting in footnote_settings:
-        if not configuration_contains(pdf.get("include-in-header"), setting):
+        if setting not in header_text:
             fail("PDF must retain the configured footnote treatment")
-    if configuration_contains(
-        pdf.get("include-in-header"), "\\interfootnotelinepenalty"
-    ):
+    if "\\interfootnotelinepenalty" in header_text:
         fail("PDF must retain normal cross-page footnote splitting")
 
     output = config.get("book", {}).get("output-file")

@@ -72,6 +72,13 @@ document-specific overrides live in `_quarto-custom.yml`, which the root file
 activates as the `custom` profile. Machine-specific paths remain in
 `_quarto.yml.local`.
 
+Core publishing behaviour lives outside `publishing/features/`, is registered
+in root `_quarto.yml`, and remains enabled in an unchanged checkout. Optional
+features live in named directories under `publishing/features/`, are not
+auto-discovered, and are activated only by copying their documented snippets
+into `_quarto-custom.yml`. See the
+[optional-feature catalogue](../publishing/features/README.md).
+
 The starter PDF uses KOMA-Script's exact 140 by 227 mm type area on mirrored A4
 pages, approximately 15.25/19.3 EB Garamond body typography, subordinate
 footnotes, and two-line widow and orphan control. The second PDF preserves
@@ -132,6 +139,7 @@ changes:
 
 ```sh
 python3 publishing/tests/test_build.py
+python3 publishing/tests/test_optional_features.py
 ```
 
 Useful Quarto diagnostics are:
