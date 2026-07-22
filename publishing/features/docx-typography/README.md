@@ -42,9 +42,9 @@ when those independent features are also active.
 
 ## Compatibility and ordering
 
-For all currently bundled features together, run academic title and epigraph
-processors first, then `prepare.py` and `stabilize.py`. The stabilizer must be
-last because it verifies the finished layout.
+For all features together, run academic title and epigraph processors first,
+then `prepare.py`, optional `docx-toc/refresh.py`, and `stabilize.py`. The
+stabilizer must be last because it verifies layout after third-party rewriting.
 
 ## Disable or uninstall
 

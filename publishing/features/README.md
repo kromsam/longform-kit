@@ -37,6 +37,8 @@ activatable features, and must document that status in their own README.
 - `epigraph`: semantic front and chapter epigraphs across outputs.
 - `docx-typography`: an alternate publication DOCX reference and deterministic
   preparation and stabilization policy.
+- `docx-toc`: an opt-in LibreOffice/UNO refresh of cached DOCX table-of-contents
+  entries and page numbers.
 
 ## Academic Title Page And Epigraph
 
@@ -58,10 +60,12 @@ format:
       - publishing/features/academic-title-page/title.tex
 ```
 
-## Academic Title Page, Epigraph, And DOCX Typography
+## All Supported Optional Features
 
-Copy this complete snippet to activate all currently bundled features in their
-supported order:
+Copy this complete snippet to activate every bundled feature in the canonical
+combined order. The TOC step remains a no-op unless
+`LONGFORM_REFRESH_DOCX_TOC=1`; DOCX font embedding remains off unless
+`LONGFORM_EMBED_DOCX_FONTS=1`.
 
 ```yaml
 project:
@@ -69,6 +73,7 @@ project:
     - publishing/features/academic-title-page/docx.py
     - publishing/features/epigraph/docx.py
     - publishing/features/docx-typography/prepare.py
+    - publishing/features/docx-toc/refresh.py
     - publishing/features/docx-typography/stabilize.py
 filters:
   - publishing/features/academic-title-page/filter.lua

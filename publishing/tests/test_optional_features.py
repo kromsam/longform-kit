@@ -395,6 +395,8 @@ def run_typography_pipeline(
     directory: Path,
     chapter_count: int,
     integrations: bool,
+    *,
+    stabilize: bool = True,
 ) -> Path:
     filters: tuple[Path, ...] = ()
     if integrations:
@@ -423,11 +425,12 @@ def run_typography_pipeline(
     process(FEATURES / "docx-typography/prepare.py", output, environment)
     if output.read_bytes() != prepared:
         fail("DOCX typography preparation is not idempotent")
-    process(FEATURES / "docx-typography/stabilize.py", output, environment)
-    stabilized = output.read_bytes()
-    process(FEATURES / "docx-typography/stabilize.py", output, environment)
-    if output.read_bytes() != stabilized:
-        fail("DOCX typography stabilization is not idempotent")
+    if stabilize:
+        process(FEATURES / "docx-typography/stabilize.py", output, environment)
+        stabilized = output.read_bytes()
+        process(FEATURES / "docx-typography/stabilize.py", output, environment)
+        if output.read_bytes() != stabilized:
+            fail("DOCX typography stabilization is not idempotent")
     if embedded_fonts(output):
         fail("DOCX typography embedded fonts without explicit opt-in")
     return output
@@ -517,6 +520,61 @@ def test_docx_typography() -> None:
             fail("font checksum failure was not fail-closed and atomic")
 
 
+def test_docx_toc() -> None:
+    script = FEATURES / "docx-toc/refresh.py"
+    environment = os.environ.copy()
+    environment.pop("LONGFORM_REFRESH_DOCX_TOC", None)
+    environment["QUARTO_PROJECT_OUTPUT_FILES"] = "missing.docx"
+    run([sys.executable, str(script)], cwd=ROOT, environment=environment)
+
+    enabled = environment.copy()
+    enabled["LONGFORM_REFRESH_DOCX_TOC"] = "1"
+    enabled["PATH"] = ""
+    result = run(
+        [sys.executable, str(script)],
+        cwd=ROOT,
+        environment=enabled,
+        success=False,
+    )
+    if "requires LibreOffice" not in result.stdout:
+        fail("enabled TOC refresh did not fail clearly without LibreOffice")
+
+    if os.environ.get("LONGFORM_TEST_DOCX_REFRESH") == "1":
+        with tempfile.TemporaryDirectory(prefix="longform-docx-toc-") as area:
+            directory = Path(area)
+            output = run_typography_pipeline(
+                directory,
+                2,
+                True,
+                stabilize=False,
+            )
+            refresh_environment = os.environ.copy()
+            refresh_environment["LONGFORM_REFRESH_DOCX_TOC"] = "1"
+            refresh_environment["LONGFORM_EMBED_DOCX_FONTS"] = "0"
+            refresh_environment["QUARTO_PROJECT_OUTPUT_FILES"] = output.name
+            run(
+                [sys.executable, str(script)],
+                cwd=directory,
+                environment=refresh_environment,
+            )
+            process(
+                FEATURES / "docx-typography/stabilize.py",
+                output,
+                refresh_environment,
+            )
+            stabilized = output.read_bytes()
+            process(
+                FEATURES / "docx-typography/stabilize.py",
+                output,
+                refresh_environment,
+            )
+            if output.read_bytes() != stabilized:
+                fail("post-LibreOffice stabilization is not idempotent")
+            with ZipFile(output) as archive:
+                if corrupt := archive.testzip():
+                    fail(f"LibreOffice refresh corrupted {corrupt}")
+
+
 def test_failure_behaviour() -> None:
     scripts = (
         FEATURES / "academic-title-page/docx.py",
@@ -550,6 +608,7 @@ TESTS = {
     "epigraph": test_epigraph,
     "combined": test_combined,
     "docx-typography": test_docx_typography,
+    "docx-toc": test_docx_toc,
     "failure-behaviour": test_failure_behaviour,
 }
 

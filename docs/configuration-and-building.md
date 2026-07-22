@@ -135,7 +135,10 @@ The build command fails if a required output is missing or empty. It also
 sanitizes generated DOCX package metadata with
 `publishing/docx/sanitize.lua`. The DOCX table of contents remains a live Word
 field; Word updates it when fields are refreshed, while simpler previewers may
-initially show only the contents heading.
+initially show only the contents heading. To cache entries and page numbers in
+a release build, activate the optional DOCX TOC feature and run with
+LibreOffice Writer, Python UNO, and `LONGFORM_REFRESH_DOCX_TOC=1`; see the
+[optional-feature catalogue](../publishing/features/README.md).
 
 For layout changes, inspect both PDFs and the DOCX rather than relying only on
 exit status. Chapters should start on rectos in the source PDF. The first
