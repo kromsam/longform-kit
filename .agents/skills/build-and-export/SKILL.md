@@ -10,24 +10,25 @@ program; plain `quarto render` does not create the complete output set.
 
 ## Workflow
 
-1. Read `AGENTS.md`, `_quarto.yml`, and `document/chapters.yml`.
+1. Read `AGENTS.md`, `_quarto.yml`, and
+   `writing/manuscript/chapters.yml`.
 2. Confirm ignored `_quarto.yml.local` names readable absolute `bibliography`
    and `csl` paths. Never commit or rewrite another user's local paths.
 3. After chapter-order, title, or CSL-path changes, refresh the optional Zettlr
    project:
 
    ```sh
-   quarto run scripts/longform.ts zettlr
+   quarto run publishing/longform.ts zettlr
    ```
 
 4. Build every deliverable:
 
    ```sh
-   quarto run scripts/longform.ts build
+   quarto run publishing/longform.ts build
    ```
 
-5. Confirm the PDF, two-up PDF, DOCX, and combined GFM files under `build/` are
-   non-empty. For layout changes, inspect rendered documents rather than
+5. Confirm the PDF, two-up PDF, DOCX, and combined GFM files under `output/`
+   are non-empty. For layout changes, inspect rendered documents rather than
    relying only on exit status.
 
 ## Guardrails

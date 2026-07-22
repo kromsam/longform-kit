@@ -22,8 +22,8 @@ editorial style guide and the surrounding section.
 6. Preserve quotation wording, citation keys and locators, factual claims,
    specialist terms, and meaningful ambiguity.
 7. Compare the complete diff with the source. Run the configured Vale or Harper
-   checks when relevant. Run `quarto run scripts/longform.ts build` only when
-   the revision changes structural Markdown or citation rendering.
+   checks when relevant. Run `quarto run publishing/longform.ts build` only
+   when the revision changes structural Markdown or citation rendering.
 
 Do not add evidence, strengthen claims, resolve theoretical tensions, or invent
 transitions that the source cannot support. Flag those issues separately.
