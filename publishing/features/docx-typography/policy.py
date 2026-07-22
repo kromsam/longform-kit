@@ -2044,11 +2044,19 @@ def _validate_layout(parts: dict[str, bytes]) -> None:
             "bottom": BOTTOM_MARGIN,
             "left": INNER_MARGIN,
         }
-        if margins is None or any(
-            margins.get(W(name)) != value for name, value in expected_margins.items()
-        ):
+        actual_margins = (
+            {}
+            if margins is None
+            else {
+                name: margins.get(W(name))
+                for name in expected_margins
+            }
+        )
+        if actual_margins != expected_margins:
             raise RuntimeError(
-                f"DOCX layout drift: section {index + 1} margins changed"
+                "DOCX layout drift: section "
+                f"{index + 1} margins changed; expected "
+                f"{expected_margins}, found {actual_margins}"
             )
         footer_types = {
             item.get(W("type")) for item in section.findall(W("footerReference"))
