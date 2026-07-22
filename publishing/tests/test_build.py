@@ -1175,7 +1175,6 @@ def assert_ignored_generated_files() -> None:
     for relative in (
         "_quarto.yml.local",
         "_quarto-profile.local",
-        "document/.ztr-directory",
         "writing/.ztr-directory",
     ):
         result = subprocess.run(

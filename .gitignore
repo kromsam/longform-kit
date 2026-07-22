@@ -3,6 +3,7 @@
 /.quarto/
 /_*.local
 /.~lock.*#
+/writing/.ztr-directory
 /.vale/styles/proselint/
 *.log
 __pycache__/
