@@ -1772,9 +1772,10 @@ def _validate_known_toc_rewrites(parts: dict[str, bytes]) -> None:
 
     Writer maps note marks to its built-in superscript alias, removes
     unused note aliases and section-local note restart declarations, restores
-    separator glyphs, and may serialize odd-page breaks as next-page breaks.
-    The typography-owned stabilizer repairs those fields after TOC refresh;
-    every other layout property remains subject to the strict final check.
+    separator glyphs, may serialize odd-page breaks as next-page breaks, and
+    may substitute its 887-twip page-style bottom margin. The typography-owned
+    stabilizer repairs those fields after TOC refresh; every other layout
+    property remains subject to the strict final check.
     """
 
     styles = _xml(parts["word/styles.xml"])
@@ -1815,6 +1816,31 @@ def _validate_known_toc_rewrites(parts: dict[str, bytes]) -> None:
                 "DOCX layout drift in section "
                 f"{index}: unexpected break type {break_value}"
             )
+        margins = section.find(W("pgMar"))
+        expected_margins = {
+            "top": TOP_MARGIN,
+            "right": OUTER_MARGIN,
+            "bottom": BOTTOM_MARGIN,
+            "left": INNER_MARGIN,
+        }
+        libreoffice_margins = {
+            **expected_margins,
+            "bottom": "887",
+        }
+        actual_margins = (
+            {}
+            if margins is None
+            else {
+                name: margins.get(W(name))
+                for name in expected_margins
+            }
+        )
+        if actual_margins not in (expected_margins, libreoffice_margins):
+            raise RuntimeError(
+                "DOCX layout drift: section "
+                f"{index} has unexpected pre-stabilization margins "
+                f"{actual_margins}"
+            )
         footnote_properties = section.find(W("footnotePr"))
         if footnote_properties is None:
             continue
@@ -1852,6 +1878,10 @@ def _restore_known_toc_rewrites(parts: dict[str, bytes]) -> None:
     document = _xml(parts["word/document.xml"])
     for section in document.findall(f".//{W('sectPr')}"):
         _replace_property(section, W("type"), {"val": "oddPage"})
+        margins = section.find(W("pgMar"))
+        if margins is None:
+            raise RuntimeError("DOCX layout drift: section margins are missing")
+        margins.set(W("bottom"), BOTTOM_MARGIN)
         _configure_section_footnotes(section)
     parts["word/document.xml"] = _xml_bytes(document)
 

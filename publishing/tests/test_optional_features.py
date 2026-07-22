@@ -115,11 +115,17 @@ def model_known_libreoffice_rewrites(path: Path) -> None:
         xml_declaration=True,
     )
     document = ET.fromstring(parts["word/document.xml"])
-    for section in document.findall(f".//{W('sectPr')}"):
+    sections = document.findall(f".//{W('sectPr')}")
+    for section in sections:
         break_type = section.find(W("type"))
         if break_type is None:
             break_type = ET.SubElement(section, W("type"))
         break_type.set(W("val"), "nextPage")
+    if len(sections) > 1:
+        margins = sections[1].find(W("pgMar"))
+        if margins is None:
+            margins = ET.SubElement(sections[1], W("pgMar"))
+        margins.set(W("bottom"), "887")
     parts["word/document.xml"] = ET.tostring(
         document,
         encoding="utf-8",
