@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -109,50 +110,150 @@ def require_tools() -> None:
             fail(f"missing committed test fixture: {path.relative_to(ROOT)}")
 
 
-def copy_project(destination: Path) -> None:
-    """Copy tracked project material without local state or build products."""
+def copy_project(destination: Path, source: Path = ROOT) -> None:
+    """Copy allowed tracked files from their current worktree versions."""
 
-    def ignore(directory: str, names: list[str]) -> set[str]:
-        current = Path(directory).resolve()
-        ignored = {
-            name
-            for name in names
-            if name in {".quarto", "__pycache__"} or name.endswith(".pyc")
+    source = source.resolve()
+    result = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=source,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if result.returncode != 0:
+        output = result.stderr.decode(errors="replace")
+        fail(f"could not list tracked project files:\n{output}")
+
+    destination.mkdir(parents=True)
+    excluded_roots = {"archive", "materials", "resources", "style"}
+    manuscript_metadata = Path("writing/manuscript/metadata.yml")
+    for encoded in result.stdout.split(b"\0"):
+        if not encoded:
+            continue
+        relative = Path(os.fsdecode(encoded))
+        if relative.parts[0] in excluded_roots:
+            continue
+        if relative.parts[0] == "writing" and relative != manuscript_metadata:
+            continue
+
+        # Metadata plus the tracked custom profile and publishing/features are
+        # intentionally retained to validate downstream profile compatibility.
+        source_path = source / relative
+        try:
+            mode = source_path.lstat().st_mode
+        except FileNotFoundError:
+            # A tracked path deleted in the worktree has no current version.
+            continue
+        destination_path = destination / relative
+        destination_path.parent.mkdir(parents=True, exist_ok=True)
+        if stat.S_ISLNK(mode):
+            destination_path.symlink_to(os.readlink(source_path))
+        elif stat.S_ISREG(mode):
+            shutil.copy2(source_path, destination_path, follow_symlinks=False)
+        else:
+            fail(f"unsupported tracked project path: {relative}")
+
+
+def assert_copy_project_boundaries() -> None:
+    """Keep local and author material out while preserving extension inputs."""
+    with tempfile.TemporaryDirectory(prefix="longform-copy-boundaries-") as area:
+        source = Path(area) / "source"
+        destination = Path(area) / "destination"
+        source.mkdir()
+        run("git", "init", "--quiet", cwd=source)
+        preserved = {
+            Path(".gitignore"): "/ignored-local/\n",
+            Path("_quarto-custom.yml"): "profile: custom\n",
+            Path("publishing/features/example/filter.lua"): "return {}\n",
+            Path("writing/manuscript/metadata.yml"): "title: Fixture\n",
         }
-        if current == ROOT:
-            ignored.update(
-                name
-                for name in names
-                if name
-                in {
-                    ".git",
-                    ".cache",
-                    "build",
-                    "output",
-                    "_quarto.yml.local",
-                    "index.pdf",
-                    "index.tex",
-                    ".DS_Store",
-                }
-            )
-            ignored.update(name for name in names if name.endswith("_files"))
-        elif current == ROOT / "references":
-            ignored.update(
-                name
-                for name in names
-                if name
-                in {
-                    "library.json",
-                    "style.csl",
-                    "zotero-styles",
-                    ".csl-parents",
-                }
-            )
-        elif current in {ROOT / "document", ROOT / "writing"}:
-            ignored.update(name for name in names if name == ".ztr-directory")
-        return ignored
+        excluded = (
+            Path("archive/submissions/frozen.pdf"),
+            Path("resources/figure.png"),
+            Path("materials/source.png"),
+            Path("style/Editorial Style Guide.md"),
+            Path("writing/drafts/draft.md"),
+            Path("writing/notes/note.md"),
+            Path("writing/planning/plan.md"),
+            Path("writing/correspondence/email.md"),
+            Path("writing/manuscript/chapters.yml"),
+            Path("writing/manuscript/front-matter.md"),
+            Path("writing/manuscript/bibliography.md"),
+            Path("writing/manuscript/chapters/chapter.md"),
+        )
+        for relative, content in preserved.items():
+            path = source / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding="utf-8")
+        for relative in excluded:
+            path = source / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("downstream author fixture\n", encoding="utf-8")
 
-    shutil.copytree(ROOT, destination, ignore=ignore)
+        tracked_link = source / "publishing/features/example/tracked-filter.lua"
+        tracked_link.symlink_to("filter.lua")
+        run("git", "add", "--all", cwd=source)
+
+        current_profile = "profile: current-worktree\n"
+        (source / "_quarto-custom.yml").write_text(
+            current_profile,
+            encoding="utf-8",
+        )
+        preserved[Path("_quarto-custom.yml")] = current_profile
+
+        ignored_payload = "ignored payload must not be copied"
+        ignored_file = source / "ignored-local/sentinel.txt"
+        ignored_file.parent.mkdir()
+        ignored_file.write_text(ignored_payload, encoding="utf-8")
+        untracked_payload = "untracked payload must not be copied"
+        untracked_file = source / "arbitrary-local/sentinel.txt"
+        untracked_file.parent.mkdir()
+        untracked_file.write_text(untracked_payload, encoding="utf-8")
+        untracked_link = source / "untracked-sentinel-link"
+        untracked_link.symlink_to(ignored_file)
+
+        copy_project(destination, source)
+
+        for relative, expected in preserved.items():
+            path = destination / relative
+            require_file(path)
+            if path.read_text(encoding="utf-8") != expected:
+                fail(f"disposable copy changed preserved input: {relative}")
+        leaked = [
+            str(relative)
+            for relative in excluded
+            if (destination / relative).exists()
+        ]
+        if leaked:
+            fail(
+                "disposable copy retained downstream author material: "
+                f"{', '.join(leaked)}"
+            )
+        copied_link = destination / tracked_link.relative_to(source)
+        if not copied_link.is_symlink() or os.readlink(copied_link) != "filter.lua":
+            fail("disposable copy did not preserve a tracked symlink")
+
+        local_paths = (
+            ignored_file.parent.relative_to(source),
+            untracked_file.parent.relative_to(source),
+            untracked_link.relative_to(source),
+        )
+        retained = [
+            str(path)
+            for path in local_paths
+            if (destination / path).exists() or (destination / path).is_symlink()
+        ]
+        if retained:
+            fail(f"disposable copy retained ignored or untracked paths: {retained}")
+        copied_payload = b"\n".join(
+            path.read_bytes()
+            for path in destination.rglob("*")
+            if not path.is_symlink() and path.is_file()
+        )
+        for payload in (ignored_payload, untracked_payload):
+            if payload.encode() in copied_payload:
+                fail("disposable copy retained an ignored or untracked payload")
 
 
 def write_local_configuration(project: Path) -> None:
@@ -1089,13 +1190,14 @@ def assert_ignored_generated_files() -> None:
 def test_build() -> None:
     require_tools()
     assert_ignored_generated_files()
+    assert_copy_project_boundaries()
     with tempfile.TemporaryDirectory(prefix="longform-kit-test-") as test_area:
         project = Path(test_area) / "project with spaces"
         copy_project(project)
         write_local_configuration(project)
+        write_test_manuscript(project)
         assert_default_custom_profile(project)
         write_test_profile(project)
-        write_test_manuscript(project)
         config = assert_configuration(project)
         progress("configuration verified; rendering four outputs")
 
