@@ -48,7 +48,7 @@ jobs:
         run: >-
           tlmgr install
           ebgaramond etoolbox microtype nowidow
-          pdfmanagement-testphase tagpdf
+          tagpdf
           pdfjam pdfpages
 
       - name: Install PDF inspection tools (Linux)

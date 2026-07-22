@@ -19,8 +19,8 @@ implementation.
 
 - Quarto 1.9.x
 - A TeX distribution no older than June 2025, with LuaLaTeX and the
-  `ebgaramond`, `etoolbox`, `microtype`, `nowidow`,
-  `pdfmanagement-testphase`, and `tagpdf` packages
+  `ebgaramond`, `etoolbox`, `microtype`, `nowidow`, and `tagpdf` packages;
+  PDF management is supplied by the LaTeX core
 - `pdfjam` from TeX Live for the two-up PDF
 - Java 21 and veraPDF only for strict release validation
 - Zotero with Better BibTeX for citation-library exports
