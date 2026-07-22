@@ -215,15 +215,17 @@ vale sync
 vale document
 ```
 
-Harper uses British English and the project dictionary at
-`.harper/dictionary.txt`:
+Harper uses British English for Markdown sources under `document/` and the
+document dictionary at `.harper/dictionary.txt`:
 
 ```sh
 harper-cli lint -d british -u .harper/dictionary.txt document/*.md document/manuscript/*.md
 ```
 
-Add only accepted names and specialist terms to that dictionary. Markdownlint
-uses its Prettier-compatible style from the project root:
+The dictionary is empty in a fresh clone. Add only accepted names and
+specialist terms from the document; do not populate it from `README.md`,
+`docs/`, or other repository-owned prose. Markdownlint uses its
+Prettier-compatible style from the project root:
 
 ```sh
 markdownlint-cli2 README.md "docs/**/*.md" "document/**/*.md"

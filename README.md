@@ -124,6 +124,10 @@ harper-cli lint -d british -u .harper/dictionary.txt document/*.md document/manu
 markdownlint-cli2 README.md "docs/**/*.md" "document/**/*.md"
 ```
 
+Harper is deliberately scoped to `document/`. Its document dictionary starts
+empty and should contain only names or specialist terms used by the document,
+not vocabulary from Longform Kit's documentation.
+
 Treat prose-linter findings as editorial suggestions, especially in
 quotations and specialist terminology.
 
