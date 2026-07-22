@@ -10,7 +10,8 @@ user-local Zotero/Better BibTeX export. Zettlr is an optional authoring tool.
   `writing/manuscript/metadata.yml`; edit chapter order in
   `writing/manuscript/chapters.yml`.
 - Edit shared project, PDF, and DOCX defaults in root `_quarto.yml`; put
-  committed document-specific rendering overrides in `_quarto-custom.yml`.
+  committed document-specific rendering overrides and optional-feature
+  activation in `_quarto-custom.yml`.
 - Keep the rendered manuscript under `writing/manuscript/`. Use
   `writing/drafts/`, `writing/notes/`, and `writing/planning/` for other
   author-owned writing material.
@@ -49,6 +50,10 @@ user-local Zotero/Better BibTeX export. Zettlr is an optional authoring tool.
   verification command below.
 - Treat project scripts, workflows, Quarto extensions, and Agent Skills as
   executable code. Inspect untrusted changes before running them.
+- Treat core files outside `publishing/features/` and each explicitly listed
+  bundled feature directory as Longform Kit infrastructure. Record ownership
+  separately for every downstream-added feature directory; never infer it from
+  the parent directory.
 
 ## Verification
 
@@ -70,6 +75,7 @@ After build or configuration changes, run:
 
 ```sh
 python3 publishing/tests/test_build.py
+python3 publishing/tests/test_optional_features.py
 quarto run publishing/longform.ts build
 ```
 

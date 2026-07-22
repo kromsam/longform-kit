@@ -41,18 +41,9 @@ format:
     monofont: EB Garamond
     monofontoptions:
       - Numbers=OldStyle
-    # Keep at least two lines of a paragraph together at page boundaries. Set
-    # Bringhurst's page-175 ISO construction through KOMA, preserving any BCOR.
+    # Core PDF typography remains enabled in an unchanged checkout.
     include-in-header:
-      - text: |
-          \usepackage[all]{nowidow}
-          \areaset[current]{140mm}{227mm}
-          % Proportionally scaled notes: 11.4/15.25 text, full-size hanging labels, and
-          % whitespace instead of a separator rule. Normal note splitting stays enabled.
-          \setkomafont{footnote}{\normalfont\fontsize{11.4pt}{15.25pt}\selectfont}
-          \setkomafont{footnotelabel}{\normalfont\fontsize{11.4pt}{15.25pt}\selectfont}
-          \deffootnote[1.5em]{1.5em}{1em}{\thefootnotemark\enskip}
-          \setfootnoterule[0pt]{0pt}
+      - file: publishing/pdf/typography.tex
     classoption: "twoside,openright,BCOR=0mm,fontsize=15.25pt"
   docx:
     reference-doc: publishing/docx/reference.docx
