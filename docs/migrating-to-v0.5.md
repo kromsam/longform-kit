@@ -70,7 +70,11 @@ allows internal changes.
 Search committed files for old commands and paths:
 
 ```sh
-rg -n 'scripts/longform|tests/test_build|document/|references/reference|build/'
+rg -n -e 'quarto run scripts/longform\.ts' \
+  -e 'python3 tests/test_build\.py' \
+  -e 'document/(metadata|chapters|front-matter|manuscript|references)' \
+  -e 'references/reference\.docx' \
+  -e 'output-dir:[[:space:]]*build'
 ```
 
 Update:
@@ -122,4 +126,5 @@ git merge-base --is-ancestor v0.5.0 HEAD
 The build must create non-empty PDF, two-up PDF, DOCX, and combined GFM files
 under `output/`. Inspect both PDFs and the DOCX when the downstream has custom
 rendering. Confirm `writing/.ztr-directory` is ignored, no generated output is
-tracked, and no old path remains outside this guide.
+tracked, and no old operational path remains. Explicit legacy safeguards in
+ignore rules and integration tests may continue to name retired paths.

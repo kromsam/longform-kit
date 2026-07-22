@@ -1,9 +1,8 @@
 # Chapter list
 #
 # The ordered manuscript sources for the book, in reading order. Quarto merges
-# this into `book:` through the `metadata-files` list in the root ../_quarto.yml
-# discovery loader and uses it for every output, citation checks, and Zettlr
-# synchronization.
+# this into `book:` through the `metadata-files` list in root `_quarto.yml` and
+# uses it for every output, citation check, and Zettlr synchronization.
 #
 # Keep root index.md first (it includes writing/manuscript/front-matter.md) and
 # keep writing/manuscript/bibliography.md at the bibliography position,

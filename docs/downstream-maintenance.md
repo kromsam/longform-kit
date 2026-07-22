@@ -55,8 +55,8 @@ than accepting one side across the tree.
 
 | Ownership | Paths | Merge rule |
 | --- | --- | --- |
-| Upstream | `publishing/longform.ts`, `publishing/filters/`, `publishing/docx/`, `publishing/tests/`, root `index.md`, `.agents/skills/`, generic documentation, and generic lint rules | Prefer the released upstream version. Contribute reusable changes to Longform Kit first. |
-| Document | `writing/`, `materials/`, `style/`, downstream `publishing/features/`, archives, submissions, `.harper/dictionary.txt`, and `_quarto-custom.yml` | Preserve the document version. Upstream starter prose and policy do not replace document content. |
+| Upstream | `publishing/longform.ts`, `publishing/filters/`, `publishing/docx/`, `publishing/tests/test_build.py`, generic fixtures under `publishing/tests/fixtures/`, root `index.md`, `.agents/skills/`, generic documentation, and generic lint rules | Prefer the released upstream version. Contribute reusable changes to Longform Kit first. |
+| Document | `writing/`, `materials/`, `style/`, downstream `publishing/features/`, downstream-specific files under `publishing/tests/`, archives, submissions, `.harper/dictionary.txt`, and `_quarto-custom.yml` | Preserve the document version. Upstream starter prose and policy do not replace document content. |
 | Local only | `_quarto.yml.local`, `writing/.ztr-directory`, `output/`, citation exports, and tool caches | Keep ignored and out of every merge and commit. |
 | Merge seams | `_quarto.yml`, `.github/workflows/ci.yml`, `.gitignore`, `README.md`, `AGENTS.md`, and `LICENSE` | Reconcile deliberately. Incorporate compatible upstream machinery while preserving document ownership and licensing. |
 

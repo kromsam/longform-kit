@@ -2,8 +2,8 @@
 #
 # Author-facing information about the manuscript itself: its title, subtitle,
 # author, date, language, and output filename. Quarto merges these values into
-# the project through the `metadata-files` list in the root ../_quarto.yml
-# discovery loader. The chapter list lives in writing/manuscript/chapters.yml.
+# the project through the `metadata-files` list in root `_quarto.yml`. The
+# chapter list lives in writing/manuscript/chapters.yml.
 lang: en-GB
 
 book:

@@ -148,7 +148,7 @@ def copy_project(destination: Path) -> None:
                     ".csl-parents",
                 }
             )
-        elif current == ROOT / "writing":
+        elif current in {ROOT / "document", ROOT / "writing"}:
             ignored.update(name for name in names if name == ".ztr-directory")
         return ignored
 
