@@ -97,17 +97,31 @@ def embedded_fonts(path: Path) -> list[str]:
         return [name for name in archive.namelist() if name.endswith(".odttf")]
 
 
-def remove_defined_styles(path: Path, style_ids: set[str]) -> None:
-    """Model LibreOffice dropping unused locale/user character aliases."""
+def model_known_libreoffice_rewrites(path: Path) -> None:
+    """Model known LibreOffice alias and section-break rewrites."""
 
     with ZipFile(path) as archive:
         parts = {name: archive.read(name) for name in archive.namelist()}
     styles = ET.fromstring(parts["word/styles.xml"])
     for style in list(styles.findall(W("style"))):
-        if style.get(W("styleId")) in style_ids:
+        if style.get(W("styleId")) in {
+            "FootnoteCharactersuser",
+            "Voetnoottekens",
+        }:
             styles.remove(style)
     parts["word/styles.xml"] = ET.tostring(
         styles,
+        encoding="utf-8",
+        xml_declaration=True,
+    )
+    document = ET.fromstring(parts["word/document.xml"])
+    for section in document.findall(f".//{W('sectPr')}"):
+        break_type = section.find(W("type"))
+        if break_type is None:
+            break_type = ET.SubElement(section, W("type"))
+        break_type.set(W("val"), "nextPage")
+    parts["word/document.xml"] = ET.tostring(
+        document,
         encoding="utf-8",
         xml_declaration=True,
     )
@@ -474,10 +488,7 @@ def test_docx_typography() -> None:
 
         aliases = directory / "libreoffice-alias-rewrite.docx"
         shutil.copy2(output, aliases)
-        remove_defined_styles(
-            aliases,
-            {"FootnoteCharactersuser", "Voetnoottekens"},
-        )
+        model_known_libreoffice_rewrites(aliases)
         no_embedding = os.environ.copy()
         no_embedding["LONGFORM_EMBED_DOCX_FONTS"] = "0"
         process(
@@ -491,6 +502,13 @@ def test_docx_typography() -> None:
             "Voetnoottekens",
         }.issubset(alias_styles):
             fail("stabilizer did not restore known LibreOffice note aliases")
+        with ZipFile(aliases) as archive:
+            document = ET.fromstring(archive.read("word/document.xml"))
+        if {
+            section.find(W("type")).get(W("val"))
+            for section in document.findall(f".//{W('sectPr')}")
+        } != {"oddPage"}:
+            fail("stabilizer did not restore odd-page section breaks")
 
         font_environment = os.environ.copy()
         font_environment["LONGFORM_EMBED_DOCX_FONTS"] = "1"

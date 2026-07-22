@@ -1771,7 +1771,8 @@ def _validate_known_toc_rewrites(parts: dict[str, bytes]) -> None:
     """Accept only the narrow presentation rewrites made by LibreOffice.
 
     Writer maps note marks to its built-in superscript alias, removes
-    section-local note restart declarations, and restores separator glyphs.
+    unused note aliases and section-local note restart declarations, restores
+    separator glyphs, and may serialize odd-page breaks as next-page breaks.
     The typography-owned stabilizer repairs those fields after TOC refresh;
     every other layout property remains subject to the strict final check.
     """
@@ -1807,6 +1808,13 @@ def _validate_known_toc_rewrites(parts: dict[str, bytes]) -> None:
 
     document = _xml(parts["word/document.xml"])
     for index, section in enumerate(document.findall(f".//{W('sectPr')}"), 1):
+        break_type = section.find(W("type"))
+        break_value = None if break_type is None else break_type.get(W("val"))
+        if break_value not in {"oddPage", "nextPage"}:
+            raise RuntimeError(
+                "DOCX layout drift in section "
+                f"{index}: unexpected break type {break_value}"
+            )
         footnote_properties = section.find(W("footnotePr"))
         if footnote_properties is None:
             continue
@@ -1843,6 +1851,7 @@ def _restore_known_toc_rewrites(parts: dict[str, bytes]) -> None:
 
     document = _xml(parts["word/document.xml"])
     for section in document.findall(f".//{W('sectPr')}"):
+        _replace_property(section, W("type"), {"val": "oddPage"})
         _configure_section_footnotes(section)
     parts["word/document.xml"] = _xml_bytes(document)
 
