@@ -19,10 +19,10 @@ import xml.etree.ElementTree as ET
 from zipfile import BadZipFile, ZipFile
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 QUARTO = os.environ.get("QUARTO", "quarto")
-LIBRARY = (ROOT / "tests/fixtures/references/library.json").resolve()
-STYLE = (ROOT / "tests/fixtures/references/longform-test-note.csl").resolve()
+LIBRARY = (ROOT / "publishing/tests/fixtures/library.json").resolve()
+STYLE = (ROOT / "publishing/tests/fixtures/longform-test-note.csl").resolve()
 WORD_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 DRAWING_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
 
@@ -128,6 +128,7 @@ def copy_project(destination: Path) -> None:
                     ".git",
                     ".cache",
                     "build",
+                    "output",
                     "_quarto.yml.local",
                     "index.pdf",
                     "index.tex",
@@ -147,7 +148,7 @@ def copy_project(destination: Path) -> None:
                     ".csl-parents",
                 }
             )
-        elif current == ROOT / "document":
+        elif current == ROOT / "writing":
             ignored.update(name for name in names if name == ".ztr-directory")
         return ignored
 
@@ -209,24 +210,24 @@ def write_test_profile(project: Path) -> None:
 
 def write_test_manuscript(project: Path) -> None:
     """Replace the configured manuscript with a self-contained test fixture."""
-    document = project / "document"
-    manuscript = document / "manuscript"
-    introduction = manuscript / "longform-test-introduction.md"
-    conclusion = manuscript / "longform-test-conclusion.md"
-    figure = project / "resources/integration-fixture.png"
-    manuscript.mkdir(parents=True, exist_ok=True)
+    manuscript = project / "writing/manuscript"
+    chapters = manuscript / "chapters"
+    introduction = chapters / "longform-test-introduction.md"
+    conclusion = chapters / "longform-test-conclusion.md"
+    figure = project / "materials/integration-fixture.png"
+    chapters.mkdir(parents=True, exist_ok=True)
     figure.parent.mkdir(exist_ok=True)
     figure.write_bytes(ONE_PIXEL_PNG)
-    (document / "chapters.yml").write_text(
+    (manuscript / "chapters.yml").write_text(
         "book:\n"
         "  chapters:\n"
         "    - index.md\n"
-        "    - document/manuscript/longform-test-introduction.md\n"
-        "    - document/manuscript/longform-test-conclusion.md\n"
-        "    - document/references.md\n",
+        "    - writing/manuscript/chapters/longform-test-introduction.md\n"
+        "    - writing/manuscript/chapters/longform-test-conclusion.md\n"
+        "    - writing/manuscript/bibliography.md\n",
         encoding="utf-8",
     )
-    (document / "front-matter.md").write_text(
+    (manuscript / "front-matter.md").write_text(
         f"> {FRONT_MARKER}\n\n"
         "{{< pagebreak >}}\n",
         encoding="utf-8",
@@ -256,7 +257,7 @@ def write_test_manuscript(project: Path) -> None:
         "```\n\n"
         "This note cites the bibliography fixture [@exampleBook2024, 1-2].\n\n"
         f"Operator extraction fixture: `{GLYPH_MARKER}`.\n\n"
-        f"![{FIGURE_ALT}](/resources/integration-fixture.png)\n",
+        f"![{FIGURE_ALT}](/materials/integration-fixture.png)\n",
         encoding="utf-8",
     )
     conclusion.write_text(
@@ -273,7 +274,7 @@ def write_test_manuscript(project: Path) -> None:
         f"{CONCLUSION_MARKER}\n",
         encoding="utf-8",
     )
-    (document / "references.md").write_text(
+    (manuscript / "bibliography.md").write_text(
         "# Bibliography {.unnumbered}\n\n::: {#refs}\n:::\n",
         encoding="utf-8",
     )
@@ -906,7 +907,7 @@ def assert_docx(path: Path, title: str) -> None:
             QUARTO,
             "pandoc",
             "lua",
-            str(ROOT / "scripts/sanitize-docx.lua"),
+            str(ROOT / "publishing/docx/sanitize.lua"),
             str(path),
             str(sanitized_again),
             cwd=ROOT,
@@ -930,7 +931,7 @@ def assert_headed_front_matter(project: Path) -> None:
             run(
                 *command,
                 "--lua-filter",
-                str(project / "filters/longform-front-matter.lua"),
+                str(project / "publishing/filters/front-matter.lua"),
                 cwd=project,
             )
         )
@@ -1037,22 +1038,24 @@ def assert_zettlr(project: Path, config: dict) -> None:
     run(
         QUARTO,
         "run",
-        "scripts/longform.ts",
+        "publishing/longform.ts",
         "zettlr",
         cwd=project,
         capture=False,
     )
-    generated = project / "document/.ztr-directory"
+    generated = project / "writing/.ztr-directory"
     require_file(generated)
     if generated.is_symlink():
-        fail("document/.ztr-directory must be a generated regular file")
+        fail("writing/.ztr-directory must be a generated regular file")
     payload = json.loads(generated.read_text(encoding="utf-8"))
     zettlr_project = payload.get("project", {})
 
     expected_files: list[Path] = []
     for chapter in config.get("book", {}).get("chapters", []):
         if chapter == "index.md":
-            expected_files.append((project / "document/front-matter.md").resolve())
+            expected_files.append(
+                (project / "writing/manuscript/front-matter.md").resolve()
+            )
         else:
             expected_files.append((project / chapter).resolve())
     actual_files = [
@@ -1072,6 +1075,7 @@ def assert_ignored_generated_files() -> None:
         "_quarto.yml.local",
         "_quarto-profile.local",
         "document/.ztr-directory",
+        "writing/.ztr-directory",
     ):
         result = subprocess.run(
             ["git", "check-ignore", "--no-index", "--quiet", relative],
@@ -1095,7 +1099,7 @@ def test_build() -> None:
         config = assert_configuration(project)
         progress("configuration verified; rendering four outputs")
 
-        build = project / config.get("project", {}).get("output-dir", "build")
+        build = project / config.get("project", {}).get("output-dir", "output")
         output_name = config["book"]["output-file"]
         retired_pdfs = (
             build / f"{output_name}-binding.pdf",
@@ -1108,7 +1112,7 @@ def test_build() -> None:
         run(
             QUARTO,
             "run",
-            "scripts/longform.ts",
+            "publishing/longform.ts",
             "build",
             cwd=project,
             capture=False,

@@ -1,1 +1,1 @@
-{{< include document/front-matter.md >}}
+{{< include writing/manuscript/front-matter.md >}}

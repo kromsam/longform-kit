@@ -5,11 +5,12 @@
 # discovery loader and uses it for every output, citation checks, and Zettlr
 # synchronization.
 #
-# Keep root index.md first (it includes document/front-matter.md) and
-# keep document/references.md at the bibliography position, normally last.
+# Keep root index.md first (it includes writing/manuscript/front-matter.md) and
+# keep writing/manuscript/bibliography.md at the bibliography position,
+# normally last.
 book:
   chapters:
     - index.md
-    - document/manuscript/01-introduction.md
-    - document/manuscript/02-conclusion.md
-    - document/references.md
+    - writing/manuscript/chapters/01-introduction.md
+    - writing/manuscript/chapters/02-conclusion.md
+    - writing/manuscript/bibliography.md

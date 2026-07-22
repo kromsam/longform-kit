@@ -48,6 +48,8 @@
       "**/docs/**",
       "**/extensions/**",
       "**/filters/**",
+      "**/materials/**",
+      "**/publishing/**",
       "**/references/**",
       "**/resources/**",
       "**/scripts/**",
