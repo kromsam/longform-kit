@@ -17,6 +17,10 @@ description: Run and interpret prose linting for a Longform Kit manuscript with 
    markdownlint-cli2 README.md "docs/**/*.md" "document/**/*.md"
    ```
 
+   Harper is manuscript-only: do not run it on `README.md`, `docs/`, or other
+   repository-owned prose, and do not add their terminology to the document
+   dictionary.
+
    `vale sync` is needed after cloning to install the advisory proselint
    package. Report unavailable tools instead of silently treating them as
    passing.
@@ -28,7 +32,7 @@ description: Run and interpret prose linting for a Longform Kit manuscript with 
    keys, language attributes, Quarto shortcodes, conditional Divs, and
    technical terminology.
 5. Add a word to `.harper/dictionary.txt` only when it is accepted terminology
-   or a proper name, not merely to silence a useful warning.
+   or a proper name in the document, not merely to silence a useful warning.
 6. Rerun the relevant linter and inspect the complete diff.
 
 Do not edit generated exports or apply broad automated rewrites to academic

@@ -136,10 +136,10 @@ The Vale house style is under `.vale/styles/Academic/`. Edit those rules when
 the document follows a different spelling, quotation, date, dash, or citation
 policy. `.vale.ini` deliberately keeps proselint at suggestion level.
 
-Harper's live project dictionary is `.harper/dictionary.txt`. Add a term only
-when it is accepted specialist vocabulary or a proper name. The default file
-contains only the toolkit's typography and publishing vocabulary, so the
-template does not impose manuscript-specific language.
+Harper's live document dictionary is `.harper/dictionary.txt`. It is empty in a
+fresh Longform Kit clone. Add a term only when it is accepted specialist
+vocabulary or a proper name in the document. Do not add vocabulary from the
+toolkit's own documentation or apply this dictionary outside `document/`.
 
 Root `.markdownlint.json` extends the Prettier-compatible Markdownlint style.
 Override individual rules there only when the manuscript structure requires

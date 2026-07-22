@@ -18,6 +18,8 @@ user-local Zotero/Better BibTeX export. Zettlr is an optional authoring tool.
   absolute `bibliography` and `csl` paths and must never be committed.
 - Change bibliographic metadata in Zotero, then let the Better CSL JSON
   auto-export update. Never edit that generated JSON by hand.
+- Treat `.harper/dictionary.txt` as document-owned vocabulary. It starts empty;
+  do not add terminology from Longform Kit's own documentation or tooling.
 - Never edit `build/`, `.cache/`, `.quarto/`, or rendered artefacts.
 - `document/.ztr-directory` is optional generated state. Regenerate it with
   `quarto run scripts/longform.ts zettlr`; do not edit or commit it.
@@ -36,6 +38,8 @@ user-local Zotero/Better BibTeX export. Zettlr is an optional authoring tool.
 - Keep figures and attachments outside `document/` and use Quarto project-root
   paths such as `/resources/figure.png` so combined GFM can extract them.
 - Keep routine builds offline and provider-independent.
+- Apply Harper only to sources under `document/`, as shown in the verification
+  command below.
 - Treat project scripts, workflows, Quarto extensions, and Agent Skills as
   executable code. Inspect untrusted changes before running them.
 
