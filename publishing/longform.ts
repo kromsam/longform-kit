@@ -74,6 +74,41 @@ const quarto = Deno.env.get("QUARTO") || "quarto";
 const pdfjam = Deno.env.get("PDFJAM") || "pdfjam";
 const decoder = new TextDecoder();
 
+type CommandOptions = {
+  cwd?: string;
+  env?: Record<string, string>;
+};
+
+async function runCommand(
+  executable: string,
+  args: string[],
+  label: string,
+  options: CommandOptions = {},
+): Promise<string> {
+  let result: Deno.CommandOutput;
+  try {
+    result = await new Deno.Command(executable, {
+      args,
+      cwd: options.cwd || projectDir,
+      env: options.env,
+      stdout: "piped",
+      stderr: "piped",
+    }).output();
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) {
+      throw new Error(`${executable} is required to ${label}`);
+    }
+    throw error;
+  }
+  const stdout = decoder.decode(result.stdout);
+  const stderr = decoder.decode(result.stderr);
+  if (!result.success) {
+    const detail = [stderr.trim(), stdout.trim()].filter(Boolean).join("\n");
+    throw new Error(detail || `${executable} failed to ${label}`);
+  }
+  return stdout;
+}
+
 async function runQuarto(
   args: string[],
   options: {
@@ -267,6 +302,54 @@ async function renderNative(
   }
   await requireOutput(output);
   return output;
+}
+
+function veraPdfProfiles(config: Json): string[] {
+  const pdf = object(object(config.format).pdf);
+  const standards = strings(pdf["pdf-standard"]);
+  const profiles: string[] = [];
+  for (const standard of standards) {
+    const normalized = standard.trim().toLowerCase();
+    const archival = /^a-(1a|1b|2a|2b|2u|3a|3b|3u|4|4e|4f)$/.exec(
+      normalized,
+    );
+    if (archival) profiles.push(archival[1]);
+    const accessible = /^ua-([12])$/.exec(normalized);
+    if (accessible) profiles.push(`ua${accessible[1]}`);
+  }
+  return [...new Set(profiles)];
+}
+
+async function validatePdfStandards(
+  path: string,
+  profiles: string[],
+): Promise<void> {
+  if (Deno.env.get("LONGFORM_VALIDATE_PDF") !== "1") return;
+  if (profiles.length === 0) {
+    throw new Error(
+      "LONGFORM_VALIDATE_PDF=1 requires a configured PDF/A or PDF/UA standard",
+    );
+  }
+
+  const verifier = Deno.env.get("QUARTO_VERAPDF") || "verapdf";
+  for (const profile of profiles) {
+    console.log(`Validating PDF with veraPDF profile ${profile}`);
+    const output = await runCommand(
+      verifier,
+      ["-f", profile, path],
+      `validate PDF profile ${profile}`,
+    );
+    const results = [...output.matchAll(/isCompliant=["'](true|false)["']/g)]
+      .map((match) => match[1] === "true");
+    if (results.length === 0) {
+      throw new Error(
+        `veraPDF profile ${profile} returned no isCompliant result`,
+      );
+    }
+    if (results.some((result) => !result)) {
+      throw new Error(`veraPDF validation failed for profile ${profile}`);
+    }
+  }
 }
 
 async function imposeTwoUp(
@@ -470,6 +553,7 @@ async function build(): Promise<void> {
       join(stage, "pdf"),
       `${base}.pdf`,
     );
+    await validatePdfStandards(pdf, veraPdfProfiles(config));
     const twoUp = await imposeTwoUp(
       pdf,
       join(stage, "pdf-2up", `${twoUpBase}.pdf`),

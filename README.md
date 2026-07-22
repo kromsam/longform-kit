@@ -10,17 +10,19 @@ quarto run publishing/longform.ts build
 
 Every build creates a PDF, a two-up PDF, a DOCX file, and one combined GitHub
 Flavoured Markdown file. The default publication design uses EB Garamond,
-mirrored A4 pages, an exact KOMA-Script type area, and typographic settings
-suited to long-form prose. See [`style/typography.md`](style/typography.md) for
-the design policy and [Configure and build](docs/configuration-and-building.md)
-for its implementation.
+mirrored A4 pages, an exact KOMA-Script type area, and PDF/A-4f for the one-up
+publication PDF. See [`style/typography.md`](style/typography.md) for the design
+policy and [Configure and build](docs/configuration-and-building.md) for its
+implementation.
 
 ## Requirements
 
 - Quarto 1.9.x
-- A TeX distribution with LuaLaTeX and the `ebgaramond` and `nowidow`
-  packages, such as TeX Live or MacTeX
+- A TeX distribution no older than June 2025, with LuaLaTeX and the
+  `ebgaramond`, `etoolbox`, `microtype`, `nowidow`,
+  `pdfmanagement-testphase`, and `tagpdf` packages
 - `pdfjam` from TeX Live for the two-up PDF
+- Java 21 and veraPDF only for strict release validation
 - Zotero with Better BibTeX for citation-library exports
 - Zettlr if you want the optional writing interface
 - Vale, Harper, or Markdownlint if you want prose and Markdown checks
@@ -144,12 +146,27 @@ output/longform-document.docx
 output/longform-document.md
 ```
 
-The PDF and DOCX are native Quarto book renders. The two-up PDF is imposed from
-the PDF with a leading blank slot so rectos appear on the right. Print it at
-one PDF page per A4 sheet without applying another pages-per-sheet setting.
+The PDF and DOCX are native Quarto book renders. The one-up PDF targets
+PDF/A-4f. The two-up PDF is imposed from it with a leading blank slot so rectos
+appear on the right, but the imposed derivative makes no PDF/A or PDF/UA claim.
+Print it at one PDF page per A4 sheet without applying another pages-per-sheet setting.
 The combined Markdown edition resolves citations, shortcodes, includes,
 conditional content, and referenced media before it is written. LaTeX is an
 internal PDF concern, not a public output.
+
+Strict PDF validation is explicit and offline after the validator is
+installed:
+
+```sh
+LONGFORM_VALIDATE_PDF=1 \
+  QUARTO_VERAPDF=/absolute/path/to/verapdf \
+  quarto run publishing/longform.ts build
+```
+
+The build then fails unless the one-up PDF passes the configured veraPDF
+profile. Routine builds do not require veraPDF. See the
+[PDF standards compatibility note](publishing/pdf/standards/README.md) for the
+non-tagging KOMA path and the future PDF/UA adoption gate.
 
 ## Optional Tools
 

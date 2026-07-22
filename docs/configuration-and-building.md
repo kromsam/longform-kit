@@ -80,9 +80,10 @@ into `_quarto-custom.yml`. See the
 [optional-feature catalogue](../publishing/features/README.md).
 
 The starter PDF uses KOMA-Script's exact 140 by 227 mm type area on mirrored A4
-pages, approximately 15.25/19.3 EB Garamond body typography, subordinate
-footnotes, and two-line widow and orphan control. The second PDF preserves
-these pages and places two consecutive pages on each landscape A4 sheet. Read
+pages, approximately 15.25/19.3 EB Garamond body typography, 12.7/16 notes,
+microtype, and two-line widow and orphan control. Its one-up publication target
+is PDF/A-4f. The second PDF preserves these pages and places two consecutive
+pages on each landscape A4 sheet, but makes no PDF/A or PDF/UA claim. Read
 `style/typography.md` for the design policy and
 [Customize the project](customization.md) before changing the implementation.
 
@@ -120,6 +121,13 @@ and `when-format="gfm"` conditionals.
 
 Plain `quarto render` is useful for diagnosis but is not the production build:
 it does not create the imposed PDF and combined Markdown edition in one run.
+
+A release can make one-up validation fail closed by setting
+`LONGFORM_VALIDATE_PDF=1`; the build then requires veraPDF through
+`QUARTO_VERAPDF` or `PATH` and validates the profiles declared by the effective
+`pdf-standard` configuration. Routine builds do not invoke the validator. The
+KOMA-compatible PDF-management override and future PDF/UA route are documented
+in [`publishing/pdf/standards/README.md`](../publishing/pdf/standards/README.md).
 
 ## Check The Result
 

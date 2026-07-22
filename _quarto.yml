@@ -41,9 +41,24 @@ format:
     monofont: EB Garamond
     monofontoptions:
       - Numbers=OldStyle
-    # Core PDF typography remains enabled in an unchanged checkout.
+    # Core PDF composition. Downstream profiles may union-add compatible
+    # standards, but must not replace or disable the archival default.
+    pdf-standard:
+      - a-4f
+    microtypeoptions:
+      - protrusion=true
+      - expansion=true
+      - tracking=false
+      - kerning=false
+      - spacing=false
+      - stretch=20
+      - shrink=20
+      - step=1
+      - verbose=true
     include-in-header:
       - file: publishing/pdf/typography.tex
+    template-partials:
+      - publishing/pdf/standards/document-metadata.latex
     classoption: "twoside,openright,BCOR=0mm,fontsize=15.25pt"
   docx:
     reference-doc: publishing/docx/reference.docx
