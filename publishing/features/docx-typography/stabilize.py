@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Restore deterministic publication OOXML after optional external rewriting.
+"""Restore deterministic publication OOXML after an optional TOC refresh.
 
 The shared transform is deliberately idempotent, so this hook is safe both
-after preparation alone and when an office suite rewrote styles,
-relationships, section properties, or embedded font parts.
+when refresh.py was a no-op and when LibreOffice rewrote styles, relationships,
+section properties, or embedded font parts.
 """
 
 from pathlib import Path

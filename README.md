@@ -27,6 +27,8 @@ implementation.
   enabled with `LONGFORM_EMBED_DOCX_FONTS=1`; set the absolute
   `LONGFORM_EB_GARAMOND_DIR` when they are not at the documented system path
 - Java 21 and veraPDF only for strict release validation
+- LibreOffice Writer with Python UNO only when cached DOCX contents entries and
+  page numbers are refreshed explicitly
 - Zotero with Better BibTeX for citation-library exports
 - Zettlr if you want the optional writing interface
 - Vale, Harper, or Markdownlint if you want prose and Markdown checks
@@ -137,8 +139,9 @@ and are activated only through a copied `_quarto-custom.yml` snippet.
 The [optional-feature catalogue](publishing/features/README.md) defines the
 documentation, activation, compatibility, failure, verification, ownership,
 and licence contract for every bundled feature. It includes academic-title-page
-semantic-epigraph, and DOCX-typography features. An empty custom profile
-enables none of them.
+semantic-epigraph, DOCX-typography, and DOCX-TOC features. An empty custom
+profile enables none of them. The DOCX-TOC feature remains inert even after
+activation unless `LONGFORM_REFRESH_DOCX_TOC=1` is set.
 
 ## Outputs
 
@@ -175,6 +178,16 @@ non-tagging KOMA path and the future PDF/UA adoption gate.
 
 ## Optional Tools
 
+For a final DOCX whose live table of contents also contains refreshed cached
+entries and page numbers, install LibreOffice Writer and Python UNO, activate
+the DOCX TOC feature, and run the build with its explicit opt-in:
+
+```sh
+LONGFORM_REFRESH_DOCX_TOC=1 quarto run publishing/longform.ts build
+```
+
+Routine builds do not require LibreOffice.
+
 Regenerate the ignored Zettlr project after changing metadata or chapter
 order:
 
@@ -207,4 +220,5 @@ editorial suggestions, especially in quotations and specialist terminology.
 - [Customize the project](docs/customization.md)
 - [Optional publishing features](publishing/features/README.md)
 - [Maintain a tracked downstream](docs/downstream-maintenance.md)
+- [Migrate to v0.6](docs/migrating-to-v0.6.md)
 - [Migrate to v0.5](docs/migrating-to-v0.5.md)

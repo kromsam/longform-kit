@@ -10,7 +10,7 @@ import subprocess
 import sys
 import tempfile
 from xml.etree import ElementTree as ET
-from zipfile import ZipFile
+from zipfile import ZIP_DEFLATED, ZipFile
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -95,6 +95,45 @@ def defined_styles(path: Path) -> set[str]:
 def embedded_fonts(path: Path) -> list[str]:
     with ZipFile(path) as archive:
         return [name for name in archive.namelist() if name.endswith(".odttf")]
+
+
+def model_known_libreoffice_rewrites(path: Path) -> None:
+    """Model known LibreOffice alias and section-break rewrites."""
+
+    with ZipFile(path) as archive:
+        parts = {name: archive.read(name) for name in archive.namelist()}
+    styles = ET.fromstring(parts["word/styles.xml"])
+    for style in list(styles.findall(W("style"))):
+        if style.get(W("styleId")) in {
+            "FootnoteCharactersuser",
+            "Voetnoottekens",
+        }:
+            styles.remove(style)
+    parts["word/styles.xml"] = ET.tostring(
+        styles,
+        encoding="utf-8",
+        xml_declaration=True,
+    )
+    document = ET.fromstring(parts["word/document.xml"])
+    sections = document.findall(f".//{W('sectPr')}")
+    for section in sections:
+        break_type = section.find(W("type"))
+        if break_type is None:
+            break_type = ET.SubElement(section, W("type"))
+        break_type.set(W("val"), "nextPage")
+    if len(sections) > 1:
+        margins = sections[1].find(W("pgMar"))
+        if margins is None:
+            margins = ET.SubElement(sections[1], W("pgMar"))
+        margins.set(W("bottom"), "887")
+    parts["word/document.xml"] = ET.tostring(
+        document,
+        encoding="utf-8",
+        xml_declaration=True,
+    )
+    with ZipFile(path, "w", compression=ZIP_DEFLATED) as archive:
+        for name, data in parts.items():
+            archive.writestr(name, data)
 
 
 def render_docx(
@@ -395,6 +434,8 @@ def run_typography_pipeline(
     directory: Path,
     chapter_count: int,
     integrations: bool,
+    *,
+    stabilize: bool = True,
 ) -> Path:
     filters: tuple[Path, ...] = ()
     if integrations:
@@ -423,11 +464,12 @@ def run_typography_pipeline(
     process(FEATURES / "docx-typography/prepare.py", output, environment)
     if output.read_bytes() != prepared:
         fail("DOCX typography preparation is not idempotent")
-    process(FEATURES / "docx-typography/stabilize.py", output, environment)
-    stabilized = output.read_bytes()
-    process(FEATURES / "docx-typography/stabilize.py", output, environment)
-    if output.read_bytes() != stabilized:
-        fail("DOCX typography stabilization is not idempotent")
+    if stabilize:
+        process(FEATURES / "docx-typography/stabilize.py", output, environment)
+        stabilized = output.read_bytes()
+        process(FEATURES / "docx-typography/stabilize.py", output, environment)
+        if output.read_bytes() != stabilized:
+            fail("DOCX typography stabilization is not idempotent")
     if embedded_fonts(output):
         fail("DOCX typography embedded fonts without explicit opt-in")
     return output
@@ -449,6 +491,31 @@ def test_docx_typography() -> None:
 
         if output is None:
             fail("DOCX typography fixture was not rendered")
+
+        aliases = directory / "libreoffice-alias-rewrite.docx"
+        shutil.copy2(output, aliases)
+        model_known_libreoffice_rewrites(aliases)
+        no_embedding = os.environ.copy()
+        no_embedding["LONGFORM_EMBED_DOCX_FONTS"] = "0"
+        process(
+            FEATURES / "docx-typography/stabilize.py",
+            aliases,
+            no_embedding,
+        )
+        alias_styles = defined_styles(aliases)
+        if not {
+            "FootnoteCharactersuser",
+            "Voetnoottekens",
+        }.issubset(alias_styles):
+            fail("stabilizer did not restore known LibreOffice note aliases")
+        with ZipFile(aliases) as archive:
+            document = ET.fromstring(archive.read("word/document.xml"))
+        if {
+            section.find(W("type")).get(W("val"))
+            for section in document.findall(f".//{W('sectPr')}")
+        } != {"oddPage"}:
+            fail("stabilizer did not restore odd-page section breaks")
+
         font_environment = os.environ.copy()
         font_environment["LONGFORM_EMBED_DOCX_FONTS"] = "1"
         embedded = directory / "embedded.docx"
@@ -517,6 +584,61 @@ def test_docx_typography() -> None:
             fail("font checksum failure was not fail-closed and atomic")
 
 
+def test_docx_toc() -> None:
+    script = FEATURES / "docx-toc/refresh.py"
+    environment = os.environ.copy()
+    environment.pop("LONGFORM_REFRESH_DOCX_TOC", None)
+    environment["QUARTO_PROJECT_OUTPUT_FILES"] = "missing.docx"
+    run([sys.executable, str(script)], cwd=ROOT, environment=environment)
+
+    enabled = environment.copy()
+    enabled["LONGFORM_REFRESH_DOCX_TOC"] = "1"
+    enabled["PATH"] = ""
+    result = run(
+        [sys.executable, str(script)],
+        cwd=ROOT,
+        environment=enabled,
+        success=False,
+    )
+    if "requires LibreOffice" not in result.stdout:
+        fail("enabled TOC refresh did not fail clearly without LibreOffice")
+
+    if os.environ.get("LONGFORM_TEST_DOCX_REFRESH") == "1":
+        with tempfile.TemporaryDirectory(prefix="longform-docx-toc-") as area:
+            directory = Path(area)
+            output = run_typography_pipeline(
+                directory,
+                2,
+                True,
+                stabilize=False,
+            )
+            refresh_environment = os.environ.copy()
+            refresh_environment["LONGFORM_REFRESH_DOCX_TOC"] = "1"
+            refresh_environment["LONGFORM_EMBED_DOCX_FONTS"] = "0"
+            refresh_environment["QUARTO_PROJECT_OUTPUT_FILES"] = output.name
+            run(
+                [sys.executable, str(script)],
+                cwd=directory,
+                environment=refresh_environment,
+            )
+            process(
+                FEATURES / "docx-typography/stabilize.py",
+                output,
+                refresh_environment,
+            )
+            stabilized = output.read_bytes()
+            process(
+                FEATURES / "docx-typography/stabilize.py",
+                output,
+                refresh_environment,
+            )
+            if output.read_bytes() != stabilized:
+                fail("post-LibreOffice stabilization is not idempotent")
+            with ZipFile(output) as archive:
+                if corrupt := archive.testzip():
+                    fail(f"LibreOffice refresh corrupted {corrupt}")
+
+
 def test_failure_behaviour() -> None:
     scripts = (
         FEATURES / "academic-title-page/docx.py",
@@ -550,6 +672,7 @@ TESTS = {
     "epigraph": test_epigraph,
     "combined": test_combined,
     "docx-typography": test_docx_typography,
+    "docx-toc": test_docx_toc,
     "failure-behaviour": test_failure_behaviour,
 }
 

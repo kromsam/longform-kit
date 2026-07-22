@@ -1771,15 +1771,36 @@ def _validate_known_toc_rewrites(parts: dict[str, bytes]) -> None:
     """Accept only the narrow presentation rewrites made by LibreOffice.
 
     Writer maps note marks to its built-in superscript alias, removes
-    section-local note restart declarations, and restores separator glyphs.
-    The typography-owned stabilizer repairs those fields after TOC refresh;
-    every other layout property remains subject to the strict final check.
+    unused note aliases and section-local note restart declarations, restores
+    separator glyphs, may serialize odd-page breaks as next-page breaks, and
+    may substitute its 887-twip page-style bottom margin. The typography-owned
+    stabilizer repairs those fields after TOC refresh; every other layout
+    property remains subject to the strict final check.
     """
 
     styles = _xml(parts["word/styles.xml"])
+    defined_style_ids = {
+        style.get(W("styleId"), "") for style in styles.findall(W("style"))
+    }
+    footnotes = _xml(parts["word/footnotes.xml"])
+    for reference in footnotes.findall(
+        f".//{W('footnoteRef')}/../{W('rPr')}/{W('rStyle')}"
+    ):
+        style_id = reference.get(W("val"), "")
+        if style_id not in defined_style_ids:
+            raise RuntimeError(
+                f"DOCX layout drift: note references missing style {style_id}"
+            )
     expected = (NOTE_SIZE, None)
     expected_with_baseline = {expected, (NOTE_SIZE, "baseline")}
-    for style_id in ("FootnoteLabel", "FootnoteCharactersuser", "Voetnoottekens"):
+    if _note_label_state(styles, "FootnoteLabel") not in expected_with_baseline:
+        raise RuntimeError("DOCX layout drift in FootnoteLabel")
+    # LibreOffice may discard unused locale/user aliases while retaining the
+    # canonical style referenced by every rendered note. Their absence is a
+    # known rewrite; when present, their metrics remain strictly checked.
+    for style_id in ("FootnoteCharactersuser", "Voetnoottekens"):
+        if _style(styles, style_id) is None:
+            continue
         if _note_label_state(styles, style_id) not in expected_with_baseline:
             raise RuntimeError(f"DOCX layout drift in {style_id}")
     characters_state = _note_label_state(styles, "FootnoteCharacters")
@@ -1788,6 +1809,38 @@ def _validate_known_toc_rewrites(parts: dict[str, bytes]) -> None:
 
     document = _xml(parts["word/document.xml"])
     for index, section in enumerate(document.findall(f".//{W('sectPr')}"), 1):
+        break_type = section.find(W("type"))
+        break_value = None if break_type is None else break_type.get(W("val"))
+        if break_value not in {"oddPage", "nextPage"}:
+            raise RuntimeError(
+                "DOCX layout drift in section "
+                f"{index}: unexpected break type {break_value}"
+            )
+        margins = section.find(W("pgMar"))
+        expected_margins = {
+            "top": TOP_MARGIN,
+            "right": OUTER_MARGIN,
+            "bottom": BOTTOM_MARGIN,
+            "left": INNER_MARGIN,
+        }
+        libreoffice_margins = {
+            **expected_margins,
+            "bottom": "887",
+        }
+        actual_margins = (
+            {}
+            if margins is None
+            else {
+                name: margins.get(W(name))
+                for name in expected_margins
+            }
+        )
+        if actual_margins not in (expected_margins, libreoffice_margins):
+            raise RuntimeError(
+                "DOCX layout drift: section "
+                f"{index} has unexpected pre-stabilization margins "
+                f"{actual_margins}"
+            )
         footnote_properties = section.find(W("footnotePr"))
         if footnote_properties is None:
             continue
@@ -1824,6 +1877,11 @@ def _restore_known_toc_rewrites(parts: dict[str, bytes]) -> None:
 
     document = _xml(parts["word/document.xml"])
     for section in document.findall(f".//{W('sectPr')}"):
+        _replace_property(section, W("type"), {"val": "oddPage"})
+        margins = section.find(W("pgMar"))
+        if margins is None:
+            raise RuntimeError("DOCX layout drift: section margins are missing")
+        margins.set(W("bottom"), BOTTOM_MARGIN)
         _configure_section_footnotes(section)
     parts["word/document.xml"] = _xml_bytes(document)
 
@@ -2016,11 +2074,19 @@ def _validate_layout(parts: dict[str, bytes]) -> None:
             "bottom": BOTTOM_MARGIN,
             "left": INNER_MARGIN,
         }
-        if margins is None or any(
-            margins.get(W(name)) != value for name, value in expected_margins.items()
-        ):
+        actual_margins = (
+            {}
+            if margins is None
+            else {
+                name: margins.get(W(name))
+                for name in expected_margins
+            }
+        )
+        if actual_margins != expected_margins:
             raise RuntimeError(
-                f"DOCX layout drift: section {index + 1} margins changed"
+                "DOCX layout drift: section "
+                f"{index + 1} margins changed; expected "
+                f"{expected_margins}, found {actual_margins}"
             )
         footer_types = {
             item.get(W("type")) for item in section.findall(W("footerReference"))

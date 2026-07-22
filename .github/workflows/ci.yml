@@ -74,7 +74,8 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install --yes poppler-utils
+          sudo apt-get install --yes \
+            libreoffice-writer poppler-utils python3-uno
 
       - name: Install PDF inspection tools (macOS)
         if: runner.os == 'macOS'
@@ -113,3 +114,9 @@ jobs:
         run: |
           python3 publishing/tests/test_optional_features.py
           python3 publishing/tests/test_build.py
+
+      - name: Exercise real LibreOffice/UNO TOC refresh (Linux)
+        if: runner.os == 'Linux'
+        env:
+          LONGFORM_TEST_DOCX_REFRESH: "1"
+        run: python3 publishing/tests/test_optional_features.py docx-toc
