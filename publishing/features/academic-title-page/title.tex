@@ -1,0 +1,75 @@
+$-- Optional academic PDF title block. Quarto invokes \maketitle after \frontmatter.
+$if(title)$
+\title{$title$$if(thanks)$\thanks{$thanks$}$endif$}
+$endif$
+$if(subtitle)$
+\subtitle{$subtitle$}
+$endif$
+\author{$for(authors)$$it.name.literal$$sep$ \and $endfor$}
+\date{$date$}
+
+\makeatletter
+
+% Under an active PDF/UA tagging layer, the visible document title receives
+% the PDF 2.0 Title structure type; ordinary title-page lines remain tagged
+% paragraphs in their visual/read order.  pdfmanagement loads tagpdf-base,
+% whose public structure commands exist but are deliberately inert, so test
+% active tagging rather than merely testing whether a command is defined.
+\ExplSyntaxOn
+\NewDocumentCommand{\LongformTaggedTitle}{m}{%
+  \tag_if_active:TF
+  {%
+    \tagstructbegin{tag=Title}#1\par\tagstructend
+  }{%
+    #1\par
+  }%
+}
+\ExplSyntaxOff
+
+\newcommand*{\LongformAcademicTitlePage}{%
+  \begin{titlepage}%
+    \thispagestyle{empty}%
+    \centering
+    \setlength{\parindent}{0pt}%
+    \vspace*{.08\textheight}%
+
+    $if(title)$
+    {\normalfont\LongformSemibold\fontsize{27.5pt}{31.5pt}\selectfont
+      \LongformTaggedTitle{$title$}}%
+    $endif$
+    $if(subtitle)$
+    \vspace{9.65pt}%
+    {\normalfont\itshape\fontsize{17.3pt}{21pt}\selectfont
+      % Metadata may retain Markdown emphasis; the title-page style itself is
+      % italic, so prevent nested \emph from toggling it back to roman.
+      \let\emph\@firstofone
+      $subtitle$\par}%
+    $endif$
+
+    \vfill
+
+    {\normalfont\fontsize{18pt}{22pt}\selectfont
+      $for(authors)$$it.name.literal$\par$endfor$}%
+    $if(academic-title-page.student-number)$
+    \vspace{9.65pt}%
+    {\normalfont\fontsize{15.25pt}{19.3pt}\selectfont
+      $academic-title-page.labels.student-number$:\enspace
+      {\addfontfeatures{RawFeature={+lnum,+tnum}}$academic-title-page.student-number$}\par}%
+    $endif$
+
+    \vspace{19.3pt}%
+    {\normalfont\fontsize{15.25pt}{19.3pt}\selectfont
+      $if(academic-title-page.degree)$$academic-title-page.degree$\par$endif$
+      $if(academic-title-page.supervisor)$$academic-title-page.labels.supervisor$ $academic-title-page.supervisor$\par$endif$}%
+
+    \vfill
+
+    {\normalfont\fontsize{15.25pt}{19.3pt}\selectfont
+      $if(date)$$date$\par$endif$
+      $if(academic-title-page.institute)$$academic-title-page.institute$\par$endif$}%
+    \vspace*{.04\textheight}%
+  \end{titlepage}%
+}
+
+\renewcommand*{\maketitle}{\LongformAcademicTitlePage}
+\makeatother

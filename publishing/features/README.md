@@ -32,7 +32,29 @@ activatable features, and must document that status in their own README.
 
 ## Catalogue
 
-No optional features are bundled yet.
+- `academic-title-page`: PDF composition plus independent DOCX fields and
+  styles.
+- `epigraph`: semantic front and chapter epigraphs across outputs.
+
+## Academic Title Page And Epigraph
+
+Copy this complete snippet to activate both features in their supported order:
+
+```yaml
+project:
+  post-render:
+    - publishing/features/academic-title-page/docx.py
+    - publishing/features/epigraph/docx.py
+filters:
+  - publishing/features/academic-title-page/filter.lua
+  - publishing/features/epigraph/filter.lua
+format:
+  pdf:
+    include-in-header:
+      - file: publishing/features/epigraph/pdf.tex
+    template-partials:
+      - publishing/features/academic-title-page/title.tex
+```
 
 Bundled generalized features are MIT-licensed Longform Kit infrastructure. A
 downstream repository may add author-owned feature directories, but it must

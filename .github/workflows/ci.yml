@@ -47,7 +47,7 @@ jobs:
       - name: Install PDF typography, standards, and imposition packages
         run: >-
           tlmgr install
-          ebgaramond etoolbox microtype nowidow
+          ebgaramond epigraph etoolbox microtype nowidow
           tagpdf
           pdfjam pdfpages
 

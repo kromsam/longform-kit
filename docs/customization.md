@@ -76,6 +76,10 @@ generated DOCX under `output/`.
 
 ## Add A Publishing Feature
 
+A bundled feature must be activated with the complete snippet in the
+[optional-feature catalogue](../publishing/features/README.md). Longform Kit
+does not auto-discover feature directories.
+
 A downstream-specific title page, epigraph, post-processor, or similar feature
 is executable publication code. Keep its files together under a descriptive
 directory such as `publishing/features/epigraph/`, rather than mixing them into
@@ -84,7 +88,8 @@ directory such as `publishing/features/epigraph/`, rather than mixing them into
 Register the feature from `_quarto-custom.yml`. Use `publishing/filters/` only
 for filters that are part of the generic Longform Kit build. Keep feature tests
 under `publishing/tests/` and exercise every public output that the feature
-affects.
+affects. Give each downstream-added directory its own README and explicit
+ownership; never infer ownership from the `publishing/features/` parent.
 
 For an external Quarto extension, install it from the project root:
 
