@@ -22,7 +22,7 @@ implementation.
   `ebgaramond`, `etoolbox`, `microtype`, `nowidow`, and `tagpdf` packages;
   PDF management is supplied by the LaTeX core
 - The LaTeX `epigraph` package when the bundled epigraph feature is enabled
-- `pdfjam` from TeX Live and qpdf for the two-up PDF
+- `pdfjam` from TeX Live and qpdf 11.10 or newer for the two-up PDF
 - EB Garamond 1.001 OTF files only when DOCX font embedding is explicitly
   enabled with `LONGFORM_EMBED_DOCX_FONTS=1`; set the absolute
   `LONGFORM_EB_GARAMOND_DIR` when they are not at the documented system path

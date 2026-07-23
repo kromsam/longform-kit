@@ -75,11 +75,33 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes \
-            libreoffice-writer poppler-utils python3-uno qpdf
+            libreoffice-writer poppler-utils python3-uno
 
       - name: Install PDF inspection tools (macOS)
         if: runner.os == 'macOS'
         run: brew install poppler qpdf
+
+      - name: Install compatible qpdf (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=12.3.2
+          archive="$RUNNER_TEMP/qpdf-$version-bin-linux-x86_64.zip"
+          expected=44f2c53bf784c0143128d80d2b9946e9793962c5bb403b75c0024cb4d8e346b9
+          curl --fail --location --silent --show-error \
+            "https://github.com/qpdf/qpdf/releases/download/v$version/qpdf-$version-bin-linux-x86_64.zip" \
+            --output "$archive"
+          actual="$(openssl dgst -sha256 "$archive" | awk '{print $NF}')"
+          if [ "$actual" != "$expected" ]; then
+            echo "qpdf archive checksum mismatch" >&2
+            exit 1
+          fi
+          destination="$RUNNER_TEMP/qpdf-$version"
+          unzip -q "$archive" -d "$destination"
+          qpdf="$destination/bin/qpdf"
+          "$qpdf" --version
+          echo "QPDF=$qpdf" >> "$GITHUB_ENV"
 
       - name: Install veraPDF
         run: quarto install verapdf --no-prompt

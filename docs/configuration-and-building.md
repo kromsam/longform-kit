@@ -126,7 +126,9 @@ and `when-format="gfm"` conditionals.
 Plain `quarto render` is useful for diagnosis but is not the production build:
 it does not create the imposed PDF and combined Markdown edition in one run.
 
-`PDFJAM`, `QPDF`, and `LUALATEX` may name alternate executables.
+qpdf 11.10 or newer is required because earlier releases cannot resolve every
+outline destination emitted by current LaTeX PDF management. `PDFJAM`, `QPDF`,
+and `LUALATEX` may name alternate executables.
 
 A release can make one-up validation fail closed by setting
 `LONGFORM_VALIDATE_PDF=1`; the build then requires veraPDF through

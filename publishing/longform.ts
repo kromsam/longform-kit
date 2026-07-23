@@ -386,6 +386,20 @@ function collectPdfOutlines(
 }
 
 async function readPdfOutlines(path: string): Promise<PdfOutline[]> {
+  const version = await runCommand(
+    qpdf,
+    ["--version"],
+    "check qpdf outline support",
+  );
+  const match = /\bqpdf version (\d+)\.(\d+)(?:\.\d+)?\b/.exec(version);
+  if (
+    !match || Number(match[1]) < 11 ||
+    (Number(match[1]) === 11 && Number(match[2]) < 10)
+  ) {
+    throw new Error(
+      `${qpdf} 11.10 or newer is required to read PDF bookmarks reliably`,
+    );
+  }
   const output = await runCommand(
     qpdf,
     ["--json", "--json-key=outlines", path],

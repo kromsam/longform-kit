@@ -23,6 +23,7 @@ from zipfile import BadZipFile, ZipFile
 
 ROOT = Path(__file__).resolve().parents[2]
 QUARTO = os.environ.get("QUARTO", "quarto")
+QPDF = os.environ.get("QPDF", "qpdf")
 LIBRARY = (ROOT / "publishing/tests/fixtures/library.json").resolve()
 STYLE = (ROOT / "publishing/tests/fixtures/longform-test-note.csl").resolve()
 WORD_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
@@ -105,7 +106,7 @@ def require_tools() -> None:
         QUARTO,
         "git",
         "pdfjam",
-        "qpdf",
+        QPDF,
         "lualatex",
         "pdffonts",
         "pdfinfo",
@@ -280,7 +281,7 @@ def write_tool_shims(project: Path) -> tuple[dict[str, str], Path, Path]:
     qpdf_marker = directory / "qpdf-invocations.txt"
     verapdf_marker = directory / "verapdf-invocations.txt"
 
-    qpdf_path = shutil.which("qpdf")
+    qpdf_path = shutil.which(QPDF)
     if qpdf_path is None:
         fail("missing required command: qpdf")
     qpdf_shim = directory / "qpdf override"
@@ -838,7 +839,7 @@ def pdf_info_fields(path: Path) -> dict[str, str]:
 
 
 def qpdf_payload(path: Path, *keys: str) -> dict:
-    arguments = ["qpdf", "--json"]
+    arguments = [QPDF, "--json"]
     arguments.extend(f"--json-key={key}" for key in keys)
     arguments.append(str(path.resolve()))
     return json.loads(run(*arguments, cwd=path.parent))
@@ -1570,6 +1571,8 @@ def test_build() -> None:
             env=build_environment,
         )
         qpdf_invocations = qpdf_marker.read_text(encoding="utf-8")
+        if re.search(r"(?m)^--version$", qpdf_invocations) is None:
+            fail("build did not check the configured qpdf version")
         if "--json --json-key=outlines" not in qpdf_invocations:
             fail("build did not use the QPDF override to read source bookmarks")
         verapdf_invocations = verapdf_marker.read_text(encoding="utf-8")
