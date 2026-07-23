@@ -160,7 +160,8 @@ appear on the right. It retains discovery metadata, document language, and
 bookmarks remapped to the imposed sheets, but remains untagged and makes no
 PDF/A or PDF/UA claim. Print it at one PDF page per A4 sheet without applying
 another pages-per-sheet setting.
-The combined Markdown edition resolves citations, shortcodes, includes,
+The combined Markdown edition begins with discovery metadata and a visible
+document title and subtitle. It resolves citations, shortcodes, includes,
 conditional content, and referenced media before it is written. LaTeX is an
 internal PDF concern, not a public output.
 
