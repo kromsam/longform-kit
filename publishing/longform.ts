@@ -72,6 +72,8 @@ const scriptPath = Deno.build.os === "windows"
 const projectDir = dirname(dirname(scriptPath));
 const quarto = Deno.env.get("QUARTO") || "quarto";
 const pdfjam = Deno.env.get("PDFJAM") || "pdfjam";
+const qpdf = Deno.env.get("QPDF") || "qpdf";
+const lualatex = Deno.env.get("LUALATEX") || "lualatex";
 const decoder = new TextDecoder();
 
 type CommandOptions = {
@@ -254,7 +256,9 @@ async function findRenderedFile(
   // type is unambiguous and can still be promoted under the configured name.
   const dot = filename.lastIndexOf(".");
   const extension = dot >= 0 ? filename.slice(dot) : "";
-  const matches = extension ? await filesWithExtension(directory, extension) : [];
+  const matches = extension
+    ? await filesWithExtension(directory, extension)
+    : [];
   if (matches.length === 1) return matches[0];
   throw new Deno.errors.NotFound(filename);
 }
@@ -288,7 +292,9 @@ async function renderNative(
     const cache = join(projectDir, ".cache", "texmf");
     if (!Deno.env.get("TEXMFCACHE")) env.TEXMFCACHE = cache;
     if (!Deno.env.get("TEXMFVAR")) env.TEXMFVAR = cache;
-    if (Object.keys(env).length > 0) await Deno.mkdir(cache, { recursive: true });
+    if (Object.keys(env).length > 0) {
+      await Deno.mkdir(cache, { recursive: true });
+    }
   }
   await runQuarto(args, { env });
   let output: string;
@@ -352,19 +358,196 @@ async function validatePdfStandards(
   }
 }
 
+type PdfOutline = {
+  title: string;
+  sourcePage: number;
+  level: number;
+};
+
+function collectPdfOutlines(
+  value: unknown,
+  level = 0,
+  outlines: PdfOutline[] = [],
+): PdfOutline[] {
+  if (!Array.isArray(value)) return outlines;
+  for (const item of value) {
+    const entry = object(item);
+    const title = scalar(entry.title).trim();
+    const sourcePage = entry.destpageposfrom1;
+    if (
+      title && typeof sourcePage === "number" && Number.isInteger(sourcePage) &&
+      sourcePage > 0
+    ) {
+      outlines.push({ title, sourcePage, level });
+    }
+    collectPdfOutlines(entry.kids, level + 1, outlines);
+  }
+  return outlines;
+}
+
+async function readPdfOutlines(path: string): Promise<PdfOutline[]> {
+  const version = await runCommand(
+    qpdf,
+    ["--version"],
+    "check qpdf outline support",
+  );
+  const match = /\bqpdf version (\d+)\.(\d+)(?:\.\d+)?\b/.exec(version);
+  if (
+    !match || Number(match[1]) < 11 ||
+    (Number(match[1]) === 11 && Number(match[2]) < 10)
+  ) {
+    throw new Error(
+      `${qpdf} 11.10 or newer is required to read PDF bookmarks reliably`,
+    );
+  }
+  const output = await runCommand(
+    qpdf,
+    ["--json", "--json-key=outlines", path],
+    "read source PDF bookmarks",
+  );
+  let payload: Json;
+  try {
+    payload = JSON.parse(output) as Json;
+  } catch {
+    throw new Error(
+      `${qpdf} returned invalid JSON while reading PDF bookmarks`,
+    );
+  }
+  return collectPdfOutlines(payload.outlines);
+}
+
+function plainMetadataText(value: unknown): string {
+  let result = scalar(value).trim();
+  if (
+    result.length >= 2 &&
+    ((result.startsWith("*") && result.endsWith("*")) ||
+      (result.startsWith("_") && result.endsWith("_")))
+  ) {
+    result = result.slice(1, -1);
+  }
+  return result
+    .replace(/`([^`]*)`/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/__([^_]+)__/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/_([^_\s](?:.*?[^_\s])?)_/g, "$1")
+    .replace(/\\([\\`*_[\]{}()#+.!-])/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function texEscape(value: string): string {
+  const replacements: Record<string, string> = {
+    "\\": "\\textbackslash{}",
+    "{": "\\{",
+    "}": "\\}",
+    "$": "\\$",
+    "&": "\\&",
+    "#": "\\#",
+    "%": "\\%",
+    "_": "\\_",
+    "^": "\\textasciicircum{}",
+    "~": "\\textasciitilde{}",
+  };
+  return value
+    .replace(/[\u0000-\u001f\u007f]+/g, " ")
+    .replace(/[\\{}$&#%_^~]/g, (character) => replacements[character])
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+type PublicationMetadata = {
+  title: string;
+  author: string;
+  subject: string;
+  keywords: string;
+  lang: string;
+};
+
+function publicationMetadata(config: Json): PublicationMetadata {
+  const book = object(config.book);
+  const title = plainMetadataText(config["title-meta"]) ||
+    [plainMetadataText(book.title), plainMetadataText(book.subtitle)]
+      .filter(Boolean).join(": ");
+  return {
+    title,
+    author: plainMetadataText(config["author-meta"] || book.author),
+    subject: plainMetadataText(config.subject),
+    keywords: strings(config.keywords).map(plainMetadataText).filter(Boolean)
+      .join(", ") || plainMetadataText(config.keywords),
+    lang: plainMetadataText(config.lang),
+  };
+}
+
+function twoUpTex(
+  metadata: PublicationMetadata,
+  outlines: PdfOutline[],
+): string {
+  const bySheet = new Map<number, PdfOutline[]>();
+  for (const outline of outlines) {
+    const sheet = Math.floor(outline.sourcePage / 2) + 1;
+    const entries = bySheet.get(sheet) || [];
+    entries.push(outline);
+    bySheet.set(sheet, entries);
+  }
+  const bookmarkDefinitions = [...bySheet.entries()].map(([sheet, entries]) => {
+    const commands = entries.map((entry, index) =>
+      `\\pdfbookmark[${entry.level}]{${texEscape(entry.title)}}` +
+      `{longform-outline-${sheet}-${index}}`
+    ).join("%\n");
+    return `\\expandafter\\def\\csname LongformBookmarks${sheet}` +
+      `\\endcsname{%\n${commands}%\n}`;
+  }).join("\n");
+  const settings = [
+    `pdftitle={${texEscape(metadata.title)}}`,
+    `pdfauthor={${texEscape(metadata.author)}}`,
+    `pdfsubject={${texEscape(metadata.subject)}}`,
+    `pdfkeywords={${texEscape(metadata.keywords)}}`,
+    `pdflang={${texEscape(metadata.lang)}}`,
+    "pdfdisplaydoctitle=true",
+    "bookmarks=true",
+    "bookmarksopen=true",
+  ].join(",\n  ");
+  return String.raw`\documentclass[a4paper,landscape]{article}
+\usepackage[margin=0pt]{geometry}
+\usepackage{pdfpages}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{
+  ${settings}
+}
+\pagestyle{empty}
+\newcounter{LongformSheet}
+${bookmarkDefinitions}
+\newcommand{\LongformSheetCommand}{%
+  \thispagestyle{empty}%
+  \stepcounter{LongformSheet}%
+  \ifcsname LongformBookmarks\arabic{LongformSheet}\endcsname%
+    \csname LongformBookmarks\arabic{LongformSheet}\endcsname%
+  \fi%
+}
+\begin{document}
+\includepdf[pages=-,fitpaper=true,pagecommand={\LongformSheetCommand}]{imposed.pdf}
+\end{document}
+`;
+}
+
 async function imposeTwoUp(
   source: string,
   destination: string,
+  metadata: PublicationMetadata,
 ): Promise<string> {
   console.log("Imposing PDF two-up");
   await Deno.mkdir(dirname(destination), { recursive: true });
-  let result: Deno.CommandOutput;
+  const outlines = await readPdfOutlines(source);
+  const working = await Deno.makeTempDir({ prefix: "longform-two-up-" });
+  const imposed = join(working, "imposed.pdf");
   try {
-    result = await new Deno.Command(pdfjam, {
-      args: [
+    await runCommand(
+      pdfjam,
+      [
         "--vanilla",
         "--quiet",
-        "--keepinfo",
         source,
         "{},1-",
         "--nup",
@@ -373,26 +556,43 @@ async function imposeTwoUp(
         "--paper",
         "a4paper",
         "--outfile",
-        destination,
+        imposed,
       ],
-      cwd: projectDir,
-      stdout: "piped",
-      stderr: "piped",
-    }).output();
-  } catch (error) {
-    if (error instanceof Deno.errors.NotFound) {
-      throw new Error(
-        `${pdfjam} is required to create the two-up PDF`,
+      "create the two-up PDF",
+      { cwd: working },
+    );
+    await requireOutput(imposed);
+
+    await Deno.writeTextFile(
+      join(working, "longform-two-up.tex"),
+      twoUpTex(metadata, outlines),
+    );
+    const latexArgs = [
+      "--interaction=batchmode",
+      "--halt-on-error",
+      "--file-line-error",
+      "longform-two-up.tex",
+    ];
+    const texEnvironment: Record<string, string> = {};
+    const texCache = join(projectDir, ".cache", "texmf");
+    if (!Deno.env.get("TEXMFCACHE")) texEnvironment.TEXMFCACHE = texCache;
+    if (!Deno.env.get("TEXMFVAR")) texEnvironment.TEXMFVAR = texCache;
+    if (Object.keys(texEnvironment).length > 0) {
+      await Deno.mkdir(texCache, { recursive: true });
+    }
+    for (let run = 0; run < 2; run += 1) {
+      await runCommand(
+        lualatex,
+        latexArgs,
+        `write two-up PDF metadata and bookmarks (run ${run + 1})`,
+        { cwd: working, env: texEnvironment },
       );
     }
-    throw error;
-  }
-  if (!result.success) {
-    const detail = [
-      decoder.decode(result.stderr).trim(),
-      decoder.decode(result.stdout).trim(),
-    ].filter(Boolean).join("\n");
-    throw new Error(detail || `${pdfjam} failed to impose the PDF`);
+    const rendered = join(working, "longform-two-up.pdf");
+    await requireOutput(rendered);
+    await Deno.copyFile(rendered, destination);
+  } finally {
+    await removeIfPresent(working);
   }
   await requireOutput(destination);
   return destination;
@@ -557,6 +757,7 @@ async function build(): Promise<void> {
     const twoUp = await imposeTwoUp(
       pdf,
       join(stage, "pdf-2up", `${twoUpBase}.pdf`),
+      publicationMetadata(config),
     );
     const renderedDocx = await renderNative(
       "docx",
@@ -619,7 +820,10 @@ async function zettlr(): Promise<void> {
     color: null,
   };
   const destination = join(projectDir, "writing", ".ztr-directory");
-  await Deno.writeTextFile(destination, `${JSON.stringify(adapter, null, 2)}\n`);
+  await Deno.writeTextFile(
+    destination,
+    `${JSON.stringify(adapter, null, 2)}\n`,
+  );
   console.log(`Wrote ${relative(projectDir, destination)}`);
 }
 
