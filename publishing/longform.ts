@@ -481,9 +481,9 @@ function twoUpTex(
     const commands = entries.map((entry, index) =>
       `\\pdfbookmark[${entry.level}]{${texEscape(entry.title)}}` +
       `{longform-outline-${sheet}-${index}}`
-    ).join("%");
+    ).join("%\n");
     return `\\expandafter\\def\\csname LongformBookmarks${sheet}` +
-      `\\endcsname{${commands}}`;
+      `\\endcsname{%\n${commands}%\n}`;
   }).join("\n");
   const settings = [
     `pdftitle={${texEscape(metadata.title)}}`,

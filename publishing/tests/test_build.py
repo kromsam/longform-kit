@@ -413,6 +413,10 @@ def write_test_manuscript(project: Path) -> None:
     )
     introduction.write_text(
         "# Introduction\n\n"
+        "```{=latex}\n"
+        "\\pdfbookmark[0]{Fixture Introduction Bookmark}{fixture-introduction}\n"
+        "\\pdfbookmark[1]{Fixture Nested Bookmark}{fixture-nested}\n"
+        "```\n\n"
         f"## {SECTION_HEADING}\n\n"
         f"{INTRO_MARKER}\n\n"
         "```{=latex}\n"
@@ -441,6 +445,9 @@ def write_test_manuscript(project: Path) -> None:
     )
     conclusion.write_text(
         "# Conclusion {.unnumbered}\n\n"
+        "```{=latex}\n"
+        "\\pdfbookmark[0]{Fixture Conclusion Bookmark}{fixture-conclusion}\n"
+        "```\n\n"
         "::: {.content-visible when-format=\"gfm\"}\n"
         f"{GFM_MARKER}\n"
         ":::\n\n"
