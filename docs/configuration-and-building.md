@@ -119,9 +119,11 @@ Because imposition discards the source structure tree, this print derivative
 remains untagged and makes no PDF/A or PDF/UA conformance claim.
 
 For GFM, the program resolves the chapter list into a temporary standalone
-Quarto document, renders it through Pandoc, extracts referenced media, and
-removes the temporary source. This preserves citations, includes, shortcodes,
-and `when-format="gfm"` conditionals.
+Quarto document, renders it through Pandoc with an explicit title template,
+extracts referenced media, and removes the temporary source and template. The
+combined file begins with JSON-safe YAML discovery metadata and preserves the
+subtitle as an italic paragraph immediately after the document title, along
+with citations, includes, shortcodes, and `when-format="gfm"` conditionals.
 
 Plain `quarto render` is useful for diagnosis but is not the production build:
 it does not create the imposed PDF and combined Markdown edition in one run.

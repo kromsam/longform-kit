@@ -627,11 +627,86 @@ function standaloneMetadata(config: Json): string {
       lines.push(`${key}: ${JSON.stringify(value)}`);
     }
   }
+  const subtitle = plainMetadataText(book.subtitle);
+  if (subtitle) {
+    lines.push(`longform-gfm-subtitle: ${JSON.stringify(subtitle)}`);
+  }
   if (config.lang !== undefined && config.lang !== "") {
     lines.push(`lang: ${JSON.stringify(config.lang)}`);
   }
   lines.push("---", "");
   return lines.join("\n");
+}
+
+function gfmDiscoveryMetadata(config: Json): string {
+  const book = object(config.book);
+  const identity = publicationMetadata(config);
+  const keywordList = strings(config.keywords).map(plainMetadataText)
+    .filter(Boolean);
+  const fields: [string, string | string[]][] = [
+    ["title", plainMetadataText(book.title)],
+    ["subtitle", plainMetadataText(book.subtitle)],
+    ["title-meta", identity.title],
+    ["author", identity.author],
+    ["date", plainMetadataText(book.date)],
+    ["lang", identity.lang],
+    ["subject", identity.subject],
+    [
+      "keywords",
+      keywordList.length > 0
+        ? keywordList
+        : identity.keywords.split(",").map((keyword) => keyword.trim())
+          .filter(Boolean),
+    ],
+  ];
+  const lines = ["---"];
+  for (const [key, value] of fields) {
+    const populated = Array.isArray(value) ? value.length > 0 : value !== "";
+    if (populated) {
+      // JSON scalars and arrays are valid YAML and keep punctuation, braces,
+      // and non-ASCII discovery metadata unambiguous in the combined GFM.
+      lines.push(`${key}: ${JSON.stringify(value)}`);
+    }
+  }
+  lines.push("---", "");
+  return lines.join("\n");
+}
+
+function gfmTemplate(): string {
+  return `$if(title)$
+# $title$
+$if(longform-gfm-subtitle)$
+
+*$longform-gfm-subtitle$*
+$endif$
+$for(author)$
+
+$author$
+$endfor$
+$if(date)$
+
+$date$
+$endif$
+
+$endif$
+$for(header-includes)$
+$header-includes$
+
+$endfor$
+$for(include-before)$
+$include-before$
+
+$endfor$
+$if(toc)$
+$table-of-contents$
+
+$endif$
+$body$
+$for(include-after)$
+
+$include-after$
+$endfor$
+`;
 }
 
 function resourcePath(config: Json): string {
@@ -666,6 +741,7 @@ async function renderGfm(
     dir: projectDir,
     prefix: ".longform-gfm-",
   });
+  const templatePath = join(working, "longform-gfm.template");
   const mediaName = `${filename.slice(0, -3)}_files`;
   const mediaReference = encodeURIComponent(mediaName);
   const extractionName = `.longform-media-${token}`;
@@ -679,6 +755,7 @@ async function renderGfm(
       `${standaloneMetadata(config)}${body}\n`,
     );
     await Deno.writeTextFile(profilePath, "project:\n  type: default\n");
+    await Deno.writeTextFile(templatePath, gfmTemplate());
     await Deno.mkdir(stage, { recursive: true });
     await runQuarto(
       [
@@ -692,6 +769,7 @@ async function renderGfm(
         filename,
         "--output-dir",
         stage,
+        `--template=${templatePath}`,
         `--extract-media=${extractionName}`,
         `--resource-path=${resourcePath(config)}`,
       ],
@@ -701,12 +779,12 @@ async function renderGfm(
     const markdown = await findFile(stage, filename);
     await requireOutput(markdown);
     const rendered = await Deno.readTextFile(markdown);
-    if (rendered.includes(extractionName)) {
-      await Deno.writeTextFile(
-        markdown,
-        rendered.replaceAll(extractionName, mediaReference),
-      );
-    }
+    await Deno.writeTextFile(
+      markdown,
+      `${gfmDiscoveryMetadata(config)}${
+        rendered.replaceAll(extractionName, mediaReference)
+      }`,
+    );
     const candidates = [
       join(projectDir, extractionName),
       join(working, extractionName),
