@@ -870,6 +870,9 @@ async function build(): Promise<void> {
     await removeIfPresent(join(destination, `${base}-latex`));
   } finally {
     await removeIfPresent(stage);
+    // LuaLaTeX's tagging/math support can write this MathML sidecar beside
+    // Quarto's root adapter even when the public PDF is staged elsewhere.
+    await removeIfPresent(join(projectDir, "index-luamml-mathml.html"));
   }
   console.log("Build complete");
 }

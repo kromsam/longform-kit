@@ -1362,6 +1362,11 @@ def assert_strict_pdf_validation_fails_closed(
     environment: dict[str, str],
 ) -> None:
     """A non-compliant veraPDF report must stop before output promotion."""
+    mathml_sidecar = project / "index-luamml-mathml.html"
+    mathml_sidecar.write_text(
+        "sentinel for failed-build cleanup\n",
+        encoding="utf-8",
+    )
     verifier = Path(environment["QUARTO_VERAPDF"])
     if verifier.parent != project / "tool shims":
         fail("refusing to replace a veraPDF executable outside the test shims")
@@ -1387,6 +1392,8 @@ def assert_strict_pdf_validation_fails_closed(
             "strict PDF validation failed without the expected diagnostic:\n"
             f"{result.stdout}"
         )
+    if mathml_sidecar.exists():
+        fail("failed build retained tagged LuaLaTeX's MathML sidecar")
 
 
 def assert_gfm(path: Path, title: str, subtitle: str, config: dict) -> None:
@@ -1597,6 +1604,8 @@ def assert_no_intermediates(project: Path, build: Path) -> None:
         fail("build retained temporary GFM sources: " + ", ".join(map(str, temporary)))
     if (project / "index.tex").exists():
         fail("build retained Quarto's root LaTeX intermediate: index.tex")
+    if (project / "index-luamml-mathml.html").exists():
+        fail("build retained tagged LuaLaTeX's MathML sidecar")
 
 
 def resolve_from(base: Path, value: str) -> Path:
@@ -1680,6 +1689,10 @@ def test_build() -> None:
         build.mkdir(parents=True, exist_ok=True)
         for retired in retired_pdfs:
             retired.write_bytes(b"%PDF-1.0\nretired binding-suffix output\n")
+        (project / "index-luamml-mathml.html").write_text(
+            "sentinel for successful-build cleanup\n",
+            encoding="utf-8",
+        )
 
         run(
             QUARTO,
