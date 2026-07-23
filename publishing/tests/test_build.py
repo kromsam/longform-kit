@@ -1421,15 +1421,21 @@ def assert_gfm(path: Path, title: str, subtitle: str, config: dict) -> None:
         if isinstance(raw_keywords, list)
         else [plain_metadata_text(raw_keywords)]
     )
-    expected_metadata: dict[str, object] = {
-        "title": plain_metadata_text(book.get("title", "")),
-        "subtitle": subtitle_text,
-        "title-meta": identity["Title"],
-        "author": identity["Author"],
-        "date": plain_metadata_text(book.get("date", "")),
-        "lang": identity["Language"],
-        "subject": identity["Subject"],
-        "keywords": list(filter(None, expected_keywords)),
+    expected_fields: list[tuple[str, object]] = [
+        ("title", plain_metadata_text(book.get("title", ""))),
+        ("subtitle", subtitle_text),
+        ("title-meta", identity["Title"]),
+        ("author", identity["Author"]),
+        ("date", plain_metadata_text(book.get("date", ""))),
+        ("lang", identity["Language"]),
+        ("subject", identity["Subject"]),
+        ("keywords", list(filter(None, expected_keywords))),
+    ]
+    expected_metadata = {
+        key: value
+        for key, value in expected_fields
+        if (isinstance(value, list) and value)
+        or (not isinstance(value, list) and value != "")
     }
     if metadata != expected_metadata:
         fail(
@@ -1442,20 +1448,31 @@ def assert_gfm(path: Path, title: str, subtitle: str, config: dict) -> None:
         fail("GFM must contain exactly one document-title H1")
     title_index = lines.index(title_line)
     following = [line for line in lines[title_index + 1 :] if line.strip()]
-    expected_title_block = [
-        f"*{subtitle_text}*",
-        identity["Author"],
-        plain_metadata_text(book.get("date", "")),
-    ]
-    if following[:3] != expected_title_block:
+    raw_authors = book.get("author", [])
+    visible_authors = (
+        [plain_metadata_text(author) for author in raw_authors]
+        if isinstance(raw_authors, list)
+        else [plain_metadata_text(raw_authors)]
+    )
+    expected_title_block = []
+    if subtitle_text:
+        expected_title_block.append(f"*{subtitle_text}*")
+    expected_title_block.extend(filter(None, visible_authors))
+    date_text = plain_metadata_text(book.get("date", ""))
+    if date_text:
+        expected_title_block.append(date_text)
+    if following[: len(expected_title_block)] != expected_title_block:
         fail(
             "GFM title block does not contain subtitle, author, and date in order: "
-            f"{following[:3]!r}"
+            f"{following[:len(expected_title_block)]!r}"
         )
-    if body_text.count(subtitle_text) != 1:
-        fail("GFM body must preserve the visible subtitle exactly once")
-    if re.search(rf"(?m)^#+\s+.*{re.escape(subtitle_text)}", body_text):
-        fail("GFM must not render the subtitle as a heading")
+    if subtitle_text:
+        if body_text.count(subtitle_text) != 1:
+            fail("GFM body must preserve the visible subtitle exactly once")
+        if re.search(rf"(?m)^#+\s+.*{re.escape(subtitle_text)}", body_text):
+            fail("GFM must not render the subtitle as a heading")
+    elif "**" in following[:1]:
+        fail("GFM rendered an empty subtitle paragraph")
 
     assert_order(
         text,
@@ -1521,6 +1538,43 @@ def assert_gfm(path: Path, title: str, subtitle: str, config: dict) -> None:
         fail(f"GFM figure was not extracted beside the Markdown: {target}")
     if extracted.read_bytes() != ONE_PIXEL_PNG:
         fail("GFM extracted the wrong media bytes")
+
+
+def assert_sparse_gfm_identity(
+    project: Path,
+    build: Path,
+    environment: dict[str, str],
+) -> None:
+    """Exercise optional identity fields, multiple authors, and scalar keywords."""
+    metadata = project / "writing/manuscript/metadata.yml"
+    metadata.write_text(
+        "lang: en-GB\n"
+        'keywords: "fixture, scalar"\n'
+        "book:\n"
+        f'  output-file: "{TEST_OUTPUT}"\n'
+        '  title: "Sparse Identity Fixture"\n'
+        "  author:\n"
+        '    - name: "Alex Example"\n'
+        '    - name: "Robin Fixture"\n',
+        encoding="utf-8",
+    )
+    routine_environment = environment.copy()
+    routine_environment.pop("LONGFORM_VALIDATE_PDF", None)
+    routine_environment.pop("QUARTO_VERAPDF", None)
+    run(
+        QUARTO,
+        "run",
+        "publishing/longform.ts",
+        "build",
+        cwd=project,
+        capture=False,
+        env=routine_environment,
+    )
+    config = inspect(project)
+    output_name = config["book"]["output-file"]
+    gfm = build / f"{output_name}.md"
+    assert_gfm(gfm, "Sparse Identity Fixture", "", config)
+    assert_no_intermediates(project, build)
 
 
 def assert_no_intermediates(project: Path, build: Path) -> None:
@@ -1694,6 +1748,8 @@ def test_build() -> None:
         progress("Zettlr configuration verified")
         assert_headed_front_matter(project)
         progress("headed front matter verified")
+        assert_sparse_gfm_identity(project, build, build_environment)
+        progress("sparse and multi-author GFM identity verified")
         assert_strict_pdf_validation_fails_closed(project, build_environment)
         progress("strict PDF validation failure verified")
 
