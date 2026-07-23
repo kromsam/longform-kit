@@ -50,6 +50,9 @@ BASELINE_SECOND = "FixtureBaselineBA"
 FOOTNOTE_FIRST = "FixtureFootnoteAB"
 FOOTNOTE_SECOND = "FixtureFootnoteBA"
 TEST_OUTPUT = "Longform Kit integration fixture"
+FIXTURE_TITLE = "Longform Kit & Integration"
+FIXTURE_SUBTITLE = "*A Fixture Subtitle*"
+FIXTURE_SUBJECT = "Metadata {braces}, 100% & under_score #1"
 PDF_POINTS_PER_MM = 72 / 25.4
 ONE_PIXEL_PNG = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
@@ -102,6 +105,8 @@ def require_tools() -> None:
         QUARTO,
         "git",
         "pdfjam",
+        "qpdf",
+        "lualatex",
         "pdffonts",
         "pdfinfo",
         "pdftotext",
@@ -268,27 +273,42 @@ def write_local_configuration(project: Path) -> None:
     )
 
 
-def write_verapdf_shim(project: Path) -> tuple[dict[str, str], Path]:
-    """Exercise strict PDF validation without a networked validator."""
+def write_tool_shims(project: Path) -> tuple[dict[str, str], Path, Path]:
+    """Exercise executable overrides and strict PDF validation offline."""
     directory = project / "tool shims"
     directory.mkdir()
-    marker = directory / "verapdf-invocations.txt"
-    verifier = directory / "verapdf override"
-    verifier.write_text(
+    qpdf_marker = directory / "qpdf-invocations.txt"
+    verapdf_marker = directory / "verapdf-invocations.txt"
+
+    qpdf_path = shutil.which("qpdf")
+    if qpdf_path is None:
+        fail("missing required command: qpdf")
+    qpdf_shim = directory / "qpdf override"
+    qpdf_shim.write_text(
         "#!/bin/sh\n"
-        f"printf '%s\\n' \"$*\" >> {shlex.quote(str(marker))}\n"
+        f"printf '%s\\n' \"$*\" >> {shlex.quote(str(qpdf_marker))}\n"
+        f"exec {shlex.quote(qpdf_path)} \"$@\"\n",
+        encoding="utf-8",
+    )
+    qpdf_shim.chmod(0o755)
+
+    verapdf_shim = directory / "verapdf override"
+    verapdf_shim.write_text(
+        "#!/bin/sh\n"
+        f"printf '%s\\n' \"$*\" >> {shlex.quote(str(verapdf_marker))}\n"
         "printf '%s\\n' '<validationReport isCompliant=\"true\"/>'\n",
         encoding="utf-8",
     )
-    verifier.chmod(0o755)
+    verapdf_shim.chmod(0o755)
     environment = os.environ.copy()
     environment.update(
         {
             "LONGFORM_VALIDATE_PDF": "1",
-            "QUARTO_VERAPDF": str(verifier),
+            "QPDF": str(qpdf_shim),
+            "QUARTO_VERAPDF": str(verapdf_shim),
         }
     )
-    return environment, marker
+    return environment, qpdf_marker, verapdf_marker
 
 
 def incoming_real_verapdf() -> str | None:
@@ -361,6 +381,22 @@ def write_test_manuscript(project: Path) -> None:
     chapters.mkdir(parents=True, exist_ok=True)
     figure.parent.mkdir(exist_ok=True)
     figure.write_bytes(ONE_PIXEL_PNG)
+    (manuscript / "metadata.yml").write_text(
+        "lang: en-GB\n"
+        f"title-meta: {json.dumps(f'{FIXTURE_TITLE}: A Fixture Subtitle')}\n"
+        f"subject: {json.dumps(FIXTURE_SUBJECT)}\n"
+        "keywords:\n"
+        "  - one & two\n"
+        "  - 100% fixture\n"
+        "book:\n"
+        '  output-file: "Longform fixture"\n'
+        f"  title: {json.dumps(FIXTURE_TITLE)}\n"
+        f"  subtitle: {json.dumps(FIXTURE_SUBTITLE)}\n"
+        '  author: "Alex Example"\n'
+        '  date: "1 January 2026"\n'
+        '  date-format: "D MMMM YYYY"\n',
+        encoding="utf-8",
+    )
     (manuscript / "chapters.yml").write_text(
         "book:\n"
         "  chapters:\n"
@@ -725,12 +761,128 @@ def pdf_page_size_mm(path: Path) -> tuple[float, float]:
     return width / PDF_POINTS_PER_MM, height / PDF_POINTS_PER_MM
 
 
+def metadata_scalar(value: object) -> str:
+    if isinstance(value, (str, int, float)):
+        return str(value)
+    if isinstance(value, list):
+        return "; ".join(filter(None, map(metadata_scalar, value)))
+    if isinstance(value, dict):
+        return metadata_scalar(value.get("name", ""))
+    return ""
+
+
+def plain_metadata_text(value: object) -> str:
+    result = metadata_scalar(value).strip()
+    if len(result) >= 2 and (
+        (result.startswith("*") and result.endswith("*"))
+        or (result.startswith("_") and result.endswith("_"))
+    ):
+        result = result[1:-1]
+    result = re.sub(r"`([^`]*)`", r"\1", result)
+    result = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", result)
+    result = re.sub(r"\*\*([^*]+)\*\*", r"\1", result)
+    result = re.sub(r"__([^_]+)__", r"\1", result)
+    result = re.sub(r"\*([^*]+)\*", r"\1", result)
+    result = re.sub(r"_([^_\s](?:.*?[^_\s])?)_", r"\1", result)
+    return re.sub(r"\s+", " ", result).strip()
+
+
+def expected_publication_metadata(config: dict) -> dict[str, str]:
+    book = config.get("book", {})
+    if not isinstance(book, dict):
+        book = {}
+    title = plain_metadata_text(config.get("title-meta", ""))
+    if not title:
+        title = ": ".join(
+            filter(
+                None,
+                (
+                    plain_metadata_text(book.get("title", "")),
+                    plain_metadata_text(book.get("subtitle", "")),
+                ),
+            )
+        )
+    raw_keywords = config.get("keywords", "")
+    if isinstance(raw_keywords, list):
+        keywords = ", ".join(
+            filter(None, (plain_metadata_text(item) for item in raw_keywords))
+        )
+    else:
+        keywords = plain_metadata_text(raw_keywords)
+    return {
+        "Title": title,
+        "Author": plain_metadata_text(
+            config.get("author-meta") or book.get("author", "")
+        ),
+        "Subject": plain_metadata_text(config.get("subject", "")),
+        "Keywords": keywords,
+        "Language": plain_metadata_text(config.get("lang", "")),
+    }
+
+
+def pdf_info_fields(path: Path) -> dict[str, str]:
+    information = run("pdfinfo", str(path), cwd=path.parent)
+    fields: dict[str, str] = {}
+    for line in information.splitlines():
+        key, separator, value = line.partition(":")
+        if separator:
+            fields[key.strip()] = value.strip()
+    return fields
+
+
+def qpdf_payload(path: Path, *keys: str) -> dict:
+    arguments = ["qpdf", "--json"]
+    arguments.extend(f"--json-key={key}" for key in keys)
+    arguments.append(str(path.resolve()))
+    return json.loads(run(*arguments, cwd=path.parent))
+
+
+def flatten_pdf_outlines(
+    outlines: object,
+    level: int = 0,
+) -> list[tuple[str, int, int]]:
+    flattened: list[tuple[str, int, int]] = []
+    if not isinstance(outlines, list):
+        return flattened
+    for item in outlines:
+        if not isinstance(item, dict):
+            continue
+        title = item.get("title")
+        page = item.get("destpageposfrom1")
+        if isinstance(title, str) and isinstance(page, int):
+            flattened.append((title, page, level))
+        flattened.extend(flatten_pdf_outlines(item.get("kids"), level + 1))
+    return flattened
+
+
+def pdf_catalog(path: Path) -> dict:
+    payload = qpdf_payload(path, "qpdf")
+    qpdf_objects = payload.get("qpdf", [])
+    if not isinstance(qpdf_objects, list) or len(qpdf_objects) < 2:
+        fail(f"qpdf did not return PDF objects for {path.name}")
+    objects = qpdf_objects[1]
+    if not isinstance(objects, dict):
+        fail(f"qpdf returned invalid PDF objects for {path.name}")
+    trailer = objects.get("trailer", {})
+    if not isinstance(trailer, dict):
+        fail(f"qpdf did not return a trailer for {path.name}")
+    trailer_value = trailer.get("value", {})
+    if not isinstance(trailer_value, dict):
+        fail(f"qpdf returned an invalid trailer for {path.name}")
+    root = trailer_value.get("/Root")
+    catalog = objects.get(f"obj:{root}", {})
+    if not isinstance(catalog, dict) or not isinstance(catalog.get("value"), dict):
+        fail(f"qpdf did not return a catalog for {path.name}")
+    return catalog["value"]
+
+
 def assert_two_up_pdf(
     source: Path,
     two_up: Path,
     source_text: str,
     source_pages: int,
     title: str,
+    config: dict,
 ) -> None:
     """Verify A4-landscape imposition with rectos in the right-hand slot."""
     two_up_text, two_up_pages = assert_pdf(two_up)
@@ -783,6 +935,56 @@ def assert_two_up_pdf(
         fail(
             f"{two_up.name} did not place verso content in the left-hand slot"
         )
+
+    source_outlines = flatten_pdf_outlines(
+        qpdf_payload(source, "outlines").get("outlines")
+    )
+    if not source_outlines:
+        fail(f"{source.name} did not expose any bookmarks to remap")
+    two_up_outlines = flatten_pdf_outlines(
+        qpdf_payload(two_up, "outlines").get("outlines")
+    )
+    expected_outlines = [
+        (outline_title, (page + 2) // 2, level)
+        for outline_title, page, level in source_outlines
+    ]
+    if two_up_outlines != expected_outlines:
+        fail(
+            f"{two_up.name} did not remap source bookmarks to imposed sheets:\n"
+            f"expected {expected_outlines!r}\nactual {two_up_outlines!r}"
+        )
+
+    expected_metadata = expected_publication_metadata(config)
+    actual_metadata = pdf_info_fields(two_up)
+    for key in ("Title", "Author", "Subject", "Keywords"):
+        if actual_metadata.get(key, "") != expected_metadata[key]:
+            fail(
+                f"{two_up.name} {key.lower()} metadata is "
+                f"{actual_metadata.get(key, '')!r}; expected "
+                f"{expected_metadata[key]!r}"
+            )
+    if actual_metadata.get("Tagged", "").lower() != "no":
+        fail(f"{two_up.name} must remain an explicitly untagged print derivative")
+
+    catalog = pdf_catalog(two_up)
+    language = catalog.get("/Lang")
+    if language not in {
+        expected_metadata["Language"],
+        f"u:{expected_metadata['Language']}",
+    }:
+        fail(
+            f"{two_up.name} language metadata is {language!r}; expected "
+            f"{expected_metadata['Language']!r}"
+        )
+    for structural_key in ("/MarkInfo", "/StructTreeRoot"):
+        if structural_key in catalog:
+            fail(
+                f"{two_up.name} copied the source tagging claim: {structural_key}"
+            )
+    xmp = run("pdfinfo", "-meta", str(two_up), cwd=two_up.parent).lower()
+    for claim in ("pdfaid:", "pdfuaid:"):
+        if claim in xmp:
+            fail(f"{two_up.name} incorrectly claims {claim[:-1]} conformance")
 
 
 def assert_pdf_type_area(
@@ -1337,7 +1539,7 @@ def test_build() -> None:
         write_test_manuscript(project)
         assert_default_custom_profile(project)
         write_test_profile(project)
-        build_environment, verapdf_marker = write_verapdf_shim(project)
+        build_environment, qpdf_marker, verapdf_marker = write_tool_shims(project)
         config = assert_configuration(project)
         progress("configuration verified; rendering four outputs")
 
@@ -1360,6 +1562,9 @@ def test_build() -> None:
             capture=False,
             env=build_environment,
         )
+        qpdf_invocations = qpdf_marker.read_text(encoding="utf-8")
+        if "--json --json-key=outlines" not in qpdf_invocations:
+            fail("build did not use the QPDF override to read source bookmarks")
         verapdf_invocations = verapdf_marker.read_text(encoding="utf-8")
         if re.search(r"(?:^|\s)-f\s+4f(?:\s|$)", verapdf_invocations) is None:
             fail("strict PDF validation did not request veraPDF profile 4f")
@@ -1391,6 +1596,7 @@ def test_build() -> None:
             pdf_text,
             pdf_pages,
             title,
+            config,
         )
         headings = ("Introduction", "Conclusion", "Bibliography")
         heading_pages = pdf_heading_pages(pdf, headings)

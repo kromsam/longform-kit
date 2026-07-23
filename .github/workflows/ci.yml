@@ -75,11 +75,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes \
-            libreoffice-writer poppler-utils python3-uno
+            libreoffice-writer poppler-utils python3-uno qpdf
 
       - name: Install PDF inspection tools (macOS)
         if: runner.os == 'macOS'
-        run: brew install poppler
+        run: brew install poppler qpdf
 
       - name: Install veraPDF
         run: quarto install verapdf --no-prompt

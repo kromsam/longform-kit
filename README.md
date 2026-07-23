@@ -22,7 +22,7 @@ implementation.
   `ebgaramond`, `etoolbox`, `microtype`, `nowidow`, and `tagpdf` packages;
   PDF management is supplied by the LaTeX core
 - The LaTeX `epigraph` package when the bundled epigraph feature is enabled
-- `pdfjam` from TeX Live for the two-up PDF
+- `pdfjam` from TeX Live and qpdf for the two-up PDF
 - EB Garamond 1.001 OTF files only when DOCX font embedding is explicitly
   enabled with `LONGFORM_EMBED_DOCX_FONTS=1`; set the absolute
   `LONGFORM_EB_GARAMOND_DIR` when they are not at the documented system path
@@ -156,8 +156,10 @@ output/longform-document.md
 
 The PDF and DOCX are native Quarto book renders. The one-up PDF targets
 PDF/A-4f. The two-up PDF is imposed from it with a leading blank slot so rectos
-appear on the right, but the imposed derivative makes no PDF/A or PDF/UA claim.
-Print it at one PDF page per A4 sheet without applying another pages-per-sheet setting.
+appear on the right. It retains discovery metadata, document language, and
+bookmarks remapped to the imposed sheets, but remains untagged and makes no
+PDF/A or PDF/UA claim. Print it at one PDF page per A4 sheet without applying
+another pages-per-sheet setting.
 The combined Markdown edition resolves citations, shortcodes, includes,
 conditional content, and referenced media before it is written. LaTeX is an
 internal PDF concern, not a public output.

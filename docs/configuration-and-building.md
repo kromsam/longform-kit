@@ -111,8 +111,12 @@ output/longform-document.md
 
 The build program renders the PDF and DOCX as combined Quarto books. It derives
 the two-up PDF with `pdfjam`, placing source pages as `[blank | 1]`, `[2 | 3]`,
-`[4 | 5]`, and so on. Print that file at one PDF page per physical sheet; it is
-sequential spread imposition, not booklet or signature imposition.
+`[4 | 5]`, and so on. It reads the source outline with qpdf, then runs two
+LuaLaTeX passes to restore discovery metadata, document language, and bookmarks
+remapped to the imposed sheets. Print that file at one PDF page per physical
+sheet; it is sequential spread imposition, not booklet or signature imposition.
+Because imposition discards the source structure tree, this print derivative
+remains untagged and makes no PDF/A or PDF/UA conformance claim.
 
 For GFM, the program resolves the chapter list into a temporary standalone
 Quarto document, renders it through Pandoc, extracts referenced media, and
@@ -121,6 +125,8 @@ and `when-format="gfm"` conditionals.
 
 Plain `quarto render` is useful for diagnosis but is not the production build:
 it does not create the imposed PDF and combined Markdown edition in one run.
+
+`PDFJAM`, `QPDF`, and `LUALATEX` may name alternate executables.
 
 A release can make one-up validation fail closed by setting
 `LONGFORM_VALIDATE_PDF=1`; the build then requires veraPDF through
