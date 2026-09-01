@@ -223,5 +223,6 @@ editorial suggestions, especially in quotations and specialist terminology.
 - [Customize the project](docs/customization.md)
 - [Optional publishing features](publishing/features/README.md)
 - [Maintain a tracked downstream](docs/downstream-maintenance.md)
+- [Migrate to v0.7](docs/migrating-to-v0.7.md)
 - [Migrate to v0.6](docs/migrating-to-v0.6.md)
 - [Migrate to v0.5](docs/migrating-to-v0.5.md)
