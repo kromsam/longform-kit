@@ -629,6 +629,15 @@ def require_file(path: Path) -> None:
         fail(f"missing or empty build artifact: {path}")
 
 
+def file_sha256(path: Path) -> str:
+    require_file(path)
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for block in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
 def assert_reproducible_two_up_id(source: Path, two_up: Path) -> None:
     trailer = run(QPDF, "--show-object=trailer", str(two_up), cwd=two_up.parent)
     match = re.search(
@@ -637,7 +646,7 @@ def assert_reproducible_two_up_id(source: Path, two_up: Path) -> None:
     )
     if match is None:
         fail("two-up PDF is missing its reproducible trailer ID")
-    expected = hashlib.sha256(source.read_bytes()).hexdigest()[:32]
+    expected = file_sha256(source)[:32]
     if tuple(value.lower() for value in match.groups()) != (expected, expected):
         fail("two-up PDF trailer ID is not derived from the source PDF")
 
@@ -647,7 +656,7 @@ def assert_reproducible_build(
     artifacts: tuple[Path, ...],
     environment: dict[str, str],
 ) -> None:
-    expected = {artifact: artifact.read_bytes() for artifact in artifacts}
+    expected = {artifact: file_sha256(artifact) for artifact in artifacts}
     run(
         QUARTO,
         "run",
@@ -658,7 +667,7 @@ def assert_reproducible_build(
         env=environment,
     )
     for artifact, baseline in expected.items():
-        if artifact.read_bytes() != baseline:
+        if file_sha256(artifact) != baseline:
             fail(f"repeated build changed artifact bytes: {artifact.name}")
 
 
