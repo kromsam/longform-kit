@@ -29,6 +29,47 @@ toc-depth: 2
 number-sections: true
 ```
 
+## Include PDF-Only Appendices
+
+Keep supplied PDF documents under `materials/attachments/`. To insert their
+pages into the publication PDF, enable LaTeX's `pdfpages` package in
+`_quarto-custom.yml`:
+
+```yaml
+format:
+  pdf:
+    include-in-header:
+      - text: |
+          \usepackage{pdfpages}
+```
+
+Add an appendix chapter to `writing/manuscript/chapters.yml`, then use a raw
+LaTeX block for each supplied PDF. The path is resolved by LaTeX from the
+project root; quote it when a filename contains spaces:
+
+````markdown
+# Appendices
+
+::: {.content-visible unless-format="pdf"}
+The supplied appendix documents are included only in the PDF edition.
+:::
+
+## Appendix 1: Supporting document
+
+```{=latex}
+\includepdf[pages=-]{"materials/attachments/supporting document.pdf"}
+```
+````
+
+Options such as `landscape` may be added to `\includepdf`. Raw LaTeX is omitted
+from DOCX and combined GFM, so retain meaningful headings and explain how
+non-PDF readers can obtain the supplied documents.
+
+Imported pages are not semantic Markdown and may carry fonts, colour spaces,
+or other properties that affect archival validation. Inspect the one-up and
+two-up PDFs and run a strict build with `LONGFORM_VALIDATE_PDF=1` before
+distribution when PDF/A conformance matters.
+
 ## Change PDF Typography
 
 Read `style/typography.md` before changing the implementation. The default
@@ -90,6 +131,11 @@ for filters that are part of the generic Longform Kit build. Keep feature tests
 under `publishing/tests/` and exercise every public output that the feature
 affects. Give each downstream-added directory its own README and explicit
 ownership; never infer ownership from the `publishing/features/` parent.
+
+The standard optional-feature suite permits downstream settings in
+`_quarto-custom.yml`. Official Longform Kit CI additionally runs the explicit
+`starter-contract` check to ensure that the published starter does not enable
+an optional feature by default.
 
 For an external Quarto extension, install it from the project root:
 
