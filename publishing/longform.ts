@@ -483,6 +483,7 @@ function publicationMetadata(config: Json): PublicationMetadata {
 function twoUpTex(
   metadata: PublicationMetadata,
   outlines: PdfOutline[],
+  trailerId?: string,
 ): string {
   const bySheet = new Map<number, PdfOutline[]>();
   for (const outline of outlines) {
@@ -509,8 +510,12 @@ function twoUpTex(
     "bookmarks=true",
     "bookmarksopen=true",
   ].join(",\n  ");
+  const reproducibleTrailer = trailerId
+    ? String.raw`\pdfvariable trailerid { [ <${trailerId}> <${trailerId}> ] }
+`
+    : "";
   return String.raw`\documentclass[a4paper,landscape]{article}
-\usepackage[margin=0pt]{geometry}
+${reproducibleTrailer}\usepackage[margin=0pt]{geometry}
 \usepackage{pdfpages}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{
@@ -532,6 +537,19 @@ ${bookmarkDefinitions}
 `;
 }
 
+async function reproducibleTrailerId(
+  source: string,
+): Promise<string | undefined> {
+  if (!Deno.env.get("SOURCE_DATE_EPOCH")?.trim()) return undefined;
+  const digest = new Uint8Array(
+    await crypto.subtle.digest("SHA-256", await Deno.readFile(source)),
+  );
+  return Array.from(
+    digest.subarray(0, 16),
+    (byte) => byte.toString(16).padStart(2, "0"),
+  ).join("");
+}
+
 async function imposeTwoUp(
   source: string,
   destination: string,
@@ -540,6 +558,7 @@ async function imposeTwoUp(
   console.log("Imposing PDF two-up");
   await Deno.mkdir(dirname(destination), { recursive: true });
   const outlines = await readPdfOutlines(source);
+  const trailerId = await reproducibleTrailerId(source);
   const working = await Deno.makeTempDir({ prefix: "longform-two-up-" });
   const imposed = join(working, "imposed.pdf");
   try {
@@ -565,7 +584,7 @@ async function imposeTwoUp(
 
     await Deno.writeTextFile(
       join(working, "longform-two-up.tex"),
-      twoUpTex(metadata, outlines),
+      twoUpTex(metadata, outlines, trailerId),
     );
     const latexArgs = [
       "--interaction=batchmode",
