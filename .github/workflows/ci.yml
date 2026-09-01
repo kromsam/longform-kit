@@ -137,6 +137,10 @@ jobs:
           python3 publishing/tests/test_optional_features.py
           python3 publishing/tests/test_build.py
 
+      - name: Verify the official starter remains inert
+        if: github.repository == 'kromsam/longform-kit'
+        run: python3 publishing/tests/test_optional_features.py starter-contract
+
       - name: Exercise real LibreOffice/UNO TOC refresh (Linux)
         if: runner.os == 'Linux'
         env:
