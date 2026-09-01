@@ -7,11 +7,15 @@
 \usepackage{etoolbox}
 \usepackage[all]{nowidow}
 
+% Quarto's font partial applies Ligatures=TeX to \rmfamily only, so this
+% family must request it as well. Without it, Pandoc's TeX quote and dash
+% forms (`, ', --) stay literal wherever headings use this font.
 \newfontfamily\LongformSemibold[
   UprightFont={EB Garamond SemiBold},
   ItalicFont={EB Garamond SemiBold Italic},
   BoldFont={EB Garamond Bold},
   BoldItalicFont={EB Garamond Bold Italic},
+  Ligatures=TeX,
   Numbers=OldStyle
 ]{EB Garamond}
 

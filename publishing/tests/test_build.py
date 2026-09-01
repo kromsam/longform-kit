@@ -39,6 +39,8 @@ PAGINATED_MARKER = (
 )
 FIGURE_ALT = "Integration fixture figure"
 GLYPH_MARKER = "-> => != <= >= :: 0123456789"
+HEADING_LIGATURE_SOURCE = "Fixture 'quoted' -- heading"
+HEADING_LIGATURE_RENDERED = "Fixture ‘quoted’ – heading"
 SECTION_HEADING = "Fixture Section Omitted From Contents"
 ODD_AREA_LEFT = "FixtureOddAreaLeft"
 ODD_AREA_RIGHT = "FixtureOddAreaRight"
@@ -419,6 +421,7 @@ def write_test_manuscript(project: Path) -> None:
         "\\pdfbookmark[1]{Fixture Nested Bookmark}{fixture-nested}\n"
         "```\n\n"
         f"## {SECTION_HEADING}\n\n"
+        f"### {HEADING_LIGATURE_SOURCE}\n\n"
         f"{INTRO_MARKER}\n\n"
         "```{=latex}\n"
         f"\\noindent\\makebox[\\textwidth][s]{{{ODD_AREA_LEFT}"
@@ -693,6 +696,8 @@ def assert_pdf(path: Path) -> tuple[str, int]:
         fail(f"{path.name} retained GFM-only conditional content")
     if GLYPH_MARKER not in text:
         fail(f"{path.name} did not preserve inline-code glyph extraction")
+    if HEADING_LIGATURE_RENDERED not in text:
+        fail(f"{path.name} did not apply TeX ligatures in the heading font")
 
     font_table = run("pdffonts", str(path), cwd=path.parent)
     font_rows = [line.split() for line in font_table.splitlines()[2:] if line.strip()]
