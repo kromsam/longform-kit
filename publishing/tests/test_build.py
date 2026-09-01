@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import base64
 import difflib
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -309,6 +310,7 @@ def write_tool_shims(project: Path) -> tuple[dict[str, str], Path, Path]:
             "LONGFORM_VALIDATE_PDF": "1",
             "QPDF": str(qpdf_shim),
             "QUARTO_VERAPDF": str(verapdf_shim),
+            "SOURCE_DATE_EPOCH": "1704067200",
         }
     )
     return environment, qpdf_marker, verapdf_marker
@@ -625,6 +627,39 @@ def assert_configuration(project: Path) -> dict:
 def require_file(path: Path) -> None:
     if not path.is_file() or path.stat().st_size == 0:
         fail(f"missing or empty build artifact: {path}")
+
+
+def assert_reproducible_two_up_id(source: Path, two_up: Path) -> None:
+    trailer = run(QPDF, "--show-object=trailer", str(two_up), cwd=two_up.parent)
+    match = re.search(
+        r"/ID\s*\[\s*<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*\]",
+        trailer,
+    )
+    if match is None:
+        fail("two-up PDF is missing its reproducible trailer ID")
+    expected = hashlib.sha256(source.read_bytes()).hexdigest()[:32]
+    if tuple(value.lower() for value in match.groups()) != (expected, expected):
+        fail("two-up PDF trailer ID is not derived from the source PDF")
+
+
+def assert_reproducible_build(
+    project: Path,
+    artifacts: tuple[Path, ...],
+    environment: dict[str, str],
+) -> None:
+    expected = {artifact: artifact.read_bytes() for artifact in artifacts}
+    run(
+        QUARTO,
+        "run",
+        "publishing/longform.ts",
+        "build",
+        cwd=project,
+        capture=False,
+        env=environment,
+    )
+    for artifact, baseline in expected.items():
+        if artifact.read_bytes() != baseline:
+            fail(f"repeated build changed artifact bytes: {artifact.name}")
 
 
 def assert_order(text: str, values: list[str], label: str) -> None:
@@ -1728,6 +1763,12 @@ def test_build() -> None:
         for retired in retired_pdfs:
             if retired.exists():
                 fail(f"build retained a retired binding-suffix PDF: {retired.name}")
+        progress("rebuilding to verify byte reproducibility")
+        assert_reproducible_build(
+            project,
+            (pdf, two_up_pdf, docx, gfm),
+            build_environment,
+        )
 
         pdf_text, pdf_pages = assert_pdf(pdf)
         assert_real_pdf_standards(pdf, real_verapdf)
@@ -1746,6 +1787,7 @@ def test_build() -> None:
             title,
             config,
         )
+        assert_reproducible_two_up_id(pdf, two_up_pdf)
         headings = ("Introduction", "Conclusion", "Bibliography")
         heading_pages = pdf_heading_pages(pdf, headings)
         for heading, page in heading_pages.items():

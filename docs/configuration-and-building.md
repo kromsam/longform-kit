@@ -109,6 +109,20 @@ output/longform-document.docx
 output/longform-document.md
 ```
 
+For byte-reproducible output, set the standard `SOURCE_DATE_EPOCH` environment
+variable to the same Unix timestamp for every comparison build:
+
+```sh
+SOURCE_DATE_EPOCH=1704067200 quarto run publishing/longform.ts build
+```
+
+Pandoc and LuaTeX use the fixed epoch for volatile package and PDF metadata.
+When it is present, Longform Kit also derives the two-up PDF trailer identifier
+from the source PDF instead of accepting LuaTeX's per-run identifier. Identical
+sources, tool versions, and build environments then produce identical bytes in
+all four outputs. Without `SOURCE_DATE_EPOCH`, creation metadata and PDF
+identifiers may legitimately differ between builds.
+
 The build program renders the PDF and DOCX as combined Quarto books. It derives
 the two-up PDF with `pdfjam`, placing source pages as `[blank | 1]`, `[2 | 3]`,
 `[4 | 5]`, and so on. It reads the source outline with qpdf, then runs two
