@@ -257,6 +257,10 @@ def test_contract() -> None:
     if "publishing/features/" in root_config:
         fail("root _quarto.yml references an optional feature")
 
+
+def test_starter_contract() -> None:
+    """Keep the official starter inert without rejecting downstream profiles."""
+
     custom_lines = [
         line.strip()
         for line in (ROOT / "_quarto-custom.yml").read_text(
@@ -676,15 +680,20 @@ TESTS = {
     "failure-behaviour": test_failure_behaviour,
 }
 
+EXPLICIT_TESTS = {
+    "starter-contract": test_starter_contract,
+}
+
 
 def main() -> None:
     requested = sys.argv[1:] or list(TESTS)
-    unknown = sorted(set(requested) - set(TESTS))
+    available = TESTS | EXPLICIT_TESTS
+    unknown = sorted(set(requested) - set(available))
     if unknown:
         raise SystemExit("unknown optional-feature test: " + ", ".join(unknown))
     for name in requested:
         print(f"test_optional_features: {name}", flush=True)
-        TESTS[name]()
+        available[name]()
     print("test_optional_features: all requested checks passed")
 
 
